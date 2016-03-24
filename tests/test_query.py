@@ -1,0 +1,68 @@
+import unittest
+import datetime
+from pilosa import SetBit, Bitmap, Union, Intersect, Difference, Count, TopN, Range, SetBitmapAttrs, ClearBit
+from pilosa.query import InvalidQuery, escape_string_value
+
+
+class QueryTestCase(unittest.TestCase):
+
+    def test_setbit(self):
+        self.assertEqual(SetBit(1, 'foo', 2).to_pql(), 'SetBit(id=1, frame="foo", profileID=2)')
+
+        with self.assertRaises(ValueError):
+            SetBit('string', 'foo', 2).to_pql()
+
+        with self.assertRaises(ValueError):
+            SetBit(1, 'foo', 'string').to_pql()
+
+    def test_clearbit(self):
+        self.assertEqual(ClearBit(1, 'foo', 2).to_pql(), 'ClearBit(id=1, frame="foo", profileID=2)')
+
+    def test_bitmap(self):
+        self.assertEqual(Bitmap(1, 'foo').to_pql(), 'Bitmap(id=1, frame="foo")')
+
+        with self.assertRaises(ValueError):
+            Bitmap('abc', 'foo').to_pql()
+
+    def test_union(self):
+        self.assertEqual(Union(Bitmap(1, 'foo'), Bitmap(2, 'bar')).to_pql(), 'Union(Bitmap(id=1, frame="foo"), Bitmap(id=2, frame="bar"))')
+        self.assertEqual(Union(Bitmap(1, 'foo'), Bitmap(2, 'bar'), Bitmap(3, 'bar')).to_pql(), 'Union(Bitmap(id=1, frame="foo"), Bitmap(id=2, frame="bar"), Bitmap(id=3, frame="bar"))')
+
+    def test_intersect(self):
+        self.assertEqual(Intersect(Bitmap(1, 'foo'), Bitmap(2, 'bar')).to_pql(), 'Intersect(Bitmap(id=1, frame="foo"), Bitmap(id=2, frame="bar"))')
+        self.assertEqual(Intersect(Bitmap(1, 'foo'), Bitmap(2, 'bar'), Bitmap(3, 'bar')).to_pql(), 'Intersect(Bitmap(id=1, frame="foo"), Bitmap(id=2, frame="bar"), Bitmap(id=3, frame="bar"))')
+
+    def test_difference(self):
+        self.assertEqual(Difference(Bitmap(1, 'foo'), Bitmap(2, 'bar')).to_pql(), 'Difference(Bitmap(id=1, frame="foo"), Bitmap(id=2, frame="bar"))')
+
+        with self.assertRaises(InvalidQuery):
+            Difference(Bitmap(1, 'foo'), Bitmap(2, 'foo'), Bitmap(3, 'foo'))
+
+    def test_count(self):
+        self.assertEqual(Count(Bitmap(1, 'foo')).to_pql(), 'Count(Bitmap(id=1, frame="foo"))')
+
+        with self.assertRaises(InvalidQuery):
+            Count(Bitmap(1, 'foo'), Bitmap(2, 'foo'))
+
+    def test_topn(self):
+        self.assertEqual(TopN(Bitmap(1, 'foo'), 'bar', 20).to_pql(), 'TopN(Bitmap(id=1, frame="foo"), frame="bar", n=20)')
+        self.assertEqual(TopN(None, 'bar', 20).to_pql(), 'TopN(frame="bar", n=20)')
+
+    def test_escape_string_value(self):
+        self.assertEqual(escape_string_value(1), '1')
+        self.assertEqual(escape_string_value('abc'), '"abc"')
+        self.assertEqual(escape_string_value(True), 'true')
+        self.assertEqual(escape_string_value(False), 'false')
+
+    def test_range(self):
+        start = datetime.datetime(1970, 1, 1, 0, 0)
+        end = datetime.datetime(2000, 1, 2, 3, 4)
+        self.assertEqual(Range(1, 'foo', start, end).to_pql(), 'Range(id=1, frame="foo", start="1970-01-01T00:00", end="2000-01-02T03:04")')
+
+    def test_setbitattrs(self):
+        # TODO: there's no guarantee the attrs are in this order
+        self.assertEqual(SetBitmapAttrs(1, 'foo', cat=399, foo="bar", x=True).to_pql(), 'SetBitmapAttrs(id=1, frame="foo", x=true, foo="bar", cat=399)')
+        
+
+if __name__ == '__main__':
+    unittest.main()
