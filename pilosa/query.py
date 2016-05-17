@@ -13,6 +13,7 @@ def escape_string_value(val):
 
 
 class Query(object):
+    IS_WRITE = False
     """
     A base class that helps Cluster.execute determine that query is 
     an instance of a subclass of Query
@@ -29,6 +30,7 @@ class Query(object):
 
 
 class SetBit(Query):
+    IS_WRITE = True
     def __init__(self, id, frame, profile_id):
         self.id = int(id)
         self.frame = frame
@@ -39,10 +41,12 @@ class SetBit(Query):
 
 
 class ClearBit(SetBit):
+    IS_WRITE = True
     pass
 
 
 class SetBitmapAttrs(Query):
+    IS_WRITE = True
     def __init__(self, id, frame, **attrs):
         self.id = int(id)
         self.frame = frame
