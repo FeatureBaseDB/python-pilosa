@@ -36,9 +36,11 @@ class Cluster(object):
     def _get_random_host(self):
         return self.hosts[random.randint(0, len(self.hosts) - 1)]
 
-    def execute(self, db, query):
+    def execute(self, db, query, profiles=False):
         """
         query is either a Query object or a list of Query objects
+        profiles is a binary that indicates whether to return the entire profile (inc. attrs)
+        in a Bitmap() query, or just the profile ID
         """
         if type(query) is not list:
             query = [query]
@@ -67,4 +69,7 @@ class Cluster(object):
             return firehose_client.put_record(DeliveryStreamName=self.kinesis_firehose_stream, Record={ 'Data': message })
         else:
             query_strings = ' '.join(q.to_pql() for q in query)
-            return requests.post('http://%s/query?db=%s'%(self._get_random_host(), db), data=query_strings)
+            url = 'http://%s/query?db=%s'%(self._get_random_host(), db)
+            if profiles:
+                url += '&profiles=true'
+            return requests.post(url, data=query_strings)

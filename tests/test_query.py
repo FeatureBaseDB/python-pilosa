@@ -1,6 +1,6 @@
 import unittest
 import datetime
-from pilosa import SetBit, Bitmap, Union, Intersect, Difference, Count, TopN, Range, SetBitmapAttrs, ClearBit
+from pilosa import SetBit, Bitmap, Union, Intersect, Difference, Count, TopN, Range, SetBitmapAttrs, ClearBit, SetProfileAttrs
 from pilosa.query import InvalidQuery, escape_string_value
 
 
@@ -59,10 +59,27 @@ class QueryTestCase(unittest.TestCase):
         end = datetime.datetime(2000, 1, 2, 3, 4)
         self.assertEqual(Range(1, 'foo', start, end).to_pql(), 'Range(id=1, frame="foo", start="1970-01-01T00:00", end="2000-01-02T03:04")')
 
-    def test_setbitattrs(self):
-        # TODO: there's no guarantee the attrs are in this order
-        self.assertEqual(SetBitmapAttrs(1, 'foo', cat=399, foo="bar", x=True).to_pql(), 'SetBitmapAttrs(id=1, frame="foo", x=true, foo="bar", cat=399)')
+    def test_setbitmapattrs(self):
+        self.assertEqual(SetBitmapAttrs(1, 'foo', cat=399).to_pql(), 'SetBitmapAttrs(id=1, frame="foo", cat=399)')
+        self.assertEqual(SetBitmapAttrs(1, 'foo', foo="bar").to_pql(), 'SetBitmapAttrs(id=1, frame="foo", foo="bar")')
+        self.assertEqual(SetBitmapAttrs(1, 'foo', x=True).to_pql(), 'SetBitmapAttrs(id=1, frame="foo", x=true)')
+        # there's no guarantee the attrs are in this order, so checking both possibilities
+        self.assertIn(SetBitmapAttrs(1, 'foo', foo="bar", xyz="abc").to_pql(),
+            [
+                'SetBitmapAttrs(id=1, frame="foo", foo="bar", xyz="abc")',
+                'SetBitmapAttrs(id=1, frame="foo", xyz="abc", foo="bar")',
+            ])
         
+    def test_setprofileattrs(self):
+        self.assertEqual(SetProfileAttrs(1, cat=399).to_pql(), 'SetProfileAttrs(id=1, cat=399)')
+        self.assertEqual(SetProfileAttrs(1, foo="bar").to_pql(), 'SetProfileAttrs(id=1, foo="bar")')
+        self.assertEqual(SetProfileAttrs(1, x=True).to_pql(), 'SetProfileAttrs(id=1, x=true)')
+        # there's no guarantee the attrs are in this order, so checking both possibilities
+        self.assertIn(SetProfileAttrs(1, foo="bar", xyz="abc").to_pql(),
+            [
+                'SetProfileAttrs(id=1, foo="bar", xyz="abc")',
+                'SetProfileAttrs(id=1, xyz="abc", foo="bar")',
+            ])
 
 if __name__ == '__main__':
     unittest.main()
