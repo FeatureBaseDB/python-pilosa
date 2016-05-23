@@ -68,6 +68,19 @@ class Bitmap(Query):
         return 'Bitmap(id=%s, frame="%s")'%(self.id, self.frame)
 
 
+class SetProfileAttrs(Query):
+    IS_WRITE = True
+    def __init__(self, id, **attrs):
+        self.id = int(id)
+        self.attrs = attrs
+        if len(self.attrs) == 0:
+            raise InvalidQuery("no attribute provided")
+
+    def to_pql(self):
+        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.iteritems())
+        return 'SetProfileAttrs(id=%s, %s)' % (self.id, attrs)
+
+
 class Union(Query):
     pass
 
