@@ -70,11 +70,14 @@ class Cluster(object):
         profiles is a binary that indicates whether to return the entire profile (inc. attrs)
         in a Bitmap() query, or just the profile ID
         """
+        if not query:
+            raise InvalidQuery('Empty query')
+
         if type(query) is not list:
             query = [query]
         for q in query:
             if not isinstance(q, Query):
-                raise InvalidQuery('%s is not an intance of Query' % (q))
+                raise InvalidQuery('%s is not an instance of Query' % (q))
 
         if self.USE_KINESIS:
             # only send writes to kinesis
