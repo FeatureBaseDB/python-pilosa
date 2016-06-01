@@ -112,7 +112,7 @@ class Range(Query):
 # Profile(id=1)
 
 
-class TopN():
+class TopN(Query):
     """
     The query argument represents the comparison filter to use during the TopN query.
     If query is set to None, then no filter will be applied and all bitmaps within the
