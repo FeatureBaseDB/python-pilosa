@@ -70,13 +70,6 @@ class Cluster(object):
         profiles is a binary that indicates whether to return the entire profile (inc. attrs)
         in a Bitmap() query, or just the profile ID
         """
-        query = self.check_valid_query(query)
-        if self.USE_KINESIS:
-            self.send_writes_to_kinenis(db, query)
-        else:
-            self.post_query_object(db, query, profiles)
-
-    def check_valid_query(self, query):
         if not query:
             return
 
@@ -85,38 +78,37 @@ class Cluster(object):
         for q in query:
             if not isinstance(q, Query):
                 raise InvalidQuery('%s is not an instance of Query' % (q))
-        return query
 
-    def send_writes_to_kinenis(self, db, query):
-        query_strings = ' '.join(q.to_pql() for q in query if q.IS_WRITE)
-        # don't bother sending data to kinesis if there are no write queries
-        if not query_strings:
-            return
-        message = KinesisEncoder.encode(db, query_strings, encode_type=self.kinesis_encode_type)
-        # TODO: we need to check to see if the message is larger than 1MB. if so, we need to
-        # break it up into multiple puts to kinesis (less than 1MB each)
-        try:
-            firehose_client = boto3.client('firehose',
-                                           region_name=self.kinesis_region_name,
-                                           aws_access_key_id=self.aws_access_key_id,
-                                           aws_secret_access_key=self.aws_secret_access_key,
-                                           )
-        except Exception as ex:
-            logger.error('boto connection error', extra={
-                'data': {
-                    'kinesis_region_name': self.kinesis_region_name,
-                    'error': ex.message,
-                },
-            })
-            raise PilosaException('Connection error: %s' % ex)
-        return firehose_client.put_record(DeliveryStreamName=self.kinesis_firehose_stream, Record={'Data': message})
-
-    def post_query_object(self, db, query, profiles):
-        query_strings = ' '.join(q.to_pql() for q in query)
-        url = 'http://%s/query?db=%s' % (self._get_random_host(), db)
-        if profiles:
-            url += '&profiles=true'
-        return requests.post(url, data=query_strings)
+        if self.USE_KINESIS:
+            # only send writes to kinesis
+            query_strings = ' '.join(q.to_pql() for q in query if q.IS_WRITE)
+            # don't bother sending data to kinesis if there are no write queries
+            if not query_strings:
+                return
+            message = KinesisEncoder.encode(db, query_strings, encode_type=self.kinesis_encode_type)
+            # TODO: we need to check to see if the message is larger than 1MB. if so, we need to
+            # break it up into multiple puts to kinesis (less than 1MB each)
+            try:
+                firehose_client = boto3.client('firehose',
+                                               region_name=self.kinesis_region_name,
+                                               aws_access_key_id=self.aws_access_key_id,
+                                               aws_secret_access_key=self.aws_secret_access_key,
+                                               )
+            except Exception as ex:
+                logger.error('boto connection error', extra={
+                    'data': {
+                        'kinesis_region_name': self.kinesis_region_name,
+                        'error': ex.message,
+                    },
+                })
+                raise PilosaException('Connection error: %s' % ex)
+            return firehose_client.put_record(DeliveryStreamName=self.kinesis_firehose_stream, Record={'Data': message})
+        else:
+            query_strings = ' '.join(q.to_pql() for q in query)
+            url = 'http://%s/query?db=%s' % (self._get_random_host(), db)
+            if profiles:
+                url += '&profiles=true'
+            return requests.post(url, data=query_strings)
 
 class PilosaException(Exception):
     pass

@@ -136,8 +136,6 @@ class TopN(Query):
         pql += ')'
         return pql
 
-
-
 if __name__ == '__main__':
     #print SetBitmapAttrs(1, 'foo', cat=399, foo="bar", x=True).to_pql()
     pass
