@@ -66,14 +66,17 @@ class Cluster(object):
 
     def execute(self, db, query, profiles=False):
         """
-        query is either a Query object or a list of Query objects
+        query is either a Query object or a list of Query objects or pql string
         profiles is a binary that indicates whether to return the entire profile (inc. attrs)
         in a Bitmap() query, or just the profile ID
         """
         if not query:
             return
 
-        if type(query) is not list:
+        if isinstance(query, str):
+            url = 'http://%s/query?db=%s' % (self._get_random_host(), db)
+            return requests.post(url, data=query)
+        elif type(query) is not list:
             query = [query]
         for q in query:
             if not isinstance(q, Query):
