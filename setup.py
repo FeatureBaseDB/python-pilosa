@@ -19,8 +19,8 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='pilosa-driver',
-    version='0.2.2.1',
-    description='Python driver for Pilosa',
+    version='0.2.2.3',
+    description='Pilosa support query string',
     #long_description=long_description,
 
     # The project's main homepage.
