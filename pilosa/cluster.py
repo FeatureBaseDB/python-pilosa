@@ -1,37 +1,12 @@
 import logging
 import boto3
-from collections import namedtuple
 import requests
 import random
 from query import Query, InvalidQuery
 from kinesis import KinesisEncoder
 logger = logging.getLogger(__name__)
 
-name_tuple = namedtuple('PilosaSettings',
-                        'kinesis_firehose_stream,'
-                        'kinesis_encode_type,'
-                        'kinesis_region_name, '
-                        'aws_access_key_id,'
-                        'aws_secret_access_key,'
-                        'hosts')
 DEFAULT_HOST = '127.0.0.1:15000'
-
-
-class PilosaSettings(name_tuple):
-    def __new__(cls,
-                kinesis_firehose_stream=None,
-                kinesis_encode_type=None,
-                kinesis_region_name=None,
-                aws_access_key_id=None,
-                aws_secret_access_key=None,
-                hosts=None
-                ):
-        return super(PilosaSettings, cls).__new__(cls, kinesis_firehose_stream,
-                                                  kinesis_encode_type,
-                                                  kinesis_region_name,
-                                                  aws_access_key_id,
-                                                  aws_secret_access_key,
-                                                  hosts)
 
 
 class Cluster(object):
@@ -51,14 +26,14 @@ class Cluster(object):
         self.USE_KINESIS = False
         if not settings:
             self.hosts = [DEFAULT_HOST]
-        elif settings.kinesis_firehose_stream:
-            self.kinesis_firehose_stream = settings.kinesis_firehose_stream
-            self.kinesis_encode_type = settings.kinesis_encode_type or 1
-            self.kinesis_region_name = settings.kinesis_region_name or 'us-east-1'
-            self.aws_access_key_id = settings.aws_access_key_id
-            self.aws_secret_access_key = settings.aws_secret_access_key
+        elif settings.has_key('kinesis_firehose_stream'):
+            self.kinesis_firehose_stream = settings.get('kinesis_firehose_stream')
+            self.kinesis_encode_type = settings.get('kinesis_encode_type', 1)
+            self.kinesis_region_name = settings.get('kinesis_region_name', 'us-east-1')
+            self.aws_access_key_id = settings.get('aws_access_key_id')
+            self.aws_secret_access_key = settings.get('aws_secret_access_key')
             self.USE_KINESIS = True
-        elif settings.hosts:
+        elif settings.get('hosts'):
             self.hosts = settings.hosts
 
     def _get_random_host(self):

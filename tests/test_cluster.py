@@ -1,6 +1,6 @@
 import logging
 import unittest
-from pilosa import Cluster, Bitmap, PilosaSettings, SetBit
+from pilosa import Cluster, Bitmap, SetBit
 from pilosa.query import InvalidQuery
 from pilosa.cluster import DEFAULT_HOST
 from mock import patch, Mock
@@ -58,7 +58,7 @@ class ClusterTestCase(unittest.TestCase):
 
         query = SetBit(10, 'foo', 1)
         query.IS_WRITE = True
-        settings = PilosaSettings(kinesis_firehose_stream='abc')
+        settings = dict(kinesis_firehose_stream='abc')
         c = Cluster(settings=settings)
         firehorse = Mock()
         boto3.client.return_value = firehorse
