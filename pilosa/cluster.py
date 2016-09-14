@@ -34,7 +34,7 @@ class Cluster(object):
             self.aws_secret_access_key = settings.get('aws_secret_access_key')
             self.USE_KINESIS = True
         elif settings.get('hosts'):
-            self.hosts = settings.hosts
+            self.hosts = settings.get('hosts')
 
     def _get_random_host(self):
         return self.hosts[random.randint(0, len(self.hosts) - 1)]

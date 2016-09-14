@@ -19,8 +19,8 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='pilosa-driver',
-    version='0.2.2.4',
-    description='Update pilosa settings',
+    version='0.2.2.5',
+    description='fix pilosa settings bug',
     #long_description=long_description,
 
     # The project's main homepage.
