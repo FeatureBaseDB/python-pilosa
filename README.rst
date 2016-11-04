@@ -19,7 +19,7 @@ from pilosa import Cluster
 cluster = Cluster(settings=SETTINGS)
 ```
 
-Support to connect to pilosa hosts or kinesis.
+#### Support to connect to pilosa hosts or kinesis.
 
 Pilosa Hosts:
 ```
@@ -57,7 +57,7 @@ means that you can provide multiple `Query()` objects with each request and `res
 the results of all of the queries.
 
 ```sh
-results = cluster.execute(exampleDB, [Query(), Query(), Query() )
+results = cluster.execute(exampleDB, [Query(), Query(), Query()])
 ```
 
 ---
