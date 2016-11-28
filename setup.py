@@ -24,11 +24,11 @@ setup(
     #long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/umbel/pilosa-driver',
+    url='https://github.com/pilosa/pilosa-driver',
 
     # Author details
     author='Travis Turner',
-    author_email='travis@umbel.com',
+    author_email='travis@pilosa.com',
 
     # Choose your license
     license='MIT',
