@@ -1,16 +1,12 @@
 class InvalidQuery(Exception):
     pass
 
-
-
 def escape_string_value(val):
     if type(val) is bool:
         return str(val).lower()
-    if isinstance(val, basestring):
+    if isinstance(val, str):
         return '"%s"'%(val)
     return str(val)
-
-
 
 class Query(object):
     IS_WRITE = False
@@ -55,7 +51,7 @@ class SetBitmapAttrs(Query):
             raise InvalidQuery("no attribute provided")
   
     def to_pql(self):
-        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.iteritems())
+        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.items())
         return 'SetBitmapAttrs(id=%s, frame="%s", %s)' % (self.id, self.frame, attrs)
 
 
@@ -77,7 +73,7 @@ class SetProfileAttrs(Query):
             raise InvalidQuery("no attribute provided")
 
     def to_pql(self):
-        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.iteritems())
+        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.items())
         return 'SetProfileAttrs(id=%s, %s)' % (self.id, attrs)
 
 

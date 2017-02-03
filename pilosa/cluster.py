@@ -1,7 +1,7 @@
 import logging
 import requests
 import random
-from query import Query, InvalidQuery
+from .query import Query, InvalidQuery
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = '127.0.0.1:15000'
