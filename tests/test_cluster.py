@@ -3,6 +3,7 @@ import unittest
 from pilosa import Cluster, Bitmap, SetBit
 from pilosa.query import InvalidQuery
 from pilosa.cluster import DEFAULT_HOST
+from pilosa.version import get_version
 from mock import patch, Mock
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class ClusterTestCase(unittest.TestCase):
         bit_map = Bitmap(10, 'foo')
         c.execute(db, bit_map)
         query = bit_map.to_pql()
-        mock_post.assert_called_with('http://%s/query?db=%s' % (DEFAULT_HOST, db), data=query)
+        mock_post.assert_called_with('http://%s/query?db=%s' % (DEFAULT_HOST, db), data=query, headers={'Content-Type': 'application/vnd.pilosa.pql.v1', 'Accept': 'application/vnd.pilosa.json.v1', 'User-Agent': 'pilosa-driver/' + get_version()})
         with self.assertRaises(InvalidQuery):
             c.execute(2, [Bitmap(db, 'foo'), 'bar'])
 

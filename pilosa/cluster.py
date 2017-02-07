@@ -1,11 +1,22 @@
 import logging
 import requests
 import random
+from .version import get_version
 from .query import Query, InvalidQuery
+from requests.exceptions import ConnectionError
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = '127.0.0.1:15000'
 
+class PilosaException(Exception):
+    pass
+
+class PilosaError(PilosaException):
+    pass
+
+class PilosaNotAvailable(PilosaException):
+    pass
 
 class Cluster(object):
 
@@ -33,7 +44,13 @@ class Cluster(object):
         if not query:
             return
 
-        if isinstance(query, str):
+        # Python 3 compatibility:
+        try:
+            basestring
+        except NameError:
+            basestring = str
+
+        if isinstance(query, basestring):
             return self.send_query_string_to_pilosa(query, db, profiles)
         elif type(query) is not list:
             query = [query]
@@ -48,7 +65,29 @@ class Cluster(object):
         url = 'http://%s/query?db=%s' % (self._get_random_host(), db)
         if profiles:
             url += '&profiles=true'
-        return requests.post(url, data=query_strings)
+
+        headers = {
+            'Accept': 'application/vnd.pilosa.json.v1',
+            'Content-Type': 'application/vnd.pilosa.pql.v1',
+            'User-Agent': 'pilosa-driver/' + get_version(),
+        }
+
+        try:
+            response = requests.post(url, data=query_strings, headers=headers)
+        except ConnectionError as e:
+            raise PilosaNotAvailable(str(e.message))
+
+        if response.status_code == 400:
+            try:
+                error = response.json()
+                raise PilosaError(error['error'])
+            except (ValueError, KeyError):
+                raise PilosaError(response.content)
+
+        if response.headers.get('Warning'):
+            logger.warning(response.headers['Warning'])
+
+        return response.json()
 
 class PilosaException(Exception):
     pass

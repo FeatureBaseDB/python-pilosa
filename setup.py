@@ -7,9 +7,11 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+exec(open(path.join(here, 'pilosa/version.py'), 'r').read())
+
 setup(
     name='pilosa-driver',
-    version='0.2.3.0',
+    version=get_version(),
     description='Python client library for Pilosa',
     long_description=long_description,
     url='https://github.com/pilosa/pilosa-driver',
