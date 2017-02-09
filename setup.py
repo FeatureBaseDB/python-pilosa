@@ -11,7 +11,7 @@ exec(open(path.join(here, 'pilosa/version.py'), 'r').read())
 
 setup(
     name='pilosa-driver',
-    version=get_version(),
+    version=get_version_setup(),
     description='Python client library for Pilosa',
     long_description=long_description,
     url='https://github.com/pilosa/pilosa-driver',
