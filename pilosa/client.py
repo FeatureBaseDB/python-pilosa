@@ -99,13 +99,13 @@ class Client(object):
             query = [query]
         for q in query:
             if not isinstance(q, Query):
-                raise InvalidQuery('%s is not an instance of Query' % (q))
+                raise InvalidQuery('{} is not an instance of Query'.format(q))
 
         query_strings = ' '.join(q.to_pql() for q in query)
         return self.send_query_string_to_pilosa(query_strings, db, profiles)
 
     def send_query_string_to_pilosa(self, query_strings, db, profiles):
-        url = 'http://%s/query?db=%s' % (self._get_random_host(), db)
+        url = 'http://{}/query?db={}'.format(self._get_random_host(), db)
         if profiles:
             url += '&profiles=true'
 
