@@ -2,21 +2,13 @@ import logging
 import requests
 import random
 from .version import get_version
-from .query import Query, InvalidQuery
+from .query import Query
+from .exceptions import PilosaError, PilosaNotAvailable, InvalidQuery
 from requests.exceptions import ConnectionError
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = '127.0.0.1:15000'
-
-class PilosaException(Exception):
-    pass
-
-class PilosaError(PilosaException):
-    pass
-
-class PilosaNotAvailable(PilosaException):
-    pass
 
 class QueryResult(object):
     def __init__(self, result):

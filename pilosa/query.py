@@ -1,5 +1,5 @@
-class InvalidQuery(Exception):
-    pass
+from .exceptions import InvalidQuery
+
 
 def escape_string_value(val):
     if type(val) is bool:
