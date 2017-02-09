@@ -8,13 +8,15 @@ DEFAULT_VERSION = '0.0.0-unversioned'
 def _git_version():
     try:
         path = os.path.dirname(os.path.abspath(__file__))
-        return subprocess.check_output(['git', '-C', path, 'describe', '--tags']).strip()
+        return subprocess.check_output(
+            ['git', '-C', path, 'describe', '--tags']
+            ).strip().decode(encoding='utf-8', errors='ignore')
     except OSError:
         return None
 
 def _installed_version():
     try:
-        return  pkg_resources.require('pilosa-driver')[0].version
+        return pkg_resources.require('pilosa-driver')[0].version
     except pkg_resources.DistributionNotFound:
         return None
 
