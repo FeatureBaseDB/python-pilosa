@@ -18,24 +18,75 @@ class PilosaError(PilosaException):
 class PilosaNotAvailable(PilosaException):
     pass
 
-class Cluster(object):
+class QueryResult(object):
+    def __init__(self, result):
+        self._raw = result
 
-    def __init__(self, settings=None):
-        """
-        settings: if provided, cluster will be initiated with
-            hosts: a list of host:port strings
-        - or not provided-
-        default host: 127.0.0.1:15000
-        """
-        if not settings:
-            self.hosts = [DEFAULT_HOST]
-        elif settings.get('hosts'):
-            self.hosts = settings.get('hosts')
+    def get_key(self, key):
+        try:
+            return self._raw[key]
+        except KeyError:
+            raise PilosaError('Key {} does not exist in results dict {}'.format(
+                key, self._raw
+            ))
+
+    def bits(self):
+        return self.get_key('bits')
+
+    def attrs(self):
+        return self.get_key('attrs')
+
+    def count(self):
+        return self.get_key('count')
+
+    def value(self):
+        return self._raw
+
+class PilosaResponse(object):
+    def __init__(self, response):
+        self._raw = response
+        try:
+            results = response['results']
+        except KeyError:
+            raise PilosaError('Response invalid: {}'.format(response))
+        self.results = [QueryResult(result) for result in results]
+
+    def _check_index(self, index):
+        if len(self.results) < index + 1:
+            raise PilosaError('Invalid index {}: Only {} results exist.'.format(
+                index, len(self.results)
+            ))
+
+    def bits(self, index=0):
+        self._check_index(index)
+        return self.results[index].bits()
+
+    def attrs(self, index=0):
+        self._check_index(index)
+        return self.results[index].attrs()
+
+    def count(self, index=0):
+        self._check_index(index)
+        return self.results[index].count()
+
+    def value(self, index=0):
+        self._check_index(index)
+        return self.results[index].value()
+
+    def values(self):
+        return [self.results[index].value() for index in range(len(self.results))]
+
+    def __repr__(self):
+        return '<PilosaResponse {}>'.format(self.values())
+
+class Client(object):
+    def __init__(self, hosts=None):
+        self.hosts = hosts or [DEFAULT_HOST]
 
     def _get_random_host(self):
         return self.hosts[random.randint(0, len(self.hosts) - 1)]
 
-    def execute(self, db, query, profiles=False):
+    def query(self, db, query, profiles=False):
         """
         query is either a Query object or a list of Query objects or pql string
         profiles is a binary that indicates whether to return the entire profile (inc. attrs)
@@ -87,7 +138,4 @@ class Cluster(object):
         if response.headers.get('Warning'):
             logger.warning(response.headers['Warning'])
 
-        return response.json()
-
-class PilosaException(Exception):
-    pass
+        return PilosaResponse(response.json())
