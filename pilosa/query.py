@@ -1,7 +1,7 @@
 from .exceptions import InvalidQuery
 
 
-def escape_string_value(val):
+def _escape_string_value(val):
     if type(val) is bool:
         return str(val).lower()
     if isinstance(val, str):
@@ -9,13 +9,13 @@ def escape_string_value(val):
     return str(val)
 
 class Query(object):
-    IS_WRITE = False
     """
-    A base class that helps Cluster.execute determine that query is 
+    A base class that helps Client.query() determine that query is 
     an instance of a subclass of Query
 
     By default, supports any subclass that takes one or more Query objects as *inputs
     """
+    IS_WRITE = False
     def __init__(self, *inputs):
         self.inputs = inputs
         if hasattr(self, 'input_limit') and len(self.inputs) > self.input_limit:
@@ -38,8 +38,6 @@ class SetBit(Query):
 
 class ClearBit(SetBit):
     IS_WRITE = True
-    pass
-
 
 class SetBitmapAttrs(Query):
     IS_WRITE = True
@@ -51,7 +49,7 @@ class SetBitmapAttrs(Query):
             raise InvalidQuery("no attribute provided")
   
     def to_pql(self):
-        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.items())
+        attrs = ', '.join("%s=%s"%(k,_escape_string_value(v)) for k,v in self.attrs.items())
         return 'SetBitmapAttrs(id=%s, frame="%s", %s)' % (self.id, self.frame, attrs)
 
 
@@ -73,7 +71,7 @@ class SetProfileAttrs(Query):
             raise InvalidQuery("no attribute provided")
 
     def to_pql(self):
-        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.items())
+        attrs = ', '.join("%s=%s"%(k,_escape_string_value(v)) for k,v in self.attrs.items())
         return 'SetProfileAttrs(id=%s, %s)' % (self.id, attrs)
 
 
@@ -128,11 +126,6 @@ class TopN(Query):
             pql +='%s, '%(self.query.to_pql())
         pql += 'frame="%s", n=%s'%(self.frame, self.n)
         if self.filter_field:
-            pql += ', field="%s", [%s]'%(self.filter_field, ','.join(escape_string_value(v) for v in self.filter_values))
+            pql += ', field="%s", [%s]'%(self.filter_field, ','.join(_escape_string_value(v) for v in self.filter_values))
         pql += ')'
         return pql
-
-if __name__ == '__main__':
-    #print SetBitmapAttrs(1, 'foo', cat=399, foo="bar", x=True).to_pql()
-    pass
-    
