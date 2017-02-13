@@ -1,32 +1,28 @@
-class InvalidQuery(Exception):
-    pass
+from .exceptions import InvalidQuery
 
 
-
-def escape_string_value(val):
+def _escape_string_value(val):
     if type(val) is bool:
         return str(val).lower()
-    if isinstance(val, basestring):
-        return '"%s"'%(val)
+    if isinstance(val, str):
+        return '"{}"'.format(val)
     return str(val)
 
-
-
 class Query(object):
-    IS_WRITE = False
     """
-    A base class that helps Cluster.execute determine that query is 
+    A base class that helps Client.query() determine that query is 
     an instance of a subclass of Query
 
     By default, supports any subclass that takes one or more Query objects as *inputs
     """
+    IS_WRITE = False
     def __init__(self, *inputs):
         self.inputs = inputs
         if hasattr(self, 'input_limit') and len(self.inputs) > self.input_limit:
-            raise InvalidQuery("number of inputs (%s) exceeds input limit (%s) for %s query" % (len(self.inputs), self.input_limit, self.__class__.__name__))
+            raise InvalidQuery("number of inputs ({}) exceeds input limit ({}) for {} query".format(len(self.inputs), self.input_limit, self.__class__.__name__))
 
     def to_pql(self):
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(subq.to_pql() for subq in self.inputs))
+        return '{}({})'.format(self.__class__.__name__, ', '.join(subq.to_pql() for subq in self.inputs))
 
 
 class SetBit(Query):
@@ -37,13 +33,11 @@ class SetBit(Query):
         self.profile_id = int(profile_id)
    
     def to_pql(self):
-        return '%s(id=%s, frame="%s", profileID=%s)' % (self.__class__.__name__, self.id, self.frame, self.profile_id)
+        return '{}(id={}, frame="{}", profileID={})'.format(self.__class__.__name__, self.id, self.frame, self.profile_id)
 
 
 class ClearBit(SetBit):
     IS_WRITE = True
-    pass
-
 
 class SetBitmapAttrs(Query):
     IS_WRITE = True
@@ -55,8 +49,8 @@ class SetBitmapAttrs(Query):
             raise InvalidQuery("no attribute provided")
   
     def to_pql(self):
-        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.iteritems())
-        return 'SetBitmapAttrs(id=%s, frame="%s", %s)' % (self.id, self.frame, attrs)
+        attrs = ', '.join("{}={}".format(k,_escape_string_value(v)) for k,v in self.attrs.items())
+        return 'SetBitmapAttrs(id={}, frame="{}", {})'.format(self.id, self.frame, attrs)
 
 
 class Bitmap(Query):
@@ -65,7 +59,7 @@ class Bitmap(Query):
         self.frame = frame
    
     def to_pql(self):
-        return 'Bitmap(id=%s, frame="%s")'%(self.id, self.frame)
+        return 'Bitmap(id={}, frame="{}")'.format(self.id, self.frame)
 
 
 class SetProfileAttrs(Query):
@@ -77,8 +71,8 @@ class SetProfileAttrs(Query):
             raise InvalidQuery("no attribute provided")
 
     def to_pql(self):
-        attrs = ', '.join("%s=%s"%(k,escape_string_value(v)) for k,v in self.attrs.iteritems())
-        return 'SetProfileAttrs(id=%s, %s)' % (self.id, attrs)
+        attrs = ', '.join("{}={}".format(k,_escape_string_value(v)) for k,v in self.attrs.items())
+        return 'SetProfileAttrs(id={}, {})'.format(self.id, attrs)
 
 
 class Union(Query):
@@ -132,11 +126,6 @@ class TopN(Query):
             pql +='%s, '%(self.query.to_pql())
         pql += 'frame="%s", n=%s'%(self.frame, self.n)
         if self.filter_field:
-            pql += ', field="%s", [%s]'%(self.filter_field, ','.join(escape_string_value(v) for v in self.filter_values))
+            pql += ', field="%s", [%s]'%(self.filter_field, ','.join(_escape_string_value(v) for v in self.filter_values))
         pql += ')'
         return pql
-
-if __name__ == '__main__':
-    #print SetBitmapAttrs(1, 'foo', cat=399, foo="bar", x=True).to_pql()
-    pass
-    

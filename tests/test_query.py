@@ -1,7 +1,7 @@
 import unittest
 import datetime
 from pilosa import SetBit, Bitmap, Union, Intersect, Difference, Count, TopN, Range, SetBitmapAttrs, ClearBit, SetProfileAttrs
-from pilosa.query import InvalidQuery, escape_string_value
+from pilosa.query import InvalidQuery, _escape_string_value
 
 
 class QueryTestCase(unittest.TestCase):
@@ -49,10 +49,10 @@ class QueryTestCase(unittest.TestCase):
         self.assertEqual(TopN(None, 'bar', 20).to_pql(), 'TopN(frame="bar", n=20)')
 
     def test_escape_string_value(self):
-        self.assertEqual(escape_string_value(1), '1')
-        self.assertEqual(escape_string_value('abc'), '"abc"')
-        self.assertEqual(escape_string_value(True), 'true')
-        self.assertEqual(escape_string_value(False), 'false')
+        self.assertEqual(_escape_string_value(1), '1')
+        self.assertEqual(_escape_string_value('abc'), '"abc"')
+        self.assertEqual(_escape_string_value(True), 'true')
+        self.assertEqual(_escape_string_value(False), 'false')
 
     def test_range(self):
         start = datetime.datetime(1970, 1, 1, 0, 0)
