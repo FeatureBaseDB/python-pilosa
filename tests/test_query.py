@@ -48,6 +48,8 @@ class QueryTestCase(unittest.TestCase):
         self.assertEqual(TopN(Bitmap(1, 'foo'), 'bar', 20).to_pql(), 'TopN(Bitmap(id=1, frame="foo"), frame="bar", n=20)')
         self.assertEqual(TopN(None, 'bar', 20).to_pql(), 'TopN(frame="bar", n=20)')
 
+        self.assertEqual(TopN(Bitmap(1, 'foo'), 'bar', 20, filter_field='category', filter_values=['good', 'bad', 'ugly']).to_pql(), 'TopN(Bitmap(id=1, frame="foo"), frame="bar", n=20, field="category", ["good","bad","ugly"])')
+
     def test_escape_string_value(self):
         self.assertEqual(_escape_string_value(1), '1')
         self.assertEqual(_escape_string_value('abc'), '"abc"')

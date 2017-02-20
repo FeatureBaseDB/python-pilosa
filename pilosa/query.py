@@ -112,7 +112,7 @@ class TopN(Query):
     If query is set to None, then no filter will be applied and all bitmaps within the
     frame will be considered.
     """
-    def __init__(self, query, frame, n, ids=None, filter_field=None, filter_values=[]):
+    def __init__(self, query, frame, n=None, ids=None, filter_field=None, filter_values=[]):
         self.query = query
         self.frame = frame
         self.n = int(n)
@@ -121,11 +121,15 @@ class TopN(Query):
         self.filter_values = filter_values
 
     def to_pql(self):
-        pql = 'TopN('
+        parts = []
         if self.query:
-            pql +='%s, '%(self.query.to_pql())
-        pql += 'frame="%s", n=%s'%(self.frame, self.n)
+            parts.append(self.query.to_pql())
+        parts.append('frame="%s"' % self.frame)
+        if self.n:
+            parts.append('n=%s' % self.n)
         if self.filter_field:
-            pql += ', field="%s", [%s]'%(self.filter_field, ','.join(_escape_string_value(v) for v in self.filter_values))
-        pql += ')'
+            parts.append('field="%s", [%s]'%(self.filter_field, ','.join(_escape_string_value(v) for v in self.filter_values)))
+
+        pql = 'TopN(%s)' % ', '.join(parts)
+
         return pql
