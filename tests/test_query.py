@@ -45,6 +45,7 @@ class QueryTestCase(unittest.TestCase):
             Count(Bitmap(1, 'foo'), Bitmap(2, 'foo'))
 
     def test_topn(self):
+        self.assertEqual(TopN(None, 'foo').to_pql(), 'TopN(frame="foo", n=0)')
         self.assertEqual(TopN(Bitmap(1, 'foo'), 'bar', 20).to_pql(), 'TopN(Bitmap(id=1, frame="foo"), frame="bar", n=20)')
         self.assertEqual(TopN(None, 'bar', 20).to_pql(), 'TopN(frame="bar", n=20)')
 
