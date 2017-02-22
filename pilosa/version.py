@@ -15,7 +15,7 @@ def _git_version():
         # subprocess.check_output does not exist in Python < 2.7:
         except AttributeError:
             proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-            return proc.communicate()[0].split()
+            return proc.communicate()[0].split()[0]
     except OSError:
         return None
 
