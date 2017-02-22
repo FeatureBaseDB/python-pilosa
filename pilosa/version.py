@@ -8,14 +8,9 @@ DEFAULT_VERSION = '0.0.0-unversioned'
 def _git_version():
     try:
         path = os.path.dirname(os.path.abspath(__file__))
-        command = ['git', '-C', path, 'describe', '--tags']
-        try:
-            return subprocess.check_output(command).strip().decode(
-                   encoding='utf-8', errors='ignore')
-        # subprocess.check_output does not exist in Python < 2.7:
-        except AttributeError:
-            proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-            return proc.communicate()[0].split()
+        return subprocess.check_output(
+            ['git', '-C', path, 'describe', '--tags']
+            ).strip().decode(encoding='utf-8', errors='ignore')
     except OSError:
         return None
 
