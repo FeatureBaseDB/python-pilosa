@@ -18,7 +18,7 @@ class QueryResult(object):
         try:
             return self._raw[key]
         except KeyError:
-            raise PilosaError('Key {} does not exist in results dict {}'.format(
+            raise PilosaError('Key {0} does not exist in results dict {1}'.format(
                 key, self._raw
             ))
 
@@ -40,12 +40,12 @@ class PilosaResponse(object):
         try:
             results = response['results']
         except KeyError:
-            raise PilosaError('Response invalid: {}'.format(response))
+            raise PilosaError('Response invalid: {1}'.format(response))
         self.results = [QueryResult(result) for result in results]
 
     def _check_index(self, index):
         if len(self.results) < index + 1:
-            raise PilosaError('Invalid index {}: Only {} results exist.'.format(
+            raise PilosaError('Invalid index {0}: Only {1} results exist.'.format(
                 index, len(self.results)
             ))
 
@@ -69,7 +69,7 @@ class PilosaResponse(object):
         return [self.results[index].value() for index in range(len(self.results))]
 
     def __repr__(self):
-        return '<PilosaResponse {}>'.format(self.values())
+        return '<PilosaResponse {0}>'.format(self.values())
 
 class Client(object):
     def __init__(self, hosts=None):
@@ -99,13 +99,13 @@ class Client(object):
             query = [query]
         for q in query:
             if not isinstance(q, Query):
-                raise InvalidQuery('{} is not an instance of Query'.format(q))
+                raise InvalidQuery('{0} is not an instance of Query'.format(q))
 
         query_strings = ' '.join(q.to_pql() for q in query)
         return self.send_query_string_to_pilosa(query_strings, db, profiles)
 
     def send_query_string_to_pilosa(self, query_strings, db, profiles):
-        url = 'http://{}/query?db={}'.format(self._get_random_host(), db)
+        url = 'http://{0}/query?db={1}'.format(self._get_random_host(), db)
         if profiles:
             url += '&profiles=true'
 
