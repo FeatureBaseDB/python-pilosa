@@ -2,6 +2,9 @@
 Python Client Library for Pilosa
 ================================
 
+.. image:: https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master
+    :target: https://travis-ci.com/pilosa/python-pilosa
+
 ------------
 Installation
 ------------
