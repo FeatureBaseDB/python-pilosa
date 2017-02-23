@@ -5,10 +5,15 @@ from .version import get_version
 from .query import Query
 from .exceptions import PilosaError, PilosaNotAvailable, InvalidQuery
 from requests.exceptions import ConnectionError
+import re
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = '127.0.0.1:15000'
+
+def _validate_database(value):
+    if not re.match(r'^[.a-z0-9_-]{1,64}$', value):
+        raise InvalidQuery('Database names must be <= 64 characters and consist of only lower-case letters, numbers, underscores, and dashes.')
 
 class QueryResult(object):
     def __init__(self, result):
@@ -92,6 +97,8 @@ class Client(object):
             basestring
         except NameError:
             basestring = str
+
+        _validate_database(str(db))
 
         if isinstance(query, basestring):
             return self.send_query_string_to_pilosa(query, db, profiles)

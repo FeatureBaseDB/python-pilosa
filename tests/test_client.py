@@ -23,6 +23,11 @@ class ClientTestCase(unittest.TestCase):
         with self.assertRaises(InvalidQuery):
             c.query(2, [Bitmap(db, 'foo'), 'bar'])
 
+    def test_invalid_database(self):
+        c = Client()
+        with self.assertRaises(InvalidQuery):
+            c.query('!@#$%', SetBit(1, 'foo', 1))
+
     def test_invalid_query_input(self):
         db = 2
         c = Client()
