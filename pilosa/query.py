@@ -1,3 +1,5 @@
+import re
+
 from .exceptions import InvalidQuery
 
 
@@ -7,6 +9,10 @@ def _escape_string_value(val):
     if isinstance(val, str):
         return '"{}"'.format(val)
     return str(val)
+
+def _validate_frame(value):
+    if not re.match(r'^[.a-z0-9_-]{1,64}$', value):
+        raise InvalidQuery('Frame names must be <= 64 characters and consist of only lower-case letters, numbers, underscores, and dashes.')
 
 class Query(object):
     """
@@ -28,6 +34,7 @@ class Query(object):
 class SetBit(Query):
     IS_WRITE = True
     def __init__(self, id, frame, profile_id):
+        _validate_frame(frame)
         self.id = int(id)
         self.frame = frame
         self.profile_id = int(profile_id)
@@ -42,6 +49,7 @@ class ClearBit(SetBit):
 class SetBitmapAttrs(Query):
     IS_WRITE = True
     def __init__(self, id, frame, **attrs):
+        _validate_frame(frame)
         self.id = int(id)
         self.frame = frame
         self.attrs = attrs
@@ -55,6 +63,7 @@ class SetBitmapAttrs(Query):
 
 class Bitmap(Query):
     def __init__(self, id, frame):
+        _validate_frame(frame)
         self.id = int(id)
         self.frame = frame
    
@@ -93,6 +102,7 @@ class Count(Query):
 
 class Range(Query):
     def __init__(self, id, frame, start, end):
+        _validate_frame(frame)
         self.id = id
         self.frame = frame
         self.start = start
@@ -113,6 +123,7 @@ class TopN(Query):
     frame will be considered.
     """
     def __init__(self, query, frame, n=0, ids=None, filter_field=None, filter_values=[]):
+        _validate_frame(frame)
         self.query = query
         self.frame = frame
         self.n = n

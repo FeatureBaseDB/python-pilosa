@@ -84,5 +84,23 @@ class QueryTestCase(unittest.TestCase):
                 'SetProfileAttrs(id=1, xyz="abc", foo="bar")',
             ])
 
+    def test_invalid_frame(self):
+        with self.assertRaises(InvalidQuery):
+            SetBit(1, '!@#$%', 1)
+        with self.assertRaises(InvalidQuery):
+            SetBit(1, '', 1)
+        with self.assertRaises(InvalidQuery):
+            SetBit(1, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 1)
+        with self.assertRaises(InvalidQuery):
+            SetBitmapAttrs(1, '!@#$%', key='value')
+        with self.assertRaises(InvalidQuery):
+            Bitmap(1, '!@#$%')
+        start = datetime.datetime(1970, 1, 1, 0, 0)
+        end = datetime.datetime(2000, 1, 2, 3, 4)
+        with self.assertRaises(InvalidQuery):
+            Range(1, '!@#$%', start, end)
+        with self.assertRaises(InvalidQuery):
+            TopN(None, '!@#$%')
+
 if __name__ == '__main__':
     unittest.main()
