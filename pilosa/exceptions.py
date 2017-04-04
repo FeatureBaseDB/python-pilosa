@@ -9,3 +9,11 @@ class PilosaNotAvailable(PilosaException):
 
 class InvalidQuery(PilosaException):
     pass
+
+
+class ValidationError(PilosaError):
+    pass
+
+
+class PilosaURIError(PilosaError):
+    pass

@@ -1,19 +1,17 @@
 import logging
-import requests
 import random
-from .version import get_version
-from .query import Query
-from .exceptions import PilosaError, PilosaNotAvailable, InvalidQuery
-from requests.exceptions import ConnectionError
 import re
+
+import requests
+from requests.exceptions import ConnectionError
+
+from .exceptions import PilosaError, PilosaNotAvailable, PilosaURIError
+from .version import get_version
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = '127.0.0.1:15000'
 
-def _validate_database(value):
-    if not re.match(r'^[.a-z0-9_-]{1,64}$', value):
-        raise InvalidQuery('Database names must be <= 64 characters and consist of only lower-case letters, numbers, underscores, and dashes.')
 
 class QueryResult(object):
     def __init__(self, result):
@@ -76,40 +74,23 @@ class PilosaResponse(object):
     def __repr__(self):
         return '<PilosaResponse {}>'.format(self.values())
 
+
+class QueryOptions:
+
+    def __init__(self, profiles=False):
+        self.profiles = profiles
+
+
 class Client(object):
+
     def __init__(self, hosts=None):
         self.hosts = hosts or [DEFAULT_HOST]
 
     def _get_random_host(self):
         return self.hosts[random.randint(0, len(self.hosts) - 1)]
 
-    def query(self, db, query, profiles=False):
-        """
-        query is either a Query object or a list of Query objects or pql string
-        profiles is a binary that indicates whether to return the entire profile (inc. attrs)
-        in a Bitmap() query, or just the profile ID
-        """
-        if not query:
-            return
-
-        # Python 3 compatibility:
-        try:
-            basestring
-        except NameError:
-            basestring = str
-
-        _validate_database(str(db))
-
-        if isinstance(query, basestring):
-            return self.send_query_string_to_pilosa(query, db, profiles)
-        elif type(query) is not list:
-            query = [query]
-        for q in query:
-            if not isinstance(q, Query):
-                raise InvalidQuery('{} is not an instance of Query'.format(q))
-
-        query_strings = ' '.join(q.to_pql() for q in query)
-        return self.send_query_string_to_pilosa(query_strings, db, profiles)
+    def query(self, query, options=QueryOptions()):
+        return self.send_query_string_to_pilosa(str(query), query.database.name, options.profiles)
 
     def send_query_string_to_pilosa(self, query_strings, db, profiles):
         url = 'http://{}/query?db={}'.format(self._get_random_host(), db)
@@ -138,3 +119,73 @@ class Client(object):
             logger.warning(response.headers['Warning'])
 
         return PilosaResponse(response.json())
+
+
+class URI:
+    """Represents a Pilosa URI
+
+    A Pilosa URI consists of three parts:
+    - Scheme: Protocol of the URI. Default: http
+    - Host: Hostname or IP URI. Default: localhost
+    - Port: Port of the URI. Default 10101
+    
+    All parts of the URI are optional. The following are equivalent:
+    - http://localhost:10101
+    - http://localhost
+    - http://:10101
+    - localhost:10101
+    - localhost
+    - :10101
+    """
+    __PATTERN = re.compile("^(([+a-z]+)://)?([0-9a-z.-]+)?(:([0-9]+))?$")
+
+    def __init__(self, scheme, host, port):
+        self.scheme = scheme
+        self.host = host
+        self.port = port
+
+    @classmethod
+    def default(cls):
+        return cls("http", "localhost", 10101)
+
+    @classmethod
+    def from_address(cls, address):
+        uri = cls.default()
+        uri._parse(address)
+        return uri
+
+    @classmethod
+    def with_host_port(cls, host, port):
+        return URI("http", host, port)
+
+    def normalized(self):
+        scheme = self.scheme
+        index = scheme.index("+")
+        if index > 0:
+            scheme = scheme[:index]
+        return "%s://%s:%s" % (scheme, self.host, self.port)
+
+    def _parse(self, address):
+        m = self.__PATTERN.search(address)
+        if m:
+            scheme = m.group(2)
+            if scheme:
+                self.scheme = scheme
+            host = m.group(3)
+            if host:
+                self.host = host
+            port = m.group(5)
+            if port:
+                self.port = int(port)
+            return
+        raise PilosaURIError("Not a Pilosa URI")
+
+    def __str__(self):
+        return "%s://%s:%s" % (self.scheme, self.host, self.port)
+
+    def __eq__(self, other):
+        if other is None or not isinstance(other, self.__class__):
+            return False
+        return self.scheme == other.scheme and \
+            self.host == other.host and \
+            self.port == other.port
