@@ -5,6 +5,7 @@ from .validator import validate_database_name, validate_frame_name, validate_lab
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
+
 class TimeQuantum:
 
     def __init__(self, value):
@@ -29,29 +30,16 @@ TimeQuantum.MONTH_DAY_HOUR = TimeQuantum("MDH")
 TimeQuantum.YEAR_MONTH_DAY_HOUR = TimeQuantum("YMDH")
 
 
-class DatabaseOptions:
+class Database:
 
-    def __init__(self, column_label="col_id", time_quantum=TimeQuantum.NONE):
+    def __init__(self, name, column_label="col_id", time_quantum=TimeQuantum.NONE):
+        validate_database_name(name)
+        self.name = name
         self.column_label = column_label
         self.time_quantum = time_quantum
 
-
-class FrameOptions:
-
-    def __init__(self, row_label="id", time_quantum=TimeQuantum.NONE):
-        self.row_label = row_label
-        self.time_quantum = time_quantum
-
-
-class Database:
-
-    def __init__(self, name, options=DatabaseOptions()):
-        validate_database_name(name)
-        self.name = name
-        self.options = options
-
-    def frame(self, name, options=FrameOptions()):
-        return Frame(self, name, options)
+    def frame(self, name, row_label="id", time_quantum=TimeQuantum.NONE):
+        return Frame(self, name, row_label=row_label, time_quantum=time_quantum)
 
     def raw_query(self, query):
         return PQLQuery(query, self)
@@ -71,7 +59,7 @@ class Database:
     def set_profile_attributes(self, column_id, attrs):
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(u"SetProfileAttrs(%s=%d, %s)" %
-                        (self.options.column_label, column_id, attrs_str), self)
+                        (self.column_label, column_id, attrs_str), self)
 
     def _bitmap_op(self, name, bitmaps):
         if len(bitmaps) < 2:
@@ -81,13 +69,13 @@ class Database:
 
 class Frame:
 
-    def __init__(self, database, name, options=FrameOptions()):
+    def __init__(self, database, name, row_label="id", time_quantum=TimeQuantum.NONE):
         validate_frame_name(name)
         self.database = database
         self.name = name
-        self.options = options
-        self.column_label = database.options.column_label
-        self.row_label = options.row_label
+        self.time_quantum = time_quantum
+        self.row_label = row_label
+        self.column_label = database.column_label
 
     def bitmap(self, row_id):
         return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.row_label, row_id, self.name),

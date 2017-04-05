@@ -2,14 +2,12 @@ import unittest
 from datetime import datetime
 
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Database, DatabaseOptions, FrameOptions, TimeQuantum
+from pilosa.orm import Database, TimeQuantum
 
 sampleDb = Database("sample-db")
 sampleFrame = sampleDb.frame("sample-frame")
-projectDb = Database("project-db",
-                     DatabaseOptions(column_label="user"))
-collabFrame = projectDb.frame("collaboration",
-                              FrameOptions(row_label="project"))
+projectDb = Database("project-db", column_label="user")
+collabFrame = projectDb.frame("collaboration", row_label="project")
 
 
 class DatabaseTestCase(unittest.TestCase):
@@ -17,14 +15,15 @@ class DatabaseTestCase(unittest.TestCase):
     def test_create_database(self):
         database = Database("sample-db")
         self.assertEqual("sample-db", database.name)
-        self.assertEqual("col_id", database.options.column_label)
-        self.assertEqual(TimeQuantum.NONE, database.options.time_quantum)
+        self.assertEqual("col_id", database.column_label)
+        self.assertEqual(TimeQuantum.NONE, database.time_quantum)
 
-        options = DatabaseOptions(column_label="profile_id", time_quantum=TimeQuantum.YEAR_MONTH)
-        database = Database("sample-db", options)
+        database = Database("sample-db",
+                            column_label="profile_id",
+                            time_quantum=TimeQuantum.YEAR_MONTH)
         self.assertEqual("sample-db", database.name)
-        self.assertEqual("profile_id", database.options.column_label)
-        self.assertEqual(TimeQuantum.YEAR_MONTH, database.options.time_quantum)
+        self.assertEqual("profile_id", database.column_label)
+        self.assertEqual(TimeQuantum.YEAR_MONTH, database.time_quantum)
 
     def test_raw_query(self):
         q = projectDb.raw_query("No validation whatsoever for raw queries")
@@ -113,8 +112,8 @@ class FrameTestCase(unittest.TestCase):
         frame = db.frame("sample-frame")
         self.assertEqual(db, frame.database)
         self.assertEqual("sample-frame", frame.name)
-        self.assertEqual("id", frame.options.row_label)
-        self.assertEqual(TimeQuantum.NONE, frame.options.time_quantum)
+        self.assertEqual("id", frame.row_label)
+        self.assertEqual(TimeQuantum.NONE, frame.time_quantum)
 
     def test_bitmap(self):
         qry1 = sampleFrame.bitmap(5)
@@ -199,26 +198,6 @@ class FrameTestCase(unittest.TestCase):
             "dt": datetime.now()
         }
         self.assertRaises(PilosaError, projectDb.set_profile_attributes, 5, attrs_map)
-
-
-class DatabaseOptionsTestCase(unittest.TestCase):
-
-    def test_create_database_options(self):
-        options = DatabaseOptions()
-        self.assertEqual("col_id", options.column_label)
-        self.assertEqual(TimeQuantum.NONE, options.time_quantum)
-
-        options = DatabaseOptions(column_label="some_label", time_quantum=TimeQuantum.DAY)
-        self.assertEqual("some_label", options.column_label)
-        self.assertEqual(TimeQuantum.DAY, options.time_quantum)
-
-
-class FrameOptionsTestCase(unittest.TestCase):
-
-    def test_create_frame_options(self):
-        options = FrameOptions()
-        self.assertEqual("id", options.row_label)
-        self.assertEqual(TimeQuantum.NONE, options.time_quantum)
 
 
 class TimeQuantumTestCase(unittest.TestCase):

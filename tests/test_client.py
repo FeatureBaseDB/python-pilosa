@@ -6,7 +6,7 @@ from mock import patch
 from pilosa import Client
 from pilosa.client import DEFAULT_HOST, URI
 from pilosa.exceptions import PilosaURIError
-from pilosa.orm import Database, DatabaseOptions, FrameOptions
+from pilosa.orm import Database
 from pilosa.version import get_version
 
 logger = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 class ClientTestCase(unittest.TestCase):
 
-    database = Database("testdb", DatabaseOptions(column_label="user"))
-    frame = database.frame("collab", FrameOptions(row_label="project"))
+    database = Database("testdb", column_label="user")
+    frame = database.frame("collab", row_label="project")
 
     @patch('pilosa.client.requests.post')
     def test_query(self, mock_post):
