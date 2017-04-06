@@ -37,6 +37,7 @@ class QueryResult(object):
     def value(self):
         return self._raw
 
+
 class PilosaResponse(object):
     def __init__(self, response):
         self._raw = response
@@ -75,12 +76,6 @@ class PilosaResponse(object):
         return '<PilosaResponse {}>'.format(self.values())
 
 
-class QueryOptions:
-
-    def __init__(self, profiles=False):
-        self.profiles = profiles
-
-
 class Client(object):
 
     def __init__(self, hosts=None):
@@ -89,8 +84,8 @@ class Client(object):
     def _get_random_host(self):
         return self.hosts[random.randint(0, len(self.hosts) - 1)]
 
-    def query(self, query, options=QueryOptions()):
-        return self.send_query_string_to_pilosa(str(query), query.database.name, options.profiles)
+    def query(self, query, profiles=False):
+        return self.send_query_string_to_pilosa(str(query), query.database.name, profiles)
 
     def send_query_string_to_pilosa(self, query_strings, db, profiles):
         url = 'http://{}/query?db={}'.format(self._get_random_host(), db)
