@@ -134,30 +134,28 @@ class URI:
     """
     __PATTERN = re.compile("^(([+a-z]+)://)?([0-9a-z.-]+)?(:([0-9]+))?$")
 
-    def __init__(self, scheme, host, port):
+    def __init__(self, scheme="http", host="localhost", port=10101):
         self.scheme = scheme
         self.host = host
         self.port = port
 
     @classmethod
     def default(cls):
-        return cls("http", "localhost", 10101)
+        return cls()
 
     @classmethod
-    def from_address(cls, address):
+    def address(cls, address):
         uri = cls.default()
         uri._parse(address)
         return uri
 
-    @classmethod
-    def with_host_port(cls, host, port):
-        return URI("http", host, port)
-
-    def normalized(self):
+    def normalize(self):
         scheme = self.scheme
-        index = scheme.index("+")
-        if index > 0:
+        try:
+            index = scheme.index("+")
             scheme = scheme[:index]
+        except ValueError:
+            pass
         return "%s://%s:%s" % (scheme, self.host, self.port)
 
     def _parse(self, address):
@@ -178,9 +176,48 @@ class URI:
     def __str__(self):
         return "%s://%s:%s" % (self.scheme, self.host, self.port)
 
+    def __repr__(self):
+        return self.normalize()
+
     def __eq__(self, other):
         if other is None or not isinstance(other, self.__class__):
             return False
         return self.scheme == other.scheme and \
             self.host == other.host and \
             self.port == other.port
+
+
+class Cluster:
+    """Contains hosts in a Pilosa cluster"""
+
+    def __init__(self):
+        self.hosts = []
+        self.__next_index = 0
+
+    @classmethod
+    def default(cls):
+        """Returns the default cluster."""
+        return cls()
+
+    @classmethod
+    def with_host(cls, uri):
+        """Returns a cluster with the given URI."""
+        cluster = Cluster()
+        cluster.add_host(uri)
+        return cluster
+
+    def add_host(self, uri):
+        """Adds a host to the cluster"""
+        self.hosts.append(uri)
+
+    def remove_host(self, uri):
+        """Removes the host with the given URI from the cluster."""
+        self.hosts.remove(uri)
+
+    def get_host(self):
+        """Returns the next host in the cluster"""
+        if len(self.hosts) == 0:
+            raise PilosaError("There are no available hosts")
+        next_host = self.hosts[self.__next_index % len(self.hosts)]
+        self.__next_index = (self.__next_index + 1) % len(self.hosts)
+        return next_host
