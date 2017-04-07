@@ -1,119 +1,170 @@
 import logging
-import random
 import re
 
 import requests
 from requests.exceptions import ConnectionError
 
-from .exceptions import PilosaError, PilosaNotAvailable, PilosaURIError
+from .exceptions import PilosaError, PilosaNotAvailable, PilosaURIError, DatabaseExistsError, FrameExistsError
 from .version import get_version
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = '127.0.0.1:15000'
+
+class BitmapResult:
+
+    def __init__(self, bits=None, attributes=None):
+        self.bits = bits or []
+        self.attributes = attributes or {}
+
+    @classmethod
+    def from_dict(cls, d):
+        if d is None:
+            return BitmapResult()
+        return BitmapResult(bits=d.get("bits"), attributes=d.get("attrs"))
 
 
-class QueryResult(object):
-    def __init__(self, result):
-        self._raw = result
+class CountResultItem:
 
-    def get_key(self, key):
-        try:
-            return self._raw[key]
-        except KeyError:
-            raise PilosaError('Key {} does not exist in results dict {}'.format(
-                key, self._raw
-            ))
+    def __init__(self, id, count):
+        self.id = id
+        self.count = count
 
-    def bits(self):
-        return self.get_key('bits')
-
-    def attrs(self):
-        return self.get_key('attrs')
-
-    def count(self):
-        return self.get_key('count')
-
-    def value(self):
-        return self._raw
+    @classmethod
+    def from_dict(cls, d):
+        return CountResultItem(d["id"], d["count"])
 
 
-class PilosaResponse(object):
-    def __init__(self, response):
-        self._raw = response
-        try:
-            results = response['results']
-        except KeyError:
-            raise PilosaError('Response invalid: {}'.format(response))
-        self.results = [QueryResult(result) for result in results]
+class QueryResult:
 
-    def _check_index(self, index):
-        if len(self.results) < index + 1:
-            raise PilosaError('Invalid index {}: Only {} results exist.'.format(
-                index, len(self.results)
-            ))
+    def __init__(self, bitmap=None, count_items=None, count=0):
+        self.bitmap = bitmap or BitmapResult()
+        self.count_items = count_items or []
+        self.count = count
 
-    def bits(self, index=0):
-        self._check_index(index)
-        return self.results[index].bits()
+    @classmethod
+    def from_item(cls, item):
+        result = cls()
+        if isinstance(item, dict):
+            result.bitmap = BitmapResult.from_dict(item)
+        elif isinstance(item, list):
+            result.count_items = [CountResultItem.from_dict(x) for x in item]
+        elif isinstance(item, int):
+            result.count = item
+        return result
 
-    def attrs(self, index=0):
-        self._check_index(index)
-        return self.results[index].attrs()
 
-    def count(self, index=0):
-        self._check_index(index)
-        return self.results[index].count()
+class ProfileItem:
 
-    def value(self, index=0):
-        self._check_index(index)
-        return self.results[index].value()
+    def __init__(self, id, attributes):
+        self.id = id
+        self.attributes = attributes
 
-    def values(self):
-        return [self.results[index].value() for index in range(len(self.results))]
+    @classmethod
+    def from_dict(cls, d):
+        return ProfileItem(d["id"], d["attrs"])
 
-    def __repr__(self):
-        return '<PilosaResponse {}>'.format(self.values())
 
+class QueryResponse(object):
+
+    def __init__(self, results=None, profiles=None):
+        self.results = results or []
+        self.profiles = profiles or []
+
+    @classmethod
+    def from_dict(cls, d):
+        response = QueryResponse()
+        response.results = [QueryResult.from_item(r) for r in d.get("results", [])]
+        response.profiles = [ProfileItem.from_dict(p) for p in d.get("profiles", [])]
+        response.error_message = d.get("error", "")
+        return response
+
+    @property
+    def result(self):
+        return self.results[0] if self.results else None
+
+    @property
+    def profile(self):
+        return self.profiles[0] if self.profiles else None
 
 class Client(object):
 
-    def __init__(self, hosts=None):
-        self.hosts = hosts or [DEFAULT_HOST]
+    __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
-    def _get_random_host(self):
-        return self.hosts[random.randint(0, len(self.hosts) - 1)]
+    def __init__(self, cluster=None):
+        self.cluster = cluster or Cluster(URI())
+        self.__current_host = self.cluster.get_host()
 
     def query(self, query, profiles=False):
-        return self.send_query_string_to_pilosa(str(query), query.database.name, profiles)
+        profiles_arg = "&profiles=true" if profiles else ""
+        path = "/query?db=%s%s" % (query.database.name, profiles_arg)
+        response = self.__http_request("post", path, str(query), Client.__RAW_RESPONSE).json()
+        if 'error' in response:
+            raise PilosaError(response['error'])
+        return QueryResponse.from_dict(response)
 
-    def send_query_string_to_pilosa(self, query_strings, db, profiles):
-        url = 'http://{}/query?db={}'.format(self._get_random_host(), db)
-        if profiles:
-            url += '&profiles=true'
+    def create_database(self, database):
+        self.__create_or_delete_database("post", database)
 
-        headers = {
-            'Accept': 'application/vnd.pilosa.json.v1',
-            'Content-Type': 'application/vnd.pilosa.pql.v1',
-            'User-Agent': 'pilosa-driver/' + get_version(),
-        }
+    def delete_database(self, database):
+        self.__create_or_delete_database("delete", database)
 
+    def create_frame(self, frame):
+        self.__create_or_delete_frame("post", frame)
+
+    def delete_frame(self, frame):
+        self.__create_or_delete_frame("delete", frame)
+
+    def ensure_database(self, database):
         try:
-            response = requests.post(url, data=query_strings, headers=headers)
+            self.create_database(database)
+        except DatabaseExistsError:
+            pass
+
+    def ensure_frame(self, frame):
+        try:
+            self.create_frame(frame)
+        except FrameExistsError:
+            pass
+
+    def __create_or_delete_database(self, method, database):
+        data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
+               (database.name, database.column_label)
+        self.__http_request(method, "/db", data)
+
+    def __create_or_delete_frame(self, method, frame):
+        data = '{"db": "%s", "frame": "%s", "options": {"rowLabel": "%s"}}' % \
+               (frame.database.name, frame.name, frame.row_label)
+        self.__http_request(method, "/frame", data)
+
+    def __http_request(self, method, path, data=None, client_response=0):
+        uri = self.cluster.get_host()
+        request = getattr(requests, method)
+        try:
+            response = request(uri.normalize() + path, data=data, headers=self.__HEADERS)
         except ConnectionError as e:
+            self.cluster.remove_host(self.__current_host)
             raise PilosaNotAvailable(str(e.message))
 
-        if response.status_code == 400:
-            try:
-                error = response.json()
-                raise PilosaError(error['error'])
-            except (ValueError, KeyError):
-                raise PilosaError(response.content)
+        if client_response == Client.__RAW_RESPONSE:
+            return response
 
-        if response.headers.get('Warning'):
-            logger.warning(response.headers['Warning'])
+        if 200 <= response.status_code < 300:
+            return None if client_response == Client.__NO_RESPONSE else response
+        ex = self.__RECOGNIZED_ERRORS.get(response.text)
+        if ex is not None:
+            raise ex
+        raise PilosaError("Server error (%d): %s", response.status_code, response.content)
 
-        return PilosaResponse(response.json())
+    __HEADERS = {
+        'Accept': 'application/vnd.pilosa.json.v1',
+        'Content-Type': 'application/vnd.pilosa.pql.v1',
+        'User-Agent': 'pilosa-driver/' + get_version(),
+    }
+
+    __RECOGNIZED_ERRORS = {
+        "database already exists\n": DatabaseExistsError,
+        "frame already exists\n": FrameExistsError,
+    }
 
 
 class URI:
@@ -140,12 +191,8 @@ class URI:
         self.port = port
 
     @classmethod
-    def default(cls):
-        return cls()
-
-    @classmethod
     def address(cls, address):
-        uri = cls.default()
+        uri = cls()
         uri._parse(address)
         return uri
 
@@ -177,7 +224,7 @@ class URI:
         return "%s://%s:%s" % (self.scheme, self.host, self.port)
 
     def __repr__(self):
-        return self.normalize()
+        return "<URI %s>" % self
 
     def __eq__(self, other):
         if other is None or not isinstance(other, self.__class__):
@@ -190,21 +237,10 @@ class URI:
 class Cluster:
     """Contains hosts in a Pilosa cluster"""
 
-    def __init__(self):
-        self.hosts = []
+    def __init__(self, *hosts):
+        """Returns the cluster with the given hosts"""
+        self.hosts = list(hosts)
         self.__next_index = 0
-
-    @classmethod
-    def default(cls):
-        """Returns the default cluster."""
-        return cls()
-
-    @classmethod
-    def with_host(cls, uri):
-        """Returns a cluster with the given URI."""
-        cluster = Cluster()
-        cluster.add_host(uri)
-        return cluster
 
     def add_host(self, uri):
         """Adds a host to the cluster"""
