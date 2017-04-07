@@ -27,7 +27,7 @@ class ClientTestCase(unittest.TestCase):
         headers = {
             'Content-Type': 'application/vnd.pilosa.pql.v1',
             'Accept': 'application/vnd.pilosa.json.v1',
-            'User-Agent': 'pilosa-driver/' + get_version()
+            'User-Agent': 'python-pilosa/' + get_version()
         }
         mock_post.assert_called_with('%s/query?db=%s' % (default_host.normalize(), self.database.name),
                                      data=query, headers=headers)

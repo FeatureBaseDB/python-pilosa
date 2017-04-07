@@ -4,7 +4,8 @@ import re
 import requests
 from requests.exceptions import ConnectionError
 
-from .exceptions import PilosaError, PilosaNotAvailable, PilosaURIError, DatabaseExistsError, FrameExistsError
+from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
+from .orm import TimeQuantum
 from .version import get_version
 
 logger = logging.getLogger(__name__)
@@ -86,12 +87,22 @@ class QueryResponse(object):
     def profile(self):
         return self.profiles[0] if self.profiles else None
 
+
 class Client(object):
 
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
-    def __init__(self, cluster=None):
-        self.cluster = cluster or Cluster(URI())
+    def __init__(self, cluster_or_uri=None):
+        if cluster_or_uri is None:
+            self.cluster = Cluster(URI())
+        elif isinstance(cluster_or_uri, Cluster):
+            self.cluster = cluster_or_uri
+        elif isinstance(cluster_or_uri, URI):
+            self.cluster = Cluster(cluster_or_uri)
+        elif isinstance(cluster_or_uri, str):
+            self.cluster = Cluster(URI.address(cluster_or_uri))
+        else:
+            raise PilosaError("Invalid cluster_or_uri: %s" % cluster_or_uri)
         self.__current_host = self.cluster.get_host()
 
     def query(self, query, profiles=False):
@@ -104,12 +115,16 @@ class Client(object):
 
     def create_database(self, database):
         self.__create_or_delete_database("post", database)
+        if database.time_quantum != TimeQuantum.NONE:
+            self.__patch_database_time_quantum(database)
 
     def delete_database(self, database):
         self.__create_or_delete_database("delete", database)
 
     def create_frame(self, frame):
         self.__create_or_delete_frame("post", frame)
+        if frame.time_quantum != TimeQuantum.NONE:
+            self.__patch_frame_time_quantum(frame)
 
     def delete_frame(self, frame):
         self.__create_or_delete_frame("delete", frame)
@@ -125,6 +140,18 @@ class Client(object):
             self.create_frame(frame)
         except FrameExistsError:
             pass
+
+    def __patch_database_time_quantum(self, database):
+        path = "/db/time_quantum"
+        data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
+               (database.name, str(database.time_quantum))
+        self.__http_request("patch", path, data)
+
+    def __patch_frame_time_quantum(self, frame):
+        path = "/frame/time_quantum"
+        data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
+               (frame.database.name, frame.name, str(frame.time_quantum))
+        self.__http_request("patch", path, data)
 
     def __create_or_delete_database(self, method, database):
         data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
@@ -143,7 +170,7 @@ class Client(object):
             response = request(uri.normalize() + path, data=data, headers=self.__HEADERS)
         except ConnectionError as e:
             self.cluster.remove_host(self.__current_host)
-            raise PilosaNotAvailable(str(e.message))
+            raise PilosaError(str(e))
 
         if client_response == Client.__RAW_RESPONSE:
             return response
@@ -158,7 +185,7 @@ class Client(object):
     __HEADERS = {
         'Accept': 'application/vnd.pilosa.json.v1',
         'Content-Type': 'application/vnd.pilosa.pql.v1',
-        'User-Agent': 'pilosa-driver/' + get_version(),
+        'User-Agent': 'python-pilosa/' + get_version(),
     }
 
     __RECOGNIZED_ERRORS = {
@@ -227,6 +254,8 @@ class URI:
         return "<URI %s>" % self
 
     def __eq__(self, other):
+        if id(self) == id(other):
+            return True
         if other is None or not isinstance(other, self.__class__):
             return False
         return self.scheme == other.scheme and \

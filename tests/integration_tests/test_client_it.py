@@ -1,6 +1,7 @@
 import unittest
 
-from pilosa.client import Client, Cluster, URI
+from pilosa.client import Client
+from pilosa.exceptions import PilosaError
 from pilosa.orm import Database, TimeQuantum
 
 SERVER_ADDRESS = ":10101"
@@ -20,6 +21,9 @@ class ClientIT(unittest.TestCase):
 
         self.col_db = Database(self.db.name + "-opts", column_label="user")
         client.create_database(self.col_db)
+
+        self.frame = self.col_db.frame("collab", row_label="project")
+        client.create_frame(self.frame)
 
     def tearDown(self):
         client = self.get_client()
@@ -59,30 +63,9 @@ class ClientIT(unittest.TestCase):
         response = client.query(frame.bitmap(300))
         self.assertIsNone(response.profile)
 
-# """
-#     @Test
-#     public void queryWithProfilesTest() throws IOException {
-#         try (PilosaClient client = getClient()) {
-#             Frame frame = this.db.frame("query-test");
-#             client.ensureFrame(frame);
-#             client.query(frame.setBit(100, 1000));
-#             Map<String, Object> profileAttrs = new HashMap<>(1);
-#             profileAttrs.put("name", "bombo");
-#             client.query(this.db.setProfileAttrs(1000, profileAttrs));
-#             QueryOptions queryOptions = QueryOptions.builder()
-#                     .setProfiles(true)
-#                     .build();
-#             QueryResponse response = client.query(frame.bitmap(100), queryOptions);
-#             assertNotNull(response.getProfile());
-#             assertEquals(1000, response.getProfile().getID());
-#             assertEquals(profileAttrs, response.getProfile().getAttributes());
-#
-#             response = client.query(frame.bitmap(300));
-#             assertNull(response.getProfile());
-#         }
-#     }
-#
-# """
+    def test_failed_connection(self):
+        client = Client("http://non-existent-sub.pilosa.com:22222")
+        self.assertRaises(PilosaError, client.query, self.frame.setbit(15, 10))
 
     @classmethod
     def random_database_name(cls):
@@ -91,4 +74,4 @@ class ClientIT(unittest.TestCase):
 
     @classmethod
     def get_client(cls):
-        return Client(Cluster(URI.address(SERVER_ADDRESS)))
+        return Client(SERVER_ADDRESS)
