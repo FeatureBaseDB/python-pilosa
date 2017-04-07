@@ -2,6 +2,7 @@ import logging
 import re
 
 import requests
+from requests import Request
 from requests.exceptions import ConnectionError
 
 from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
@@ -104,30 +105,33 @@ class Client(object):
         else:
             raise PilosaError("Invalid cluster_or_uri: %s" % cluster_or_uri)
         self.__current_host = self.cluster.get_host()
+        self.__session = None
 
     def query(self, query, profiles=False):
         profiles_arg = "&profiles=true" if profiles else ""
-        path = "/query?db=%s%s" % (query.database.name, profiles_arg)
-        response = self.__http_request("post", path, str(query), Client.__RAW_RESPONSE).json()
+        uri = "%s/query?db=%s%s" % \
+              (self.cluster.get_host().normalize(), query.database.name, profiles_arg)
+        request = Request("POST", uri, data=query.serialize())
+        response = self.__http_request(request, Client.__RAW_RESPONSE).json()
         if 'error' in response:
             raise PilosaError(response['error'])
         return QueryResponse.from_dict(response)
 
     def create_database(self, database):
-        self.__create_or_delete_database("post", database)
+        self.__create_or_delete_database("POST", database)
         if database.time_quantum != TimeQuantum.NONE:
             self.__patch_database_time_quantum(database)
 
     def delete_database(self, database):
-        self.__create_or_delete_database("delete", database)
+        self.__create_or_delete_database("DELETE", database)
 
     def create_frame(self, frame):
-        self.__create_or_delete_frame("post", frame)
+        self.__create_or_delete_frame("POST", frame)
         if frame.time_quantum != TimeQuantum.NONE:
             self.__patch_frame_time_quantum(frame)
 
     def delete_frame(self, frame):
-        self.__create_or_delete_frame("delete", frame)
+        self.__create_or_delete_frame("DELETE", frame)
 
     def ensure_database(self, database):
         try:
@@ -141,33 +145,36 @@ class Client(object):
         except FrameExistsError:
             pass
 
-    def __patch_database_time_quantum(self, database):
-        path = "/db/time_quantum"
-        data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
-               (database.name, str(database.time_quantum))
-        self.__http_request("patch", path, data)
-
-    def __patch_frame_time_quantum(self, frame):
-        path = "/frame/time_quantum"
-        data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
-               (frame.database.name, frame.name, str(frame.time_quantum))
-        self.__http_request("patch", path, data)
-
     def __create_or_delete_database(self, method, database):
         data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
                (database.name, database.column_label)
-        self.__http_request(method, "/db", data)
+        uri = "%s/db" % self.cluster.get_host().normalize()
+        self.__http_request(Request(method, uri, data=data))
 
     def __create_or_delete_frame(self, method, frame):
         data = '{"db": "%s", "frame": "%s", "options": {"rowLabel": "%s"}}' % \
                (frame.database.name, frame.name, frame.row_label)
-        self.__http_request(method, "/frame", data)
+        uri = "%s/frame" % self.cluster.get_host().normalize()
+        self.__http_request(Request(method, uri, data=data))
 
-    def __http_request(self, method, path, data=None, client_response=0):
-        uri = self.cluster.get_host()
-        request = getattr(requests, method)
+    def __patch_database_time_quantum(self, database):
+        uri = "%s/db/time_quantum" % self.cluster.get_host().normalize()
+        data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
+               (database.name, str(database.time_quantum))
+        self.__http_request(Request("PATCH", uri, data=data))
+
+    def __patch_frame_time_quantum(self, frame):
+        uri = "%s/frame/time_quantum" % self.cluster.get_host().normalize()
+        data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
+               (frame.database.name, frame.name, str(frame.time_quantum))
+        self.__http_request(Request("PATCH", uri, data=data))
+
+    def __http_request(self, request, client_response=0):
+        if not self.__session:
+            self.__connect()
+        request = self.__session.prepare_request(request)
         try:
-            response = request(uri.normalize() + path, data=data, headers=self.__HEADERS)
+            response = self.__session.send(request)
         except ConnectionError as e:
             self.cluster.remove_host(self.__current_host)
             raise PilosaError(str(e))
@@ -181,6 +188,15 @@ class Client(object):
         if ex is not None:
             raise ex
         raise PilosaError("Server error (%d): %s", response.status_code, response.content)
+
+    def __connect(self):
+        session = requests.Session()
+        session.headers.update({
+            'Accept': 'application/vnd.pilosa.json.v1',
+            'Content-Type': 'application/vnd.pilosa.pql.v1',
+            'User-Agent': 'python-pilosa/' + get_version(),
+        })
+        self.__session = session
 
     __HEADERS = {
         'Accept': 'application/vnd.pilosa.json.v1',

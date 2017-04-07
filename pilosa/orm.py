@@ -44,6 +44,11 @@ class Database:
     def raw_query(self, query):
         return PQLQuery(query, self)
 
+    def batch_query(self, *queries):
+        q = PQLBatchQuery(self)
+        q.add(*queries)
+        return q
+
     def union(self, *bitmaps):
         return self._bitmap_op("Union", bitmaps)
 
@@ -54,7 +59,7 @@ class Database:
         return self._bitmap_op("Difference", bitmaps)
 
     def count(self, bitmap):
-        return PQLQuery(u"Count(%s)" % bitmap, self)
+        return PQLQuery(u"Count(%s)" % bitmap.serialize(), self)
 
     def set_profile_attributes(self, column_id, attrs):
         attrs_str = _create_attributes_str(attrs)
@@ -64,7 +69,7 @@ class Database:
     def _bitmap_op(self, name, bitmaps):
         if len(bitmaps) < 2:
             raise PilosaError("Number of bitmap queries should be greater or equal to 2")
-        return PQLQuery(u"%s(%s)" % (name, u", ".join(str(b) for b in bitmaps)), self)
+        return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in bitmaps)), self)
 
 
 class Frame:
@@ -96,9 +101,9 @@ class Frame:
             validate_label(field)
             values_str = json.dumps(values, separators=(',', ': '))
             qry = u"TopN(%s, frame='%s', n=%d, field='%s', %s)" % \
-                   (bitmap, self.name, n, field, values_str)
+                   (bitmap.serialize(), self.name, n, field, values_str)
         elif bitmap:
-            qry = u"TopN(%s, frame='%s', n=%d)" % (bitmap, self.name, n)
+            qry = u"TopN(%s, frame='%s', n=%d)" % (bitmap.serialize(), self.name, n)
         else:
             qry = u"TopN(frame='%s', n=%d)" % (self.name, n)
         return PQLQuery(qry, self.database)
@@ -123,7 +128,7 @@ class PQLQuery:
         self.pql = pql
         self.database = database
 
-    def __str__(self):
+    def serialize(self):
         return self.pql
 
 
@@ -137,3 +142,16 @@ def _create_attributes_str(attrs):
         return ", ".join(sorted(kvs))
     except TypeError:
         raise PilosaError("Error while converting values")
+
+
+class PQLBatchQuery:
+
+    def __init__(self, database):
+        self.database = database
+        self.queries = []
+
+    def add(self, *queries):
+        self.queries.extend(queries)
+
+    def serialize(self):
+        return u''.join(q.serialize() for q in self.queries)

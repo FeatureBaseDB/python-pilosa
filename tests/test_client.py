@@ -1,36 +1,26 @@
 import logging
 import unittest
 
-from mock import patch
-
-from pilosa.client import Client, URI, Cluster
+from pilosa.client import Client, URI, Cluster, BitmapResult
 from pilosa.exceptions import PilosaURIError, PilosaError
-from pilosa.orm import Database
-from pilosa.version import get_version
 
 logger = logging.getLogger(__name__)
 
 
 class ClientTestCase(unittest.TestCase):
 
-    database = Database("testdb", column_label="user")
-    frame = database.frame("collab", row_label="project")
-
-    @patch('pilosa.client.requests.post')
-    def test_query(self, mock_post):
-        default_host = URI()
+    def test_create_client(self):
+        # create default client
         c = Client()
-        self.assertEqual(c.cluster.hosts, [default_host])
-        bitmap = self.frame.bitmap(10)
-        c.query(self.frame.bitmap(10))
-        query = str(bitmap)
-        headers = {
-            'Content-Type': 'application/vnd.pilosa.pql.v1',
-            'Accept': 'application/vnd.pilosa.json.v1',
-            'User-Agent': 'python-pilosa/' + get_version()
-        }
-        mock_post.assert_called_with('%s/query?db=%s' % (default_host.normalize(), self.database.name),
-                                     data=query, headers=headers)
+        self.assertEquals(URI(), c.cluster.hosts[0])
+        # create with cluster
+        c = Client(Cluster(URI.address(":15000")))
+        self.assertEquals(URI.address(":15000"), c.cluster.hosts[0])
+        # create with URI
+        c = Client(URI.address(":20000"))
+        self.assertEquals(URI.address(":20000"), c.cluster.hosts[0])
+        # create with invalid type
+        self.assertRaises(PilosaError, Client, 15000)
 
 
 class URITestCase(unittest.TestCase):
@@ -146,6 +136,14 @@ class ClusterTestCase(unittest.TestCase):
     def test_get_host_when_no_hosts(self):
         c = Cluster()
         self.assertRaises(PilosaError, c.get_host)
+
+
+class BitmapResultTestCase(unittest.TestCase):
+
+    def test_from_dict_none(self):
+        b = BitmapResult.from_dict(None)
+        self.assertEquals([], b.bits)
+        self.assertEquals({}, b.attributes)
 
 
 if __name__ == '__main__':
