@@ -93,7 +93,7 @@ class Client(object):
 
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
-    def __init__(self, cluster_or_uri=None):
+    def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -104,13 +104,16 @@ class Client(object):
             self.cluster = Cluster(URI.address(cluster_or_uri))
         else:
             raise PilosaError("Invalid cluster_or_uri: %s" % cluster_or_uri)
-        self.__current_host = self.cluster.get_host()
+
+        self.connect_timeout = connect_timeout / 1000.0
+        self.socket_timeout = socket_timeout / 1000.0
+        self.__current_host = None
         self.__session = None
 
     def query(self, query, profiles=False):
         profiles_arg = "&profiles=true" if profiles else ""
         uri = "%s/query?db=%s%s" % \
-              (self.cluster.get_host().normalize(), query.database.name, profiles_arg)
+              (self.__get_address(), query.database.name, profiles_arg)
         request = Request("POST", uri, data=query.serialize())
         response = self.__http_request(request, Client.__RAW_RESPONSE).json()
         if 'error' in response:
@@ -148,23 +151,23 @@ class Client(object):
     def __create_or_delete_database(self, method, database):
         data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
                (database.name, database.column_label)
-        uri = "%s/db" % self.cluster.get_host().normalize()
+        uri = "%s/db" % self.__get_address()
         self.__http_request(Request(method, uri, data=data))
 
     def __create_or_delete_frame(self, method, frame):
         data = '{"db": "%s", "frame": "%s", "options": {"rowLabel": "%s"}}' % \
                (frame.database.name, frame.name, frame.row_label)
-        uri = "%s/frame" % self.cluster.get_host().normalize()
+        uri = "%s/frame" % self.__get_address()
         self.__http_request(Request(method, uri, data=data))
 
     def __patch_database_time_quantum(self, database):
-        uri = "%s/db/time_quantum" % self.cluster.get_host().normalize()
+        uri = "%s/db/time_quantum" % self.__get_address()
         data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
                (database.name, str(database.time_quantum))
         self.__http_request(Request("PATCH", uri, data=data))
 
     def __patch_frame_time_quantum(self, frame):
-        uri = "%s/frame/time_quantum" % self.cluster.get_host().normalize()
+        uri = "%s/frame/time_quantum" % self.__get_address()
         data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
                (frame.database.name, frame.name, str(frame.time_quantum))
         self.__http_request(Request("PATCH", uri, data=data))
@@ -174,9 +177,11 @@ class Client(object):
             self.__connect()
         request = self.__session.prepare_request(request)
         try:
-            response = self.__session.send(request, stream=False)
+            response = self.__session.send(request, stream=False,
+                                           timeout=(self.connect_timeout, self.socket_timeout))
         except ConnectionError as e:
             self.cluster.remove_host(self.__current_host)
+            self.__current_host = None
             raise PilosaError(str(e))
 
         if client_response == Client.__RAW_RESPONSE:
@@ -188,6 +193,11 @@ class Client(object):
         if ex is not None:
             raise ex
         raise PilosaError("Server error (%d): %s", response.status_code, response.content)
+
+    def __get_address(self):
+        if self.__current_host is None:
+            self.__current_host = self.cluster.get_host()
+        return self.__current_host.normalize()
 
     def __connect(self):
         session = requests.Session()
