@@ -174,7 +174,7 @@ class Client(object):
             self.__connect()
         request = self.__session.prepare_request(request)
         try:
-            response = self.__session.send(request)
+            response = self.__session.send(request, stream=False)
         except ConnectionError as e:
             self.cluster.remove_host(self.__current_host)
             raise PilosaError(str(e))
