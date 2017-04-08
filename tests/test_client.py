@@ -1,8 +1,9 @@
 import logging
 import unittest
 
-from pilosa.client import Client, URI, Cluster, BitmapResult
+from pilosa.client import Client, URI, Cluster
 from pilosa.exceptions import PilosaURIError, PilosaError
+from pilosa.response import BitmapResult
 
 logger = logging.getLogger(__name__)
 

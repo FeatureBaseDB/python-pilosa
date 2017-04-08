@@ -178,7 +178,7 @@ class FrameTestCase(unittest.TestCase):
             "quote": '''"Don't worry, be happy"''',
             "active": True
         }
-        q = collabFrame.set_bitmap_attributes(5, attrs_map)
+        q = collabFrame.set_bitmap_attrs(5, attrs_map)
         self.assertEquals(
             "SetBitmapAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
@@ -188,7 +188,7 @@ class FrameTestCase(unittest.TestCase):
             "quote": '''"Don't worry, be happy"''',
             "happy": True
         }
-        q = projectDb.set_profile_attributes(5, attrs_map)
+        q = projectDb.set_profile_attrs(5, attrs_map)
         self.assertEquals(
             "SetProfileAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
@@ -198,7 +198,7 @@ class FrameTestCase(unittest.TestCase):
             "color": "blue",
             "dt": datetime.now()
         }
-        self.assertRaises(PilosaError, projectDb.set_profile_attributes, 5, attrs_map)
+        self.assertRaises(PilosaError, projectDb.set_profile_attrs, 5, attrs_map)
 
 
 class TimeQuantumTestCase(unittest.TestCase):
