@@ -34,6 +34,7 @@ class Database:
 
     def __init__(self, name, column_label="col_id", time_quantum=TimeQuantum.NONE):
         validate_database_name(name)
+        validate_label(column_label)
         self.name = name
         self.column_label = column_label
         self.time_quantum = time_quantum
@@ -76,6 +77,7 @@ class Frame:
 
     def __init__(self, database, name, row_label="id", time_quantum=TimeQuantum.NONE):
         validate_frame_name(name)
+        validate_label(row_label)
         self.database = database
         self.name = name
         self.time_quantum = time_quantum
