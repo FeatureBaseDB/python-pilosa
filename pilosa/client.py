@@ -17,7 +17,7 @@ class Client(object):
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
-                 pool_size_per_route=10, pool_size_total=100):
+                 pool_size_per_route=10, pool_size_total=100, retry_count=3):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -33,8 +33,9 @@ class Client(object):
         self.socket_timeout = socket_timeout / 1000.0
         self.pool_size_per_route = pool_size_per_route
         self.pool_size_total = pool_size_total
+        self.retry_count = retry_count
         self.__current_host = None
-        self.__session = None
+        self.__client = None
 
     def query(self, query, profiles=False):
         profiles_arg = "&profiles=true" if profiles else ""
@@ -100,10 +101,10 @@ class Client(object):
         self.__http_request("PATCH", uri, data=data)
 
     def __http_request(self, method, uri, data, client_response=0):
-        if not self.__session:
+        if not self.__client:
             self.__connect()
         try:
-            response = self.__session.request(method, uri, body=data)
+            response = self.__client.request(method, uri, body=data)
         except urllib3.exceptions.MaxRetryError as e:
             self.cluster.remove_host(self.__current_host)
             self.__current_host = None
@@ -133,9 +134,9 @@ class Client(object):
             'User-Agent': 'python-pilosa/' + get_version(),
         }
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
-        session = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
-            block=True, headers=headers, timeout=timeout)
-        self.__session = session
+        client = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
+            block=True, headers=headers, timeout=timeout, retries=self.retry_count)
+        self.__client = client
 
     __HEADERS = {
         'Accept': 'application/vnd.pilosa.json.v1',
