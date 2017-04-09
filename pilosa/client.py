@@ -1,9 +1,8 @@
+import json
 import logging
 import re
 
-import requests
-from requests import Request
-from requests.exceptions import ConnectionError
+import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
 from .orm import TimeQuantum
@@ -17,7 +16,8 @@ class Client(object):
 
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
-    def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000):
+    def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
+                 pool_size_per_route=10, pool_size_total=100):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -31,6 +31,8 @@ class Client(object):
 
         self.connect_timeout = connect_timeout / 1000.0
         self.socket_timeout = socket_timeout / 1000.0
+        self.pool_size_per_route = pool_size_per_route
+        self.pool_size_total = pool_size_total
         self.__current_host = None
         self.__session = None
 
@@ -38,11 +40,12 @@ class Client(object):
         profiles_arg = "&profiles=true" if profiles else ""
         uri = "%s/query?db=%s%s" % \
               (self.__get_address(), query.database.name, profiles_arg)
-        request = Request("POST", uri, data=query.serialize())
-        response = self.__http_request(request, Client.__RAW_RESPONSE).json()
-        if 'error' in response:
-            raise PilosaError(response['error'])
-        return QueryResponse.from_dict(response)
+        data = query.serialize()
+        response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
+        content = json.loads(response.data.decode('utf-8'))
+        if 'error' in content:
+            raise PilosaError(content['error'])
+        return QueryResponse.from_dict(content)
 
     def create_database(self, database):
         self.__create_or_delete_database("POST", database)
@@ -76,34 +79,32 @@ class Client(object):
         data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
                (database.name, database.column_label)
         uri = "%s/db" % self.__get_address()
-        self.__http_request(Request(method, uri, data=data))
+        self.__http_request(method, uri, data=data)
 
     def __create_or_delete_frame(self, method, frame):
         data = '{"db": "%s", "frame": "%s", "options": {"rowLabel": "%s"}}' % \
                (frame.database.name, frame.name, frame.row_label)
         uri = "%s/frame" % self.__get_address()
-        self.__http_request(Request(method, uri, data=data))
+        self.__http_request(method, uri, data=data)
 
     def __patch_database_time_quantum(self, database):
         uri = "%s/db/time_quantum" % self.__get_address()
         data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
                (database.name, str(database.time_quantum))
-        self.__http_request(Request("PATCH", uri, data=data))
+        self.__http_request("PATCH", uri, data=data)
 
     def __patch_frame_time_quantum(self, frame):
         uri = "%s/frame/time_quantum" % self.__get_address()
         data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
                (frame.database.name, frame.name, str(frame.time_quantum))
-        self.__http_request(Request("PATCH", uri, data=data))
+        self.__http_request("PATCH", uri, data=data)
 
-    def __http_request(self, request, client_response=0):
+    def __http_request(self, method, uri, data, client_response=0):
         if not self.__session:
             self.__connect()
-        request = self.__session.prepare_request(request)
         try:
-            response = self.__session.send(request, stream=False,
-                                           timeout=(self.connect_timeout, self.socket_timeout))
-        except ConnectionError as e:
+            response = self.__session.request(method, uri, body=data)
+        except urllib3.exceptions.MaxRetryError as e:
             self.cluster.remove_host(self.__current_host)
             self.__current_host = None
             raise PilosaError(str(e))
@@ -111,12 +112,13 @@ class Client(object):
         if client_response == Client.__RAW_RESPONSE:
             return response
 
-        if 200 <= response.status_code < 300:
+        if 200 <= response.status < 300:
             return None if client_response == Client.__NO_RESPONSE else response
-        ex = self.__RECOGNIZED_ERRORS.get(response.text)
+        content = response.data.decode('utf-8')
+        ex = self.__RECOGNIZED_ERRORS.get(content)
         if ex is not None:
             raise ex
-        raise PilosaError("Server error (%d): %s", response.status_code, response.content)
+        raise PilosaError("Server error (%d): %s", response.status, content)
 
     def __get_address(self):
         if self.__current_host is None:
@@ -124,12 +126,15 @@ class Client(object):
         return self.__current_host.normalize()
 
     def __connect(self):
-        session = requests.Session()
-        session.headers.update({
+        num_pools = float(self.pool_size_total) / self.pool_size_per_route
+        headers = {
             'Accept': 'application/vnd.pilosa.json.v1',
             'Content-Type': 'application/vnd.pilosa.pql.v1',
             'User-Agent': 'python-pilosa/' + get_version(),
-        })
+        }
+        timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
+        session = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
+            block=True, headers=headers, timeout=timeout)
         self.__session = session
 
     __HEADERS = {
