@@ -13,7 +13,7 @@ class QueryResultTestCase(unittest.TestCase):
         attr = result1.Bitmap.Attrs.add()
         attr.Key = "foo"
         attr.StringValue = "bar"
-        attr.Type = 999
+        attr.Type = 0
         bin = qr.SerializeToString()
         self.assertRaises(PilosaError, QueryResponse.from_protobuf, bin)
 

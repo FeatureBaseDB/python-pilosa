@@ -72,21 +72,20 @@ class QueryResponse(object):
         return self.profiles[0] if self.profiles else None
 
 
-__protobuf_attrs_to_dict = {
-    1: lambda a: a.StringValue,
-    2: lambda a: a.UintValue,
-    3: lambda a: a.BoolValue,
-    4: lambda a: a.FloatValue,
-}
-
-
 def _convert_protobuf_attrs_to_dict(attrs):
+    protobuf_attrs_to_dict = [
+        None,
+        lambda a: a.StringValue,
+        lambda a: a.UintValue,
+        lambda a: a.BoolValue,
+        lambda a: a.FloatValue,
+    ]
     d = {}
     attr = None  # to get the attr with invalid type
     try:
         for attr in attrs:
-            value = __protobuf_attrs_to_dict[attr.Type](attr)
+            value = protobuf_attrs_to_dict[attr.Type](attr)
             d[attr.Key] = value
-    except KeyError:
+    except (IndexError, TypeError):
         raise PilosaError("Invalid protobuf attribute type: %s" % attr.Type)
     return d
