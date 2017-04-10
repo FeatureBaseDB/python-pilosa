@@ -1,13 +1,15 @@
-import json
 import logging
 import re
 
 import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
+from .internal import internal_pb2 as internal
 from .orm import TimeQuantum
 from .response import QueryResponse
 from .version import get_version
+
+__all__ = ["Client", "Cluster", "URI"]
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +39,16 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, profiles=False):
-        profiles_arg = "&profiles=true" if profiles else ""
-        uri = "%s/query?db=%s%s" % \
-              (self.__get_address(), query.database.name, profiles_arg)
-        data = query.serialize()
+    def query(self, query, profiles=False, time_quantum=TimeQuantum.NONE):
+        request = QueryRequest(query.database.name, query.serialize(),
+                          profiles=profiles, time_quantum=time_quantum)
+        data = request.to_protobuf()
+        uri = "%s/query" % self.__get_address()
         response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
-        content = json.loads(response.data.decode('utf-8'))
-        if 'error' in content:
-            raise PilosaError(content['error'])
-        return QueryResponse.from_dict(content)
+        query_response = QueryResponse.from_protobuf(response.data)
+        if query_response.error_message:
+            raise PilosaError(query_response.error_message)
+        return query_response
 
     def create_database(self, database):
         self.__create_or_delete_database("POST", database)
@@ -129,20 +131,15 @@ class Client(object):
     def __connect(self):
         num_pools = float(self.pool_size_total) / self.pool_size_per_route
         headers = {
-            'Accept': 'application/vnd.pilosa.json.v1',
-            'Content-Type': 'application/vnd.pilosa.pql.v1',
+            'Content-Type': 'application/x-protobuf',
+            'Accept': 'application/x-protobuf',
             'User-Agent': 'python-pilosa/' + get_version(),
         }
+
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
         client = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
             block=True, headers=headers, timeout=timeout, retries=self.retry_count)
         self.__client = client
-
-    __HEADERS = {
-        'Accept': 'application/vnd.pilosa.json.v1',
-        'Content-Type': 'application/vnd.pilosa.pql.v1',
-        'User-Agent': 'python-pilosa/' + get_version(),
-    }
 
     __RECOGNIZED_ERRORS = {
         "database already exists\n": DatabaseExistsError,
@@ -242,3 +239,20 @@ class Cluster:
         next_host = self.hosts[self.__next_index % len(self.hosts)]
         self.__next_index = (self.__next_index + 1) % len(self.hosts)
         return next_host
+
+
+class QueryRequest:
+
+    def __init__(self, database_name, query, profiles=False, time_quantum=TimeQuantum.NONE,):
+        self.database_name = database_name
+        self.query = query
+        self.profiles = profiles
+        self.time_quantum = time_quantum
+
+    def to_protobuf(self):
+        qr = internal.QueryRequest()
+        qr.Query = self.query
+        qr.DB = self.database_name
+        qr.Profiles = self.profiles
+        qr.Quantum = str(self.time_quantum)
+        return qr.SerializeToString()

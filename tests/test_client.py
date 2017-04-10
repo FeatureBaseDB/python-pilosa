@@ -1,9 +1,8 @@
 import logging
 import unittest
 
-from pilosa.client import Client, URI, Cluster
+from pilosa.client import Client, URI, Cluster, QueryRequest, TimeQuantum
 from pilosa.exceptions import PilosaURIError, PilosaError
-from pilosa.response import BitmapResult
 
 logger = logging.getLogger(__name__)
 
@@ -139,13 +138,20 @@ class ClusterTestCase(unittest.TestCase):
         self.assertRaises(PilosaError, c.get_host)
 
 
-class BitmapResultTestCase(unittest.TestCase):
+class QueryRequestTestCase(unittest.TestCase):
 
-    def test_from_dict_none(self):
-        b = BitmapResult.from_dict(None)
-        self.assertEquals([], b.bits)
-        self.assertEquals({}, b.attributes)
+    def test_serialize(self):
+        qr = QueryRequest("mydb", "Bitmap(frame='foo', id=1)", profiles=True, time_quantum=TimeQuantum.YEAR)
+        bin = qr.to_protobuf()
+        self.assertIsNotNone(bin)
 
+        import pilosa.internal.internal_pb2 as internal
+        qr = internal.QueryRequest()
+        qr.ParseFromString(bin)
+        self.assertEquals("mydb", qr.DB)
+        self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
+        self.assertEquals(True, qr.Profiles)
+        self.assertEquals("Y", qr.Quantum)
 
 if __name__ == '__main__':
     unittest.main()

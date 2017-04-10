@@ -1,3 +1,7 @@
+from .exceptions import PilosaError
+from .internal import internal_pb2 as internal
+
+
 class BitmapResult:
 
     def __init__(self, bits=None, attributes=None):
@@ -5,10 +9,8 @@ class BitmapResult:
         self.attributes = attributes or {}
 
     @classmethod
-    def from_dict(cls, d):
-        if d is None:
-            return BitmapResult()
-        return BitmapResult(bits=d.get("bits"), attributes=d.get("attrs"))
+    def from_internal(cls, obj):
+        return cls(list(obj.Bits), _convert_protobuf_attrs_to_dict(obj.Attrs))
 
 
 class CountResultItem:
@@ -16,10 +18,6 @@ class CountResultItem:
     def __init__(self, id, count):
         self.id = id
         self.count = count
-
-    @classmethod
-    def from_dict(cls, d):
-        return CountResultItem(d["id"], d["count"])
 
 
 class QueryResult:
@@ -29,16 +27,13 @@ class QueryResult:
         self.count_items = count_items or []
         self.count = count
 
+
     @classmethod
-    def from_item(cls, item):
-        result = cls()
-        if isinstance(item, dict):
-            result.bitmap = BitmapResult.from_dict(item)
-        elif isinstance(item, list):
-            result.count_items = [CountResultItem.from_dict(x) for x in item]
-        elif isinstance(item, int):
-            result.count = item
-        return result
+    def from_internal(cls, obj):
+        count_items = []
+        for pair in obj.Pairs:
+            count_items.append(CountResultItem(pair.Key, pair.Count))
+        return cls(BitmapResult.from_internal(obj.Bitmap), count_items, obj.N)
 
 
 class ProfileItem:
@@ -48,23 +43,25 @@ class ProfileItem:
         self.attributes = attributes
 
     @classmethod
-    def from_dict(cls, d):
-        return ProfileItem(d["id"], d["attrs"])
+    def from_internal(cls, obj):
+        return cls(obj.ID, _convert_protobuf_attrs_to_dict(obj.Attrs))
 
 
 class QueryResponse(object):
 
-    def __init__(self, results=None, profiles=None):
+    def __init__(self, results=None, profiles=None, error_message=""):
         self.results = results or []
         self.profiles = profiles or []
+        self.error_message = error_message
 
     @classmethod
-    def from_dict(cls, d):
-        response = QueryResponse()
-        response.results = [QueryResult.from_item(r) for r in d.get("results", [])]
-        response.profiles = [ProfileItem.from_dict(p) for p in d.get("profiles", [])]
-        response.error_message = d.get("error", "")
-        return response
+    def from_protobuf(cls, bin):
+        response = internal.QueryResponse()
+        response.ParseFromString(bin)
+        results = [QueryResult.from_internal(r) for r in response.Results]
+        profiles = [ProfileItem.from_internal(p) for p in response.Profiles]
+        error_message = response.Err
+        return cls(results, profiles, error_message)
 
     @property
     def result(self):
@@ -75,3 +72,21 @@ class QueryResponse(object):
         return self.profiles[0] if self.profiles else None
 
 
+__protobuf_attrs_to_dict = {
+    1: lambda a: a.StringValue,
+    2: lambda a: a.UintValue,
+    3: lambda a: a.BoolValue,
+    4: lambda a: a.FloatValue,
+}
+
+
+def _convert_protobuf_attrs_to_dict(attrs):
+    d = {}
+    attr = None  # to get the attr with invalid type
+    try:
+        for attr in attrs:
+            value = __protobuf_attrs_to_dict[attr.Type](attr)
+            d[attr.Key] = value
+    except KeyError:
+        raise PilosaError("Invalid protobuf attribute type: %s" % attr.Type)
+    return d
