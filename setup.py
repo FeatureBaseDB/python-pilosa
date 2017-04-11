@@ -39,5 +39,6 @@ setup(
     packages=['pilosa'],
 
     setup_requires=['pytest-runner'],
+    install_requires=['urllib3', 'protobuf'],
     tests_require=['pytest', 'mock', 'coverage', 'pytest-cov'],
 )
