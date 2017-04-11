@@ -1,6 +1,8 @@
 SRC_DIR = pilosa/internal
 DST_DIR = pilosa/internal
 
+.PHONY: test test-all cover generate-proto
+
 test:
 	py.test tests
 
