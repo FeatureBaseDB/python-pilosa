@@ -47,7 +47,7 @@ class ClientIT(unittest.TestCase):
         frame = self.db.frame("query-test")
         client.ensure_frame(frame)
         response = client.query(frame.setbit(555, 10))
-        self.assertIsNotNone(response.result)
+        self.assertTrue(response.result is not None)
 
     def test_query_with_profiles(self):
         client = self.get_client()
@@ -57,12 +57,12 @@ class ClientIT(unittest.TestCase):
         profile_attrs = {"name": "bombo"}
         client.query(self.db.set_profile_attrs(1000, profile_attrs))
         response = client.query(frame.bitmap(100), profiles=True)
-        self.assertIsNotNone(response)
+        self.assertTrue(response is not None)
         self.assertEquals(1000, response.profile.id)
         self.assertEquals({"name": "bombo"}, response.profile.attributes)
 
         response = client.query(frame.bitmap(300))
-        self.assertIsNone(response.profile)
+        self.assertTrue(response.profile is None)
 
     def test_failed_connection(self):
         client = Client("http://non-existent-sub.pilosa.com:22222")
@@ -99,7 +99,7 @@ class ClientIT(unittest.TestCase):
         client.query(self.col_db.set_profile_attrs(20, profile_attrs))
         response2 = client.query(self.frame.bitmap(10), profiles=True)
         profile = response2.profile
-        self.assertIsNotNone(profile)
+        self.assertTrue(profile is not None)
         self.assertEquals(20, profile.id)
 
         bitmap_attrs = {

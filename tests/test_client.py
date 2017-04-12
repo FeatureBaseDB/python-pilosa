@@ -143,7 +143,7 @@ class QueryRequestTestCase(unittest.TestCase):
     def test_serialize(self):
         qr = QueryRequest("mydb", "Bitmap(frame='foo', id=1)", profiles=True, time_quantum=TimeQuantum.YEAR)
         bin = qr.to_protobuf()
-        self.assertIsNotNone(bin)
+        self.assertTrue(bin is not None)
 
         import pilosa.internal.internal_pb2 as internal
         qr = internal.QueryRequest()
