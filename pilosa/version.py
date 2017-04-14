@@ -11,7 +11,7 @@ def _git_version():
         return subprocess.check_output(
             ['git', '-C', path, 'describe', '--tags']
             ).strip().decode(encoding='utf-8', errors='ignore')
-    except (OSError, AttributeError):
+    except (OSError, AttributeError, subprocess.CalledProcessError):
         return None
 
 def _installed_version():
