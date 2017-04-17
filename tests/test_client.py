@@ -3,6 +3,7 @@ import unittest
 
 from pilosa.client import Client, URI, Cluster, QueryRequest, TimeQuantum
 from pilosa.exceptions import PilosaURIError, PilosaError
+import pilosa.internal.public_pb2 as internal
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,6 @@ class QueryRequestTestCase(unittest.TestCase):
         bin = qr.to_protobuf()
         self.assertTrue(bin is not None)
 
-        import pilosa.internal.internal_pb2 as internal
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
         self.assertEquals("mydb", qr.DB)

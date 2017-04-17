@@ -4,7 +4,7 @@ import re
 import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
-from .internal import internal_pb2 as internal
+from .internal import public_pb2 as internal
 from .orm import TimeQuantum
 from .response import QueryResponse
 from .version import get_version

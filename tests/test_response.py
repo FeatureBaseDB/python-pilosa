@@ -1,7 +1,7 @@
 import unittest
 
 from pilosa.exceptions import PilosaError
-from pilosa.internal import internal_pb2 as internal
+from pilosa.internal import public_pb2 as internal
 from pilosa.response import QueryResponse
 
 

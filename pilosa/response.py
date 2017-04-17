@@ -1,5 +1,5 @@
 from .exceptions import PilosaError
-from .internal import internal_pb2 as internal
+from .internal import public_pb2 as internal
 
 
 class BitmapResult:
