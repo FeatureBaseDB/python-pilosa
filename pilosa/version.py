@@ -1,7 +1,7 @@
-import pkg_resources
-import subprocess
 import os
+import subprocess
 
+import pkg_resources
 
 DEFAULT_VERSION = '0.0.0-unversioned'
 
@@ -11,7 +11,7 @@ def _git_version():
         return subprocess.check_output(
             ['git', '-C', path, 'describe', '--tags']
             ).strip().decode(encoding='utf-8', errors='ignore')
-    except OSError:
+    except (OSError, AttributeError, subprocess.CalledProcessError):
         return None
 
 def _installed_version():

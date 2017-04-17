@@ -1,140 +1,258 @@
 import logging
-import requests
-import random
-from .version import get_version
-from .query import Query
-from .exceptions import PilosaError, PilosaNotAvailable, InvalidQuery
-from requests.exceptions import ConnectionError
 import re
+
+import urllib3
+
+from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
+from .internal import public_pb2 as internal
+from .orm import TimeQuantum
+from .response import QueryResponse
+from .version import get_version
+
+__all__ = ["Client", "Cluster", "URI"]
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = '127.0.0.1:15000'
-
-def _validate_database(value):
-    if not re.match(r'^[.a-z0-9_-]{1,64}$', value):
-        raise InvalidQuery('Database names must be <= 64 characters and consist of only lower-case letters, numbers, underscores, and dashes.')
-
-class QueryResult(object):
-    def __init__(self, result):
-        self._raw = result
-
-    def get_key(self, key):
-        try:
-            return self._raw[key]
-        except KeyError:
-            raise PilosaError('Key {} does not exist in results dict {}'.format(
-                key, self._raw
-            ))
-
-    def bits(self):
-        return self.get_key('bits')
-
-    def attrs(self):
-        return self.get_key('attrs')
-
-    def count(self):
-        return self.get_key('count')
-
-    def value(self):
-        return self._raw
-
-class PilosaResponse(object):
-    def __init__(self, response):
-        self._raw = response
-        try:
-            results = response['results']
-        except KeyError:
-            raise PilosaError('Response invalid: {}'.format(response))
-        self.results = [QueryResult(result) for result in results]
-
-    def _check_index(self, index):
-        if len(self.results) < index + 1:
-            raise PilosaError('Invalid index {}: Only {} results exist.'.format(
-                index, len(self.results)
-            ))
-
-    def bits(self, index=0):
-        self._check_index(index)
-        return self.results[index].bits()
-
-    def attrs(self, index=0):
-        self._check_index(index)
-        return self.results[index].attrs()
-
-    def count(self, index=0):
-        self._check_index(index)
-        return self.results[index].count()
-
-    def value(self, index=0):
-        self._check_index(index)
-        return self.results[index].value()
-
-    def values(self):
-        return [self.results[index].value() for index in range(len(self.results))]
-
-    def __repr__(self):
-        return '<PilosaResponse {}>'.format(self.values())
 
 class Client(object):
-    def __init__(self, hosts=None):
-        self.hosts = hosts or [DEFAULT_HOST]
 
-    def _get_random_host(self):
-        return self.hosts[random.randint(0, len(self.hosts) - 1)]
+    __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
-    def query(self, db, query, profiles=False):
-        """
-        query is either a Query object or a list of Query objects or pql string
-        profiles is a binary that indicates whether to return the entire profile (inc. attrs)
-        in a Bitmap() query, or just the profile ID
-        """
-        if not query:
-            return
+    def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
+                 pool_size_per_route=10, pool_size_total=100, retry_count=3):
+        if cluster_or_uri is None:
+            self.cluster = Cluster(URI())
+        elif isinstance(cluster_or_uri, Cluster):
+            self.cluster = cluster_or_uri
+        elif isinstance(cluster_or_uri, URI):
+            self.cluster = Cluster(cluster_or_uri)
+        elif isinstance(cluster_or_uri, str):
+            self.cluster = Cluster(URI.address(cluster_or_uri))
+        else:
+            raise PilosaError("Invalid cluster_or_uri: %s" % cluster_or_uri)
 
-        # Python 3 compatibility:
+        self.connect_timeout = connect_timeout / 1000.0
+        self.socket_timeout = socket_timeout / 1000.0
+        self.pool_size_per_route = pool_size_per_route
+        self.pool_size_total = pool_size_total
+        self.retry_count = retry_count
+        self.__current_host = None
+        self.__client = None
+
+    def query(self, query, profiles=False, time_quantum=TimeQuantum.NONE):
+        request = QueryRequest(query.database.name, query.serialize(),
+                          profiles=profiles, time_quantum=time_quantum)
+        data = request.to_protobuf()
+        uri = "%s/query" % self.__get_address()
+        response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
+        query_response = QueryResponse.from_protobuf(response.data)
+        if query_response.error_message:
+            raise PilosaError(query_response.error_message)
+        return query_response
+
+    def create_database(self, database):
+        self.__create_or_delete_database("POST", database)
+        if database.time_quantum != TimeQuantum.NONE:
+            self.__patch_database_time_quantum(database)
+
+    def delete_database(self, database):
+        self.__create_or_delete_database("DELETE", database)
+
+    def create_frame(self, frame):
+        self.__create_or_delete_frame("POST", frame)
+        if frame.time_quantum != TimeQuantum.NONE:
+            self.__patch_frame_time_quantum(frame)
+
+    def delete_frame(self, frame):
+        self.__create_or_delete_frame("DELETE", frame)
+
+    def ensure_database(self, database):
         try:
-            basestring
-        except NameError:
-            basestring = str
+            self.create_database(database)
+        except DatabaseExistsError:
+            pass
 
-        _validate_database(str(db))
+    def ensure_frame(self, frame):
+        try:
+            self.create_frame(frame)
+        except FrameExistsError:
+            pass
 
-        if isinstance(query, basestring):
-            return self.send_query_string_to_pilosa(query, db, profiles)
-        elif type(query) is not list:
-            query = [query]
-        for q in query:
-            if not isinstance(q, Query):
-                raise InvalidQuery('{} is not an instance of Query'.format(q))
+    def __create_or_delete_database(self, method, database):
+        data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
+               (database.name, database.column_label)
+        uri = "%s/db" % self.__get_address()
+        self.__http_request(method, uri, data=data)
 
-        query_strings = ' '.join(q.to_pql() for q in query)
-        return self.send_query_string_to_pilosa(query_strings, db, profiles)
+    def __create_or_delete_frame(self, method, frame):
+        data = '{"db": "%s", "frame": "%s", "options": {"rowLabel": "%s"}}' % \
+               (frame.database.name, frame.name, frame.row_label)
+        uri = "%s/frame" % self.__get_address()
+        self.__http_request(method, uri, data=data)
 
-    def send_query_string_to_pilosa(self, query_strings, db, profiles):
-        url = 'http://{}/query?db={}'.format(self._get_random_host(), db)
-        if profiles:
-            url += '&profiles=true'
+    def __patch_database_time_quantum(self, database):
+        uri = "%s/db/time_quantum" % self.__get_address()
+        data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
+               (database.name, str(database.time_quantum))
+        self.__http_request("PATCH", uri, data=data)
 
+    def __patch_frame_time_quantum(self, frame):
+        uri = "%s/frame/time_quantum" % self.__get_address()
+        data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
+               (frame.database.name, frame.name, str(frame.time_quantum))
+        self.__http_request("PATCH", uri, data=data)
+
+    def __http_request(self, method, uri, data, client_response=0):
+        if not self.__client:
+            self.__connect()
+        try:
+            response = self.__client.request(method, uri, body=data)
+        except urllib3.exceptions.MaxRetryError as e:
+            self.cluster.remove_host(self.__current_host)
+            self.__current_host = None
+            raise PilosaError(str(e))
+
+        if client_response == Client.__RAW_RESPONSE:
+            return response
+
+        if 200 <= response.status < 300:
+            return None if client_response == Client.__NO_RESPONSE else response
+        content = response.data.decode('utf-8')
+        ex = self.__RECOGNIZED_ERRORS.get(content)
+        if ex is not None:
+            raise ex
+        raise PilosaError("Server error (%d): %s", response.status, content)
+
+    def __get_address(self):
+        if self.__current_host is None:
+            self.__current_host = self.cluster.get_host()
+        return self.__current_host.normalize()
+
+    def __connect(self):
+        num_pools = float(self.pool_size_total) / self.pool_size_per_route
         headers = {
-            'Accept': 'application/vnd.pilosa.json.v1',
-            'Content-Type': 'application/vnd.pilosa.pql.v1',
-            'User-Agent': 'pilosa-driver/' + get_version(),
+            'Content-Type': 'application/x-protobuf',
+            'Accept': 'application/x-protobuf',
+            'User-Agent': 'python-pilosa/' + get_version(),
         }
 
+        timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
+        client = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
+            block=True, headers=headers, timeout=timeout, retries=self.retry_count)
+        self.__client = client
+
+    __RECOGNIZED_ERRORS = {
+        "database already exists\n": DatabaseExistsError,
+        "frame already exists\n": FrameExistsError,
+    }
+
+
+class URI:
+    """Represents a Pilosa URI
+
+    A Pilosa URI consists of three parts:
+    - Scheme: Protocol of the URI. Default: http
+    - Host: Hostname or IP URI. Default: localhost
+    - Port: Port of the URI. Default 10101
+    
+    All parts of the URI are optional. The following are equivalent:
+    - http://localhost:10101
+    - http://localhost
+    - http://:10101
+    - localhost:10101
+    - localhost
+    - :10101
+    """
+    __PATTERN = re.compile("^(([+a-z]+)://)?([0-9a-z.-]+)?(:([0-9]+))?$")
+
+    def __init__(self, scheme="http", host="localhost", port=10101):
+        self.scheme = scheme
+        self.host = host
+        self.port = port
+
+    @classmethod
+    def address(cls, address):
+        uri = cls()
+        uri._parse(address)
+        return uri
+
+    def normalize(self):
+        scheme = self.scheme
         try:
-            response = requests.post(url, data=query_strings, headers=headers)
-        except ConnectionError as e:
-            raise PilosaNotAvailable(str(e.message))
+            index = scheme.index("+")
+            scheme = scheme[:index]
+        except ValueError:
+            pass
+        return "%s://%s:%s" % (scheme, self.host, self.port)
 
-        if response.status_code == 400:
-            try:
-                error = response.json()
-                raise PilosaError(error['error'])
-            except (ValueError, KeyError):
-                raise PilosaError(response.content)
+    def _parse(self, address):
+        m = self.__PATTERN.search(address)
+        if m:
+            scheme = m.group(2)
+            if scheme:
+                self.scheme = scheme
+            host = m.group(3)
+            if host:
+                self.host = host
+            port = m.group(5)
+            if port:
+                self.port = int(port)
+            return
+        raise PilosaURIError("Not a Pilosa URI")
 
-        if response.headers.get('Warning'):
-            logger.warning(response.headers['Warning'])
+    def __str__(self):
+        return "%s://%s:%s" % (self.scheme, self.host, self.port)
 
-        return PilosaResponse(response.json())
+    def __repr__(self):
+        return "<URI %s>" % self
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if other is None or not isinstance(other, self.__class__):
+            return False
+        return self.scheme == other.scheme and \
+            self.host == other.host and \
+            self.port == other.port
+
+
+class Cluster:
+    """Contains hosts in a Pilosa cluster"""
+
+    def __init__(self, *hosts):
+        """Returns the cluster with the given hosts"""
+        self.hosts = list(hosts)
+        self.__next_index = 0
+
+    def add_host(self, uri):
+        """Adds a host to the cluster"""
+        self.hosts.append(uri)
+
+    def remove_host(self, uri):
+        """Removes the host with the given URI from the cluster."""
+        self.hosts.remove(uri)
+
+    def get_host(self):
+        """Returns the next host in the cluster"""
+        if len(self.hosts) == 0:
+            raise PilosaError("There are no available hosts")
+        next_host = self.hosts[self.__next_index % len(self.hosts)]
+        self.__next_index = (self.__next_index + 1) % len(self.hosts)
+        return next_host
+
+
+class QueryRequest:
+
+    def __init__(self, database_name, query, profiles=False, time_quantum=TimeQuantum.NONE,):
+        self.database_name = database_name
+        self.query = query
+        self.profiles = profiles
+        self.time_quantum = time_quantum
+
+    def to_protobuf(self):
+        qr = internal.QueryRequest()
+        qr.Query = self.query
+        qr.DB = self.database_name
+        qr.Profiles = self.profiles
+        qr.Quantum = str(self.time_quantum)
+        return qr.SerializeToString()

@@ -1,6 +1,7 @@
-from setuptools import setup
 from codecs import open
 from os import path
+
+from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -37,7 +38,7 @@ setup(
     keywords='pilosa,pql',
     packages=['pilosa'],
 
-    install_requires=['requests'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'mock'],
+    install_requires=['urllib3', 'protobuf'],
+    tests_require=['pytest', 'mock', 'coverage', 'pytest-cov'],
 )
