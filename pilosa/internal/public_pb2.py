@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='public.proto',
   package='internal',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"5\n\x06\x42itmap\x12\x0c\n\x04\x42its\x18\x01 \x03(\x04\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"\"\n\x04Pair\x12\x0b\n\x03Key\x18\x01 \x01(\x04\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"=\n\x03\x42it\x12\x10\n\x08\x42itmapID\x18\x01 \x01(\x04\x12\x11\n\tProfileID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\"4\n\x07Profile\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"p\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x11\n\tUintValue\x18\x04 \x01(\x04\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"l\n\x0cQueryRequest\x12\n\n\x02\x44\x42\x18\x01 \x01(\t\x12\r\n\x05Query\x18\x02 \x01(\t\x12\x0e\n\x06Slices\x18\x03 \x03(\x04\x12\x10\n\x08Profiles\x18\x04 \x01(\x08\x12\x0f\n\x07Quantum\x18\x05 \x01(\t\x12\x0e\n\x06Remote\x18\x06 \x01(\x08\"i\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12#\n\x08Profiles\x18\x03 \x03(\x0b\x32\x11.internal.Profile\"j\n\x0bQueryResult\x12 \n\x06\x42itmap\x18\x01 \x01(\x0b\x32\x10.internal.Bitmap\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\"t\n\rImportRequest\x12\n\n\x02\x44\x42\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x11\n\tBitmapIDs\x18\x04 \x03(\x04\x12\x12\n\nProfileIDs\x18\x05 \x03(\x04\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\x62\x06proto3')
+  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"5\n\x06\x42itmap\x12\x0c\n\x04\x42its\x18\x01 \x03(\x04\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"\"\n\x04Pair\x12\x0b\n\x03Key\x18\x01 \x01(\x04\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"=\n\x03\x42it\x12\x10\n\x08\x42itmapID\x18\x01 \x01(\x04\x12\x11\n\tProfileID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\"4\n\x07Profile\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"`\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Slices\x18\x02 \x03(\x04\x12\x10\n\x08Profiles\x18\x03 \x01(\x08\x12\x0f\n\x07Quantum\x18\x04 \x01(\t\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\"i\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12#\n\x08Profiles\x18\x03 \x03(\x0b\x32\x11.internal.Profile\"j\n\x0bQueryResult\x12 \n\x06\x42itmap\x18\x01 \x01(\x0b\x32\x10.internal.Bitmap\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\"t\n\rImportRequest\x12\n\n\x02\x44\x42\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x11\n\tBitmapIDs\x18\x04 \x03(\x04\x12\x12\n\nProfileIDs\x18\x05 \x03(\x04\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -214,8 +214,8 @@ _ATTR = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='UintValue', full_name='internal.Attr.UintValue', index=3,
-      number=4, type=4, cpp_type=4, label=1,
+      name='IntValue', full_name='internal.Attr.IntValue', index=3,
+      number=4, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -247,7 +247,7 @@ _ATTR = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=234,
-  serialized_end=346,
+  serialized_end=345,
 )
 
 
@@ -277,8 +277,8 @@ _ATTRMAP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=348,
-  serialized_end=388,
+  serialized_start=347,
+  serialized_end=387,
 )
 
 
@@ -290,43 +290,36 @@ _QUERYREQUEST = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='DB', full_name='internal.QueryRequest.DB', index=0,
+      name='Query', full_name='internal.QueryRequest.Query', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Query', full_name='internal.QueryRequest.Query', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='Slices', full_name='internal.QueryRequest.Slices', index=2,
-      number=3, type=4, cpp_type=4, label=3,
+      name='Slices', full_name='internal.QueryRequest.Slices', index=1,
+      number=2, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Profiles', full_name='internal.QueryRequest.Profiles', index=3,
-      number=4, type=8, cpp_type=7, label=1,
+      name='Profiles', full_name='internal.QueryRequest.Profiles', index=2,
+      number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Quantum', full_name='internal.QueryRequest.Quantum', index=4,
-      number=5, type=9, cpp_type=9, label=1,
+      name='Quantum', full_name='internal.QueryRequest.Quantum', index=3,
+      number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Remote', full_name='internal.QueryRequest.Remote', index=5,
-      number=6, type=8, cpp_type=7, label=1,
+      name='Remote', full_name='internal.QueryRequest.Remote', index=4,
+      number=5, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -343,8 +336,8 @@ _QUERYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=390,
-  serialized_end=498,
+  serialized_start=389,
+  serialized_end=485,
 )
 
 
@@ -388,8 +381,8 @@ _QUERYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=500,
-  serialized_end=605,
+  serialized_start=487,
+  serialized_end=592,
 )
 
 
@@ -440,8 +433,8 @@ _QUERYRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=607,
-  serialized_end=713,
+  serialized_start=594,
+  serialized_end=700,
 )
 
 
@@ -506,8 +499,8 @@ _IMPORTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=715,
-  serialized_end=831,
+  serialized_start=702,
+  serialized_end=818,
 )
 
 _BITMAP.fields_by_name['Attrs'].message_type = _ATTR
