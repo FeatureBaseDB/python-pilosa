@@ -40,10 +40,10 @@ class Client(object):
         self.__client = None
 
     def query(self, query, profiles=False, time_quantum=TimeQuantum.NONE):
-        request = QueryRequest(query.database.name, query.serialize(),
-                          profiles=profiles, time_quantum=time_quantum)
+        request = QueryRequest(query.serialize(), profiles=profiles,
+                               time_quantum=time_quantum)
         data = request.to_protobuf()
-        uri = "%s/query" % self.__get_address()
+        uri = "%s/db/%s/query" % (self.__get_address(), query.database.name)
         response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
         query_response = QueryResponse.from_protobuf(response.data)
         if query_response.error_message:
@@ -51,20 +51,26 @@ class Client(object):
         return query_response
 
     def create_database(self, database):
-        self.__create_or_delete_database("POST", database)
+        data = '{"options": {"columnLabel": "%s"}}' %  database.column_label
+        uri = "%s/db/%s" % (self.__get_address(), database.name)
+        self.__http_request("POST", uri, data=data)
         if database.time_quantum != TimeQuantum.NONE:
             self.__patch_database_time_quantum(database)
 
     def delete_database(self, database):
-        self.__create_or_delete_database("DELETE", database)
+        uri = "%s/db/%s" % (self.__get_address(), database.name)
+        self.__http_request("DELETE", uri)
 
     def create_frame(self, frame):
-        self.__create_or_delete_frame("POST", frame)
+        data = '{"options": {"rowLabel": "%s"}}' % frame.row_label
+        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.database.name, frame.name)
+        self.__http_request("POST", uri, data=data)
         if frame.time_quantum != TimeQuantum.NONE:
             self.__patch_frame_time_quantum(frame)
 
     def delete_frame(self, frame):
-        self.__create_or_delete_frame("DELETE", frame)
+        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.database.name, frame.name)
+        self.__http_request("DELETE", uri)
 
     def ensure_database(self, database):
         try:
@@ -78,31 +84,18 @@ class Client(object):
         except FrameExistsError:
             pass
 
-    def __create_or_delete_database(self, method, database):
-        data = '{"db": "%s", "options": {"columnLabel": "%s"}}' % \
-               (database.name, database.column_label)
-        uri = "%s/db" % self.__get_address()
-        self.__http_request(method, uri, data=data)
-
-    def __create_or_delete_frame(self, method, frame):
-        data = '{"db": "%s", "frame": "%s", "options": {"rowLabel": "%s"}}' % \
-               (frame.database.name, frame.name, frame.row_label)
-        uri = "%s/frame" % self.__get_address()
-        self.__http_request(method, uri, data=data)
-
     def __patch_database_time_quantum(self, database):
-        uri = "%s/db/time_quantum" % self.__get_address()
-        data = '{\"db\":\"%s\", \"time_quantum\":\"%s\"}"' % \
-               (database.name, str(database.time_quantum))
+        uri = "%s/db/%s/time-quantum" % (self.__get_address(), database.name)
+        data = '{\"time_quantum\":\"%s\"}"' % str(database.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
     def __patch_frame_time_quantum(self, frame):
-        uri = "%s/frame/time_quantum" % self.__get_address()
-        data = '{\"db\":\"%s\", \"frame\":\"%s\", \"time_quantum\":\"%s\"}"' % \
-               (frame.database.name, frame.name, str(frame.time_quantum))
+        uri = "%s/db/%s/frame/%s/time-quantum" % \
+              (self.__get_address(), frame.database.name, frame.name)
+        data = '{\"time_quantum\":\"%s\"}"' % str(frame.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
-    def __http_request(self, method, uri, data, client_response=0):
+    def __http_request(self, method, uri, data=None, client_response=0):
         if not self.__client:
             self.__connect()
         try:
@@ -243,8 +236,7 @@ class Cluster:
 
 class QueryRequest:
 
-    def __init__(self, database_name, query, profiles=False, time_quantum=TimeQuantum.NONE,):
-        self.database_name = database_name
+    def __init__(self, query, profiles=False, time_quantum=TimeQuantum.NONE,):
         self.query = query
         self.profiles = profiles
         self.time_quantum = time_quantum
@@ -252,7 +244,6 @@ class QueryRequest:
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
-        qr.DB = self.database_name
         qr.Profiles = self.profiles
         qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()

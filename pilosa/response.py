@@ -27,7 +27,6 @@ class QueryResult:
         self.count_items = count_items or []
         self.count = count
 
-
     @classmethod
     def from_internal(cls, obj):
         count_items = []
@@ -76,7 +75,7 @@ def _convert_protobuf_attrs_to_dict(attrs):
     protobuf_attrs_to_dict = [
         None,
         lambda a: a.StringValue,
-        lambda a: a.UintValue,
+        lambda a: a.IntValue,
         lambda a: a.BoolValue,
         lambda a: a.FloatValue,
     ]

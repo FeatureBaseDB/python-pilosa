@@ -142,13 +142,12 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = QueryRequest("mydb", "Bitmap(frame='foo', id=1)", profiles=True, time_quantum=TimeQuantum.YEAR)
+        qr = QueryRequest("Bitmap(frame='foo', id=1)", profiles=True, time_quantum=TimeQuantum.YEAR)
         bin = qr.to_protobuf()
         self.assertTrue(bin is not None)
 
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
-        self.assertEquals("mydb", qr.DB)
         self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.Profiles)
         self.assertEquals("Y", qr.Quantum)
