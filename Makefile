@@ -9,6 +9,9 @@ cover:
 generate-proto:
 	protoc -I=$(SRC_DIR) --python_out=$(DST_DIR) $(SRC_DIR)/public.proto
 
+readme:
+	pandoc --from=markdown --to=rst --output=README.rst README.md
+
 test:
 	py.test tests
 

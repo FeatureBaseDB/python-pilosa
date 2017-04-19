@@ -1,177 +1,407 @@
-================================
-Python Client Library for Pilosa
-================================
+Python Client for Pilosa
+========================
 
-.. image:: https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master
-    :target: https://travis-ci.com/pilosa/python-pilosa
+Python client for Pilosa high performance database.
 
+Changelog
+---------
+
+-  2017-05-01: Initial version
+
+Requirements
 ------------
-Installation
-------------
 
-Installation through pip is recommended:
+-  Python 2.6 and higher or Python 3.4 and higher
 
-    $ pip install pilosa-driver
+Install
+-------
 
+Pilosa client is on `PyPI <https://pypi.python.org/package/pilosa>`__.
+You can install the library using ``pip``:
 
------
+::
+
+    pip install pilosa
+
 Usage
 -----
 
-Creating a Connection
----------------------
+Quick overview
+~~~~~~~~~~~~~~
 
-The first step in accessing Pilosa is to create a client object.
-
-.. code:: python
-
-    from pilosa import Client
-    client = Client()
-
-    # You may also specify the hosts when instanciating the client. The default host is 127.0.0.1:15000.
-    client = Client(['my.custom.hostname:15000'])
-
-Query
------
-
-Queries to Pilosa require sending a POST request where the query itself is sent as POST data.
-You specify the database on which to perform the query with a URL argument ``db=database-name``.
-
-A query sent to database ``exampleDB`` will have the following format:
+Assuming `Pilosa <https://github.com/pilosa/pilosa>`__ server is running
+at ``localhost:10101`` (the default):
 
 .. code:: python
 
-    from pilosa import Setbit
-    results = client.query("exampleDB", Query())
+    import pilosa
 
-The ``Query()`` object referenced above should be made up of one or more of the query types listed below.
-So for example, a SetBit() query would look like this:
+    # Create the default client
+    client = pilosa.Client()
 
-.. code:: python
+    # Create a Database object
+    mydb = pilosa.Database("mydb")
 
-    result = client.query("exampleDB", SetBit(id=10, frame="foo", profileID=1))
+    # Make sure the database exists on the server
+    client.ensure_database(mydb)
 
-Query results have the format ``{"results":[]}``, where ``results`` is a list of results for each ``Query()``. This
-means that you can provide multiple ``Query()`` objects with each request and ``results`` will contain
-the results of all of the queries.
+    # Create a Frame object
+    myframe = mydb.frame("myframe")
 
-.. code:: python
+    # Make sure the frame exists on the server
+    client.ensure_frame(myframe)
 
-    results = client.query("exampleDB", [Query(), Query(), Query()])
+    # Send a SetBit query. PilosaError is thrown if execution of the query fails.
+    client.query(myframe.setbit(5, 42))
 
-SetBit()
---------
+    # Send a Bitmap query. PilosaError is thrown if execution of the query fails.
+    response = client.query(myframe.bitmap(5))
 
-.. code:: python
+    # Get the result
+    result = response.result
 
-    from pilosa import SetBit
-    results = client.query("exampleDB", SetBit(id=10, frame="foo", profileID=1))
+    # Deal with the result
+    if result:
+        bits = result.bitmap.bits
+        print("Got bits: ", bits)
 
-A return value of ``{"results":[true]}`` indicates that the bit was toggled from 0 to 1.
-A return value of ``{"results":[false]}`` indicates that the bit was already set to 1 and therefore nothing changed.
+    # You can batch queries to improve throughput
+    response = client.query(
+        mydb.batch_query(
+            myframe.bitmap(5),
+            myframe.bitmap(10),
+        )    
+    )
+    for result in response.results {
+        # Deal with the result
+    }
 
-ClearBit()
-----------
+Data Model and Queries
+~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: python
+Databases and Frames
+^^^^^^^^^^^^^^^^^^^^
 
-    from pilosa import ClearBit
-    results = client.query("exampleDB", ClearBit(id=10, frame="foo", profileID=1))
+*Database* and *frame*\ s are the main data models of Pilosa. You can
+check the `Pilosa documentation <https://www.pilosa.com/docs>`__ for
+more detail about the data model.
 
-A return value of ``{"results":[true]}`` indicates that the bit was toggled from 1 to 0.
-A return value of ``{"results":[false]}`` indicates that the bit was already set to 0 and therefore nothing changed.
-
-SetBitmapAttrs()
-----------------
-
-.. code:: python
-
-    from pilosa import SetBitmapAttrs
-    SetBitmapAttrs(id=10, frame="foo", category=123, color="blue", happy=true)
-
-Returns ``{"results":[null]}``
-
-Bitmap()
---------
-
-.. code:: python
-
-    from pilosa import Bitmap
-    results = client.query("exampleDB", Bitmap(id=10, frame="foo"))
-
-Returns ``{"results":[{"attrs":{"category":123,"color":"blue","happy":true},"bits":[1,2]}]}`` where ``attrs`` are the
-attributes set using ``SetBitmapAttrs()`` and ``bits`` are the bits set using ``SetBit()``.
-
-Union()
--------
+``Database`` constructor is used to create a database object. Note that,
+this does not create a database on the server, the database object just
+defines the schema.
 
 .. code:: python
 
-    from pilosa import Union
-    results = client.query("exampleDB", Union(Bitmap(id=10, frame="foo"), Bitmap(id=20, frame="foo"))))
+    repository = pilosa.Database("repository")
 
-Returns a result set similar to that of a ``Bitmap()`` query, only the ``attrs`` dictionary will be empty: ``{"results":[{"attrs":{},"bits":[1,2]}]}``.
-Note that a ``Union()`` query can be nested within other queries anywhere that you would otherwise provide a ``Bitmap()``.
-
-Intersect()
------------
+Databases support changing the column label and time quantum
+(*resolution*). You can pass these additional arguments to the
+``Database`` constructor:
 
 .. code:: python
 
-from pilosa import Intersect
-results = client.query("exampleDB", Intersect(Bitmap(id=10, frame="foo"), Bitmap(id=20, frame="foo")))
+    repository = pilosa.Database("repository",
+        column_label="repo_id", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
 
-Returns a result set similar to that of a ``Bitmap()`` query, only the ``attrs`` dictionary will be empty: ``{"results":[{"attrs":{},"bits":[1]}]}``.
-Note that an ``Intersect()`` query can be nested within other queries anywhere that you would otherwise provide a ``Bitmap()``.
+Frames are created with a call to ``database.frame`` method:
 
-Difference()
+.. code:: python
+
+    stargazer = repository.frame("stargazer")
+
+Similar to database objects, you can pass custom options
+``database.frame`` method:
+
+.. code:: python
+
+    stargazer = repository.frame("stargazer",
+        row_label="stargazer_id", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
+
+Queries
+^^^^^^^
+
+Once you have database and frame objects created, you can create queries
+for those. Some of the queries work on the columns; corresponding
+methods are attached to the database. Other queries work on rows, with
+related methods attached to frames.
+
+For instance, ``Bitmap`` queries work on rows; use a frame object to
+create those queries:
+
+.. code:: python
+
+    bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='stargazer', stargazer_id=1)
+
+``Union`` queries work on columns; use the database object to create
+them:
+
+.. code:: python
+
+    query = repository.union(bitmap_query1, bitmap_query2)
+
+In order to increase througput, you may want to batch queries sent to
+the Pilosa server. ``database.batch_query`` method is used for that
+purpose:
+
+.. code:: python
+
+    query = repository.batch_query(
+        stargazer.bitmap(1, 100),
+        repository.union(stargazer.bitmap(100, 200), stargazer.bitmap(5, 100))
+    )
+
+The recommended way of creating query objects is, using dedicated
+methods attached to database and frame objects. But sometimes it would
+be desirable to send raw queries to Pilosa. You can use
+``database.raw_query`` method for that. Note that, query string is not
+validated before sending to the server:
+
+.. code:: python
+
+    query = repository.raw_query("Bitmap(frame='stargazer', stargazer_id=5)")
+
+Please check `Pilosa documentation <https://www.pilosa.com/docs>`__ for
+PQL details. Here is a list of methods corresponding to PQL calls:
+
+Database:
+
+-  ``union(self, *bitmaps)``
+-  ``intersect(self, *bitmaps)``
+-  ``difference(self, *bitmaps)``
+-  ``count(self, bitmap)``
+-  ``set_profile_attrs(self, column_id, attrs)``
+
+Frame:
+
+-  ``bitmap(self, row_id)``
+-  ``setbit(self, row_id, column_id)``
+-  ``clearbit(self, row_id, column_id)``
+-  ``topn(self, n, bitmap=None, field="", *values)``
+-  ``range(self, row_id, start, end)``
+-  ``set_bitmap_attrs(self, row_id, attrs)``
+
+Pilosa URI
+~~~~~~~~~~
+
+A Pilosa URI has the ``${SCHEME}://${HOST}:${PORT}`` format: \*
+**Scheme**: Protocol of the URI. Default: ``http``. \* **Host**:
+Hostname or ipv4/ipv6 IP address. Default: localhost. \* **Port**: Port
+number. Default: ``10101``.
+
+All parts of the URI are optional, but at least one of them must be
+specified. The following are equivalent:
+
+-  ``http://localhost:10101``
+-  ``http://localhost``
+-  ``http://:10101``
+-  ``localhost:10101``
+-  ``localhost``
+-  ``:10101``
+
+A Pilosa URI is represented by ``pilosa.URI`` class. Below is a few ways
+to create ``URI`` objects:
+
+.. code:: python
+
+    # create the default URI: http://localhost:10101
+    uri1 = pilosa.URI()
+
+    # create a URI from string address
+    uri2 = pilosa.URI.address("db1.pilosa.com:20202")
+
+    # create a URI with the given host and port
+    URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202);
+
+Pilosa Client
+~~~~~~~~~~~~~
+
+In order to interact with a Pilosa server, an instance of
+``pilosa.Client`` should be created. The client is thread-safe and uses
+a pool of connections to the server, so we recommend creating a single
+instance of the client and share it with other objects when necessary.
+
+If the Pilosa server is running at the default address
+(``http://localhost:10101``) you can create the default client with
+default options using:
+
+.. code:: python
+
+    client = pilosa.Client()
+
+To use a a custom server address, pass the address in the first
+argument:
+
+.. code:: python
+
+    client = pilosa.Client("http://db1.pilosa.com:15000")
+
+If you are running a cluster of Pilosa servers, you can create a
+``pilosa.Cluster`` object that keeps addresses of those servers for
+increased robustness:
+
+.. code:: python
+
+    cluster = pilosa.Cluster(
+        pilosa.URI.address(":10101"),
+        pilosa.URI.address(":10110"),
+        pilosa.URI.address(":10111"),
+    );
+
+    # Create a client with the cluster
+    client = pilosa.Client(cluster)
+
+It is possible to customize the behaviour of the underlying HTTP client
+by passing client options to the ``Client`` constructor:
+
+.. code:: python
+
+    client = pilosa.Client(cluster,
+        connect_timeout=1000,  # if can't connect in  a second, close the connection
+        socket_timeout=10000,  # if no response received in 10 seconds, close the connection
+        pool_size_per_route=3,  # number of connections in the pool per host
+        rety_count=5,  # number of retries before failing the request
+    )
+
+Once you create a client, you can create databases, frames and start
+sending queries.
+
+Here is how you would create a database and frame:
+
+.. code:: python
+
+    # materialize repository database instance initialized before
+    client.create_database(repository)
+
+    # materialize stargazer frame instance initialized before
+    client.create_frame(stargazer)
+
+If the database or frame exists on the server, you would receive a
+``PilosaError``. You can use ``ensure_database`` and ``ensure_frame``
+methods to ignore existing databases and frames.
+
+You can send queries to a Pilosa server using the ``query`` method of
+client objects:
+
+.. code:: python
+
+    response = client.query(frame.bitmap(5))
+
+``query`` method accepts optional ``profiles`` argument:
+
+.. code:: python
+
+    response = client.query(frame.bitmap(5),
+        profiles=True  # return column data in the response
+    )
+
+Server Response
+~~~~~~~~~~~~~~~
+
+When a query is sent to a Pilosa server, the server fulfills the query
+or sends an error message. In the latter case, ``PilosaError`` is
+thrown, otherwise a ``QueryResponse`` object is returned.
+
+A ``QueryResponse`` object may contain zero or more results of
+``QueryResult`` type. You can access all results using ``results``
+property of ``QueryResponse``, which returns a list of ``QueryResult``
+objects. Or, using ``result`` property, which returns the first result
+if there are any or ``None`` otherwise:
+
+.. code:: python
+
+    response = client.query(frame.bitmap(5))
+
+    # check that there's a result and act on it
+    result = response.result
+    if result:
+        # act on the result
+    }
+
+    # iterate on all results
+    for result in response.results:
+        # act on the result
+
+Similarly, a ``QueryResponse`` object may include a number of profiles
+(column objects), if ``profiles=True`` query option was used:
+
+.. code:: python
+
+    # check that there's a profile and act on it
+    profile = response.profile
+    if profile:
+        # act on the profile
+
+    # iterate on all profiles
+    for profile in response.profiles:
+        # act on the profile
+
+``QueryResult`` objects contain
+
+-  ``bitmap`` property to retrieve a bitmap result,
+-  ``count_items`` property to retrieve column count per row ID entries
+   returned from ``topn`` queries,
+-  ``count`` attribute to retrieve the number of rows per the given row
+   ID returned from ``count`` queries.
+
+.. code:: python
+
+    bitmap = response.bitmap
+    bits = bitmap.bits
+    attributes = bitmap.attributes
+
+    count_items = response.count_items
+
+    count = response.count
+
+Contribution
 ------------
 
-.. code:: python
+Please check our `Contributor's
+Guidelines <https://github.com/pilosa/pilosa/CONTRIBUTING.md>`__.
 
-from pilosa import Difference
-results = client.query("exampleDB", Difference(Bitmap(id=10, frame="foo"), Bitmap(id=20, frame="foo")))
+1. Sign the `Developer
+   Agreement <https://wwww.pilosa.com/developer-agreement>`__ so we can
+   include your contibution in our codebase.
+2. Fork this repo and add it as upstream:
+   ``git remote add upstream git@github.com:pilosa/python-pilosa.git``.
+3. Make sure all tests pass (use ``make test-all``) and be sure that the
+   tests cover all statements in your code (we aim for 100% test
+   coverage).
+4. Commit your code to a feature branch and send a pull request to the
+   ``master`` branch of our repo.
 
-``Difference()`` represents all of the bits that are set in the first ``Bitmap()`` but are not set in the second ``Bitmap()``.  It returns a result set similar to that of a ``Bitmap()`` query, only the ``attrs`` dictionary will be empty: ``{"results":[{"attrs":{},"bits":[2]}]}``.
-Note that a ``Difference()`` query can be nested within other queries anywhere that you would otherwise provide a ``Bitmap()``.
+The sections below assume your platform has ``make``. Otherwise you can
+view the corresponding steps of the ``Makefile``.
 
-Count()
+Running tests
+~~~~~~~~~~~~~
+
+You can run unit tests with:
+
+::
+
+    make test
+
+And both unit and integration tests with:
+
+::
+
+    make test-all
+
+Generating protobuf classes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Protobuf classes are already checked in to source control, so this step
+is only needed when the upstream ``public.proto`` changes.
+
+Before running the following step, make sure you have the `Protobuf
+compiler <https://github.com/google/protobuf>`__ installed:
+
+::
+
+    make generate-proto
+
+License
 -------
 
-.. code:: python
-
-    from pilosa import Count
-    results = client.query(exampleDB,Count(Bitmap(id=10, frame="foo")))
-
-Returns the count of the number of bits set in ``Bitmap()``: ``{"results":[28]}``
-
-Range()
--------
-
-.. code:: python
-
-    from pilosa import Range
-    results = client.query(exampleDB,Range(id=10, frame="foo", start="1970-01-01T00:00", end="2000-01-02T03:04"))
-
-TopN()
-------
-
-.. code:: python
-
-    from pilosa import TopN
-    results = client.query("exampleDB", TopN(frame="bar", n=20))
-
-Returns the top 20 Bitmaps from frame ``bar``.
-
-.. code:: python
-
-    results = client.query("exampleDB", TopN(Bitmap(id=10, frame="foo"), frame="bar", n=20))
-
-Returns the top 20 Bitmaps from ``bar`` sorted by the count of bits in the intersection with ``Bitmap(id=10)``.
-
-.. code:: python
-
-    results = client.query("exampleDB", TopN(Bitmap(id=10, frame="foo"), frame="bar", n=20, field="category", [81,82]))
-
-Returns the top 20 Bitmaps from ``bar`` in attribute ``category`` with values ``81 or 82``
-sorted by the count of bits in the intersection with ``Bitmap(id=10)``.
+**TODO**
