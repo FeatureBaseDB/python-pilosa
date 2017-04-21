@@ -104,6 +104,23 @@ class DatabaseTestCase(unittest.TestCase):
             "Count(Bitmap(project=42, frame='collaboration'))",
             q.serialize())
 
+    def test_set_profile_attributes(self):
+        attrs_map = {
+            "quote": '''"Don't worry, be happy"''',
+            "happy": True
+        }
+        q = projectDb.set_profile_attrs(5, attrs_map)
+        self.assertEquals(
+            "SetProfileAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            q.serialize())
+
+    def test_set_profile_attributes_invalid_values(self):
+        attrs_map = {
+            "color": "blue",
+            "dt": datetime.now()
+        }
+        self.assertRaises(PilosaError, projectDb.set_profile_attrs, 5, attrs_map)
+
 
 class FrameTestCase(unittest.TestCase):
 
@@ -125,6 +142,14 @@ class FrameTestCase(unittest.TestCase):
         self.assertEquals(
             "Bitmap(project=10, frame='collaboration')",
             qry2.serialize())
+
+    def test_inverse_bitmap(self):
+        f1 = projectDb.frame("f1-inversable", row_label="row_label", inverse_enabled=True)
+        qry = f1.inverse_bitmap(5)
+        self.assertEquals(
+            "Bitmap(user=5, frame='f1-inversable')",
+            qry.serialize()
+        )
 
     def test_setbit(self):
         qry1 = sampleFrame.setbit(5, 10)
@@ -183,22 +208,9 @@ class FrameTestCase(unittest.TestCase):
             "SetBitmapAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
-    def test_set_profile_attributes(self):
-        attrs_map = {
-            "quote": '''"Don't worry, be happy"''',
-            "happy": True
-        }
-        q = projectDb.set_profile_attrs(5, attrs_map)
-        self.assertEquals(
-            "SetProfileAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
-            q.serialize())
-
-    def test_set_profile_attributes_invalid_values(self):
-        attrs_map = {
-            "color": "blue",
-            "dt": datetime.now()
-        }
-        self.assertRaises(PilosaError, projectDb.set_profile_attrs, 5, attrs_map)
+    def test_inverse_bitmap_fails_if_not_enabled(self):
+        frame = projectDb.frame("inverse-not-enabled")
+        self.assertRaises(PilosaError, frame.inverse_bitmap, 5)
 
 
 class TimeQuantumTestCase(unittest.TestCase):

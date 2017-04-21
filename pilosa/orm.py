@@ -39,8 +39,8 @@ class Database:
         self.column_label = column_label
         self.time_quantum = time_quantum
 
-    def frame(self, name, row_label="id", time_quantum=TimeQuantum.NONE):
-        return Frame(self, name, row_label=row_label, time_quantum=time_quantum)
+    def frame(self, name, row_label="id", time_quantum=TimeQuantum.NONE, inverse_enabled=False):
+        return Frame(self, name, row_label, time_quantum, inverse_enabled)
 
     def raw_query(self, query):
         return PQLQuery(query, self)
@@ -75,17 +75,24 @@ class Database:
 
 class Frame:
 
-    def __init__(self, database, name, row_label="id", time_quantum=TimeQuantum.NONE):
+    def __init__(self, database, name, row_label, time_quantum, inverse_enabled):
         validate_frame_name(name)
         validate_label(row_label)
         self.database = database
         self.name = name
         self.time_quantum = time_quantum
+        self.inverse_enabled = inverse_enabled
         self.row_label = row_label
         self.column_label = database.column_label
 
     def bitmap(self, row_id):
         return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.row_label, row_id, self.name),
+                        self.database)
+
+    def inverse_bitmap(self, column_id):
+        if not self.inverse_enabled:
+            raise PilosaError("Inverse bitmaps support was not enabled for this frame")
+        return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.column_label, column_id, self.name),
                         self.database)
 
     def setbit(self, row_id, column_id):

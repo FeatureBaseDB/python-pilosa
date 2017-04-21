@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 
@@ -51,7 +52,9 @@ class Client(object):
         return query_response
 
     def create_database(self, database):
-        data = '{"options": {"columnLabel": "%s"}}' %  database.column_label
+        data = json.dumps({
+            "options": {"columnLabel": database.column_label}
+        })
         uri = "%s/db/%s" % (self.__get_address(), database.name)
         self.__http_request("POST", uri, data=data)
         if database.time_quantum != TimeQuantum.NONE:
@@ -62,7 +65,12 @@ class Client(object):
         self.__http_request("DELETE", uri)
 
     def create_frame(self, frame):
-        data = '{"options": {"rowLabel": "%s"}}' % frame.row_label
+        data = json.dumps({
+            "options": {
+                "rowLabel": frame.row_label,
+                "inverseEnabled": frame.inverse_enabled
+            }
+        })
         uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.database.name, frame.name)
         self.__http_request("POST", uri, data=data)
         if frame.time_quantum != TimeQuantum.NONE:
