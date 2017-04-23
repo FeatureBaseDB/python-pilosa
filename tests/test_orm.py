@@ -19,10 +19,10 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEqual(TimeQuantum.NONE, database.time_quantum)
 
         database = Database("sample-db",
-                            column_label="profile_id",
+                            column_label="col_id",
                             time_quantum=TimeQuantum.YEAR_MONTH)
         self.assertEqual("sample-db", database.name)
-        self.assertEqual("profile_id", database.column_label)
+        self.assertEqual("col_id", database.column_label)
         self.assertEqual(TimeQuantum.YEAR_MONTH, database.time_quantum)
 
     def test_raw_query(self):
@@ -114,7 +114,7 @@ class DatabaseTestCase(unittest.TestCase):
             "SetColumnAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
-    def test_set_profile_attributes_invalid_values(self):
+    def test_set_column_attributes_invalid_values(self):
         attrs_map = {
             "color": "blue",
             "dt": datetime.now()

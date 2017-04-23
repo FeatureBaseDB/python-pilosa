@@ -49,20 +49,20 @@ class ClientIT(unittest.TestCase):
         response = client.query(frame.setbit(555, 10))
         self.assertTrue(response.result is not None)
 
-    def test_query_with_profiles(self):
+    def test_query_with_columns(self):
         client = self.get_client()
         frame = self.db.frame("query-test")
         client.ensure_frame(frame)
         client.query(frame.setbit(100, 1000))
-        profile_attrs = {"name": "bombo"}
-        client.query(self.db.set_column_attrs(1000, profile_attrs))
-        response = client.query(frame.bitmap(100), profiles=True)
+        column_attrs = {"name": "bombo"}
+        client.query(self.db.set_column_attrs(1000, column_attrs))
+        response = client.query(frame.bitmap(100), columns=True)
         self.assertTrue(response is not None)
-        self.assertEquals(1000, response.profile.id)
-        self.assertEquals({"name": "bombo"}, response.profile.attributes)
+        self.assertEquals(1000, response.column.id)
+        self.assertEquals({"name": "bombo"}, response.column.attributes)
 
         response = client.query(frame.bitmap(300))
-        self.assertTrue(response.profile is None)
+        self.assertTrue(response.column is None)
 
     def test_failed_connection(self):
         client = Client("http://non-existent-sub.pilosa.com:22222")
@@ -70,7 +70,7 @@ class ClientIT(unittest.TestCase):
 
     def test_parse_error(self):
         client = self.get_client()
-        q = self.db.raw_query("SetBit(id=5, frame=\"test\", profileID:=10)")
+        q = self.db.raw_query("SetBit(id=5, frame=\"test\", col_id:=10)")
         self.assertRaises(PilosaError, client.query, q)
 
     def test_orm_count(self):
@@ -89,18 +89,18 @@ class ClientIT(unittest.TestCase):
         client = self.get_client()
         client.query(self.frame.setbit(10, 20))
         response1 = client.query(self.frame.bitmap(10))
-        self.assertEquals(0, len(response1.profiles))
+        self.assertEquals(0, len(response1.columns))
         bitmap1 = response1.result.bitmap
         self.assertEquals(0, len(bitmap1.attributes))
         self.assertEquals(1, len(bitmap1.bits))
         self.assertEquals(20, bitmap1.bits[0])
 
-        profile_attrs = {"name": "bombo"}
-        client.query(self.col_db.set_column_attrs(20, profile_attrs))
-        response2 = client.query(self.frame.bitmap(10), profiles=True)
-        profile = response2.profile
-        self.assertTrue(profile is not None)
-        self.assertEquals(20, profile.id)
+        column_attrs = {"name": "bombo"}
+        client.query(self.col_db.set_column_attrs(20, column_attrs))
+        response2 = client.query(self.frame.bitmap(10), columns=True)
+        column = response2.column
+        self.assertTrue(column is not None)
+        self.assertEquals(20, column.id)
 
         bitmap_attrs = {
             "active": True,

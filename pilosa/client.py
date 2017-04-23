@@ -40,8 +40,8 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, profiles=False, time_quantum=TimeQuantum.NONE):
-        request = QueryRequest(query.serialize(), profiles=profiles,
+    def query(self, query, columns=False, time_quantum=TimeQuantum.NONE):
+        request = QueryRequest(query.serialize(), columns=columns,
                                time_quantum=time_quantum)
         data = request.to_protobuf()
         uri = "%s/db/%s/query" % (self.__get_address(), query.database.name)
@@ -244,14 +244,14 @@ class Cluster:
 
 class QueryRequest:
 
-    def __init__(self, query, profiles=False, time_quantum=TimeQuantum.NONE,):
+    def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE, ):
         self.query = query
-        self.profiles = profiles
+        self.columns = columns
         self.time_quantum = time_quantum
 
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
-        qr.ColumnAttrs = self.profiles
+        qr.ColumnAttrs = self.columns
         qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()

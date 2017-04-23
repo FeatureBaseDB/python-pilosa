@@ -35,7 +35,7 @@ class QueryResult:
         return cls(BitmapResult.from_internal(obj.Bitmap), count_items, obj.N)
 
 
-class ProfileItem:
+class ColumnItem:
 
     def __init__(self, id, attributes):
         self.id = id
@@ -48,9 +48,9 @@ class ProfileItem:
 
 class QueryResponse(object):
 
-    def __init__(self, results=None, profiles=None, error_message=""):
+    def __init__(self, results=None, columns=None, error_message=""):
         self.results = results or []
-        self.profiles = profiles or []
+        self.columns = columns or []
         self.error_message = error_message
 
     @classmethod
@@ -58,17 +58,17 @@ class QueryResponse(object):
         response = internal.QueryResponse()
         response.ParseFromString(bin)
         results = [QueryResult.from_internal(r) for r in response.Results]
-        profiles = [ProfileItem.from_internal(p) for p in response.ColumnAttrSets]
+        columns = [ColumnItem.from_internal(p) for p in response.ColumnAttrSets]
         error_message = response.Err
-        return cls(results, profiles, error_message)
+        return cls(results, columns, error_message)
 
     @property
     def result(self):
         return self.results[0] if self.results else None
 
     @property
-    def profile(self):
-        return self.profiles[0] if self.profiles else None
+    def column(self):
+        return self.columns[0] if self.columns else None
 
 
 def _convert_protobuf_attrs_to_dict(attrs):
