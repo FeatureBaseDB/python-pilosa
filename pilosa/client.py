@@ -252,6 +252,6 @@ class QueryRequest:
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
-        qr.Profiles = self.profiles
+        qr.ColumnAttrs = self.profiles
         qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()

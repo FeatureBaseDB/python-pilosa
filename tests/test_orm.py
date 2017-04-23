@@ -104,14 +104,14 @@ class DatabaseTestCase(unittest.TestCase):
             "Count(Bitmap(project=42, frame='collaboration'))",
             q.serialize())
 
-    def test_set_profile_attributes(self):
+    def test_set_column_attributes(self):
         attrs_map = {
             "quote": '''"Don't worry, be happy"''',
             "happy": True
         }
-        q = projectDb.set_profile_attrs(5, attrs_map)
+        q = projectDb.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            "SetProfileAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetColumnAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_profile_attributes_invalid_values(self):
@@ -119,7 +119,7 @@ class DatabaseTestCase(unittest.TestCase):
             "color": "blue",
             "dt": datetime.now()
         }
-        self.assertRaises(PilosaError, projectDb.set_profile_attrs, 5, attrs_map)
+        self.assertRaises(PilosaError, projectDb.set_column_attrs, 5, attrs_map)
 
 
 class FrameTestCase(unittest.TestCase):
@@ -198,14 +198,14 @@ class FrameTestCase(unittest.TestCase):
             "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q.serialize())
 
-    def test_set_bitmap_attributes(self):
+    def test_set_row_attributes(self):
         attrs_map = {
             "quote": '''"Don't worry, be happy"''',
             "active": True
         }
-        q = collabFrame.set_bitmap_attrs(5, attrs_map)
+        q = collabFrame.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            "SetBitmapAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_inverse_bitmap_fails_if_not_enabled(self):

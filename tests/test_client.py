@@ -1,9 +1,9 @@
 import logging
 import unittest
 
+import pilosa.internal.public_pb2 as internal
 from pilosa.client import Client, URI, Cluster, QueryRequest, TimeQuantum
 from pilosa.exceptions import PilosaURIError, PilosaError
-import pilosa.internal.public_pb2 as internal
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +149,7 @@ class QueryRequestTestCase(unittest.TestCase):
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
         self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
-        self.assertEquals(True, qr.Profiles)
+        self.assertEquals(True, qr.ColumnAttrs)
         self.assertEquals("Y", qr.Quantum)
 
 if __name__ == '__main__':

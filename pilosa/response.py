@@ -58,7 +58,7 @@ class QueryResponse(object):
         response = internal.QueryResponse()
         response.ParseFromString(bin)
         results = [QueryResult.from_internal(r) for r in response.Results]
-        profiles = [ProfileItem.from_internal(p) for p in response.Profiles]
+        profiles = [ProfileItem.from_internal(p) for p in response.ColumnAttrSets]
         error_message = response.Err
         return cls(results, profiles, error_message)
 

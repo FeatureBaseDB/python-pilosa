@@ -62,9 +62,9 @@ class Database:
     def count(self, bitmap):
         return PQLQuery(u"Count(%s)" % bitmap.serialize(), self)
 
-    def set_profile_attrs(self, column_id, attrs):
+    def set_column_attrs(self, column_id, attrs):
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(u"SetProfileAttrs(%s=%d, %s)" %
+        return PQLQuery(u"SetColumnAttrs(%s=%d, %s)" %
                         (self.column_label, column_id, attrs_str), self)
 
     def _bitmap_op(self, name, bitmaps):
@@ -124,9 +124,9 @@ class Frame:
                         (self.row_label, row_id, self.name, start_str, end_str),
                         self.database)
 
-    def set_bitmap_attrs(self, row_id, attrs):
+    def set_row_attrs(self, row_id, attrs):
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(u"SetBitmapAttrs(%s=%d, frame='%s', %s)" %
+        return PQLQuery(u"SetRowAttrs(%s=%d, frame='%s', %s)" %
                         (self.row_label, row_id, self.name, attrs_str),
                         self.database)
 

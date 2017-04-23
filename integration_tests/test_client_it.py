@@ -55,7 +55,7 @@ class ClientIT(unittest.TestCase):
         client.ensure_frame(frame)
         client.query(frame.setbit(100, 1000))
         profile_attrs = {"name": "bombo"}
-        client.query(self.db.set_profile_attrs(1000, profile_attrs))
+        client.query(self.db.set_column_attrs(1000, profile_attrs))
         response = client.query(frame.bitmap(100), profiles=True)
         self.assertTrue(response is not None)
         self.assertEquals(1000, response.profile.id)
@@ -96,7 +96,7 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(20, bitmap1.bits[0])
 
         profile_attrs = {"name": "bombo"}
-        client.query(self.col_db.set_profile_attrs(20, profile_attrs))
+        client.query(self.col_db.set_column_attrs(20, profile_attrs))
         response2 = client.query(self.frame.bitmap(10), profiles=True)
         profile = response2.profile
         self.assertTrue(profile is not None)
@@ -108,7 +108,7 @@ class ClientIT(unittest.TestCase):
             "height": 1.81,
             "name": "Mr. Pi"
         }
-        client.query(self.frame.set_bitmap_attrs(10, bitmap_attrs))
+        client.query(self.frame.set_row_attrs(10, bitmap_attrs))
         response3 = client.query(self.frame.bitmap(10))
         bitmap = response3.result.bitmap
         self.assertEquals(1, len(bitmap.bits))
