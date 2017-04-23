@@ -2,23 +2,23 @@ import re
 
 from pilosa.exceptions import ValidationError
 
-__DATABASE_NAME = re.compile(r"^[a-z0-9_-]+$")
+__INDEX_NAME = re.compile(r"^[a-z0-9_-]+$")
 __FRAME_NAME = re.compile(r"^[a-z0-9][.a-z0-9_-]*$")
 __LABEL = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
-__MAX_DATABASE_NAME = 64
+__MAX_INDEX_NAME = 64
 __MAX_FRAME_NAME = 64
 __MAX_LABEL = 64
 
 
-def valid_database_name(database_name):
-    if len(database_name) > __MAX_DATABASE_NAME:
+def valid_index_name(index_name):
+    if len(index_name) > __MAX_INDEX_NAME:
         return False
-    return bool(__DATABASE_NAME.match(database_name))
+    return bool(__INDEX_NAME.match(index_name))
 
 
-def validate_database_name(database_name):
-    if not valid_database_name(database_name):
-        raise ValidationError("Invalid database name: %s" % database_name)
+def validate_index_name(index_name):
+    if not valid_index_name(index_name):
+        raise ValidationError("Invalid index name: %s" % index_name)
 
 
 def valid_frame_name(frame_name):

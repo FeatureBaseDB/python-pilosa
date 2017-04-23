@@ -3,16 +3,17 @@
 import unittest
 
 from pilosa.exceptions import ValidationError
-from pilosa.validator import validate_frame_name, validate_database_name, validate_label
+from pilosa.validator import validate_frame_name, validate_index_name, validate_label
 
 
 class ValidatorTestCase(unittest.TestCase):
-    VALID_DATABASE_NAMES = [
+
+    VALID_INDEX_NAMES = [
         "a", "ab", "ab1", "1", "_", "-", "b-c", "d_e",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
 
-    INVALID_DATABASE_NAMES = [
+    INVALID_INDEX_NAMES = [
         "", "'", "^", "/", "\\", "A", "*", "a:b", "valid?no", "yüce",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
@@ -37,14 +38,14 @@ class ValidatorTestCase(unittest.TestCase):
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
 
-    def test_validate_valid_database_name(self):
-        for name in self.VALID_DATABASE_NAMES:
-            validate_database_name(name)
+    def test_valid_index_name(self):
+        for name in self.VALID_INDEX_NAMES:
+            validate_index_name(name)
 
-    def test_validate_valid_database_name_fails(self):
-        for name in self.INVALID_DATABASE_NAMES:
+    def test_invalid_index_name_fails(self):
+        for name in self.INVALID_INDEX_NAMES:
             try:
-                validate_database_name(name)
+                validate_index_name(name)
             except ValidationError:
                 continue
             self.fail("Validation should have failed for: " + name)

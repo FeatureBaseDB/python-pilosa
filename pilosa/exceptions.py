@@ -22,7 +22,7 @@ class PilosaURIError(PilosaError):
     pass
 
 
-class DatabaseExistsError(PilosaError):
+class IndexExistsError(PilosaError):
     pass
 
 

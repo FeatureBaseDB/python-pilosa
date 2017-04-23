@@ -2,7 +2,7 @@ import unittest
 
 from pilosa.client import Client
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Database, TimeQuantum
+from pilosa.orm import Index, TimeQuantum
 
 SERVER_ADDRESS = ":10101"
 
@@ -12,30 +12,30 @@ class ClientIT(unittest.TestCase):
     counter = 0
 
     def setUp(self):
-        self.db = Database(self.random_database_name())
+        self.db = Index(self.random_index_name())
         client = self.get_client()
-        client.create_database(self.db)
+        client.create_index(self.db)
         client.create_frame(self.db.frame("another-frame"))
         client.create_frame(self.db.frame("test"))
         client.create_frame(self.db.frame("count-test"))
         client.create_frame(self.db.frame("topn_test"))
 
-        self.col_db = Database(self.db.name + "-opts", column_label="user")
-        client.create_database(self.col_db)
+        self.col_db = Index(self.db.name + "-opts", column_label="user")
+        client.create_index(self.col_db)
 
         self.frame = self.col_db.frame("collab", row_label="project")
         client.create_frame(self.frame)
 
     def tearDown(self):
         client = self.get_client()
-        client.delete_database(self.db)
-        client.delete_database(self.col_db)
+        client.delete_index(self.db)
+        client.delete_index(self.col_db)
 
-    def test_create_database_with_time_quantum(self):
-        db = Database("db-with-timequantum", time_quantum=TimeQuantum.YEAR)
+    def test_create_index_with_time_quantum(self):
+        db = Index("db-with-timequantum", time_quantum=TimeQuantum.YEAR)
         client = self.get_client()
-        client.ensure_database(db)
-        client.delete_database(db)
+        client.ensure_index(db)
+        client.delete_index(db)
 
     def test_create_frame_with_time_quantum(self):
         frame = self.db.frame("frame-with-timequantum", time_quantum=TimeQuantum.YEAR)
@@ -127,13 +127,13 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(155, item.id)
         self.assertEquals(1, item.count)
 
-    def test_ensure_database_exists(self):
+    def test_ensure_index_exists(self):
         client = self.get_client()
-        db = Database(self.db.name + "-ensure")
-        client.ensure_database(db)
+        db = Index(self.db.name + "-ensure")
+        client.ensure_index(db)
         client.create_frame(db.frame("frm"))
-        client.ensure_database(db)
-        client.delete_database(db)
+        client.ensure_index(db)
+        client.delete_index(db)
 
     def test_delete_frame(self):
         client = self.get_client()
@@ -143,14 +143,14 @@ class ClientIT(unittest.TestCase):
         # the following should succeed
         client.create_frame(frame)
 
-    def test_frame_for_nonexisting_database(self):
+    def test_frame_for_nonexisting_index(self):
         client = self.get_client()
-        db = Database("non-existing-database")
-        frame = db.frame("frm")
+        index = Index("non-existing-database")
+        frame = index.frame("frm")
         self.assertRaises(PilosaError, client.create_frame, frame)
 
     @classmethod
-    def random_database_name(cls):
+    def random_index_name(cls):
         cls.counter += 1
         return "testdb-%d" % cls.counter
 
