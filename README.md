@@ -4,9 +4,9 @@
 
 <img src="https://dc3kpxyuw05cb.cloudfront.net/img/ce.svg" style="float: right" align="right" height="301">
 
-Python client for Pilosa high performance database.
+Python client for Pilosa high performance index.
 
-## Changelog
+## Change Log
 
 * 2017-05-01: Initial version
 
@@ -34,14 +34,14 @@ import pilosa
 # Create the default client
 client = pilosa.Client()
 
-# Create a Database object
-mydb = pilosa.Database("mydb")
+# Create an Index object
+myindex = pilosa.Index("myindex")
 
-# Make sure the database exists on the server
-client.ensure_database(mydb)
+# Make sure the index exists on the server
+client.ensure_index(myindex)
 
 # Create a Frame object
-myframe = mydb.frame("myframe")
+myframe = myindex.frame("myframe")
 
 # Make sure the frame exists on the server
 client.ensure_frame(myframe)
@@ -55,7 +55,7 @@ response = client.query(myframe.bitmap(5))
 # Get the result
 result = response.result
 
-# Deal with the result
+# Act on the result
 if result:
     bits = result.bitmap.bits
     print("Got bits: ", bits)
@@ -68,36 +68,36 @@ response = client.query(
     )    
 )
 for result in response.results {
-    # Deal with the result
+    # Act on the result
 }
 ```
 
 ### Data Model and Queries
 
-#### Databases and Frames
+#### Indexes and Frames
 
-*Database* and *frame*s are the main data models of Pilosa. You can check the [Pilosa documentation](https://www.pilosa.com/docs) for more detail about the data model.
+*Index* and *frame*s are the main data models of Pilosa. You can check the [Pilosa documentation](https://www.pilosa.com/docs) for more detail about the data model.
 
-`Database` constructor is used to create a database object. Note that, this does not create a database on the server, the database object just defines the schema.
+`Index` constructor is used to create an index object. Note that this does not create an index on the server; the index object simply defines the schema.
 
 ```python
-repository = pilosa.Database("repository")
+repository = pilosa.Index("repository")
 ```
 
-Databases support changing the column label and time quantum (*resolution*). You can pass these additional arguments to the `Database` constructor:
+Indexes support changing the column label and time quantum (*resolution*). You can pass these additional arguments to the `Index` constructor:
 
 ```python
-repository = pilosa.Database("repository",
+repository = pilosa.Index("repository",
     column_label="repo_id", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
 ```
 
-Frames are created with a call to `database.frame` method:
+Frames are created with a call to `index.frame` method:
 
 ```python
 stargazer = repository.frame("stargazer")
 ```
 
-Similar to database objects, you can pass custom options `database.frame` method:
+Similar to index objects, you can pass custom options to the `index.frame` method:
 
 ```python
 stargazer = repository.frame("stargazer",
@@ -106,7 +106,7 @@ stargazer = repository.frame("stargazer",
 
 #### Queries
 
-Once you have database and frame objects created, you can create queries for those. Some of the queries work on the columns; corresponding methods are attached to the database. Other queries work on rows, with related methods attached to frames.
+Once you have indexes and frame objects created, you can create queries for them. Some of the queries work on the columns; corresponding methods are attached to the index. Other queries work on rows, with related methods attached to frames.
 
 For instance, `Bitmap` queries work on rows; use a frame object to create those queries:
 
@@ -114,13 +114,13 @@ For instance, `Bitmap` queries work on rows; use a frame object to create those 
 bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='stargazer', stargazer_id=1)
 ```
 
-`Union` queries work on columns; use the database object to create them:
+`Union` queries work on columns; use the index object to create them:
 
 ```python
 query = repository.union(bitmap_query1, bitmap_query2)
 ```
 
-In order to increase througput, you may want to batch queries sent to the Pilosa server. `database.batch_query` method is used for that purpose:
+In order to increase througput, you may want to batch queries sent to the Pilosa server. The `index.batch_query` method is used for that purpose:
 
 ```python
 query = repository.batch_query(
@@ -129,7 +129,7 @@ query = repository.batch_query(
 )
 ```
 
-The recommended way of creating query objects is, using dedicated methods attached to database and frame objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use `database.raw_query` method for that. Note that, query string is not validated before sending to the server:
+The recommended way of creating query objects is, using dedicated methods attached to index and frame objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
 
 ```python
 query = repository.raw_query("Bitmap(frame='stargazer', stargazer_id=5)")
@@ -137,22 +137,22 @@ query = repository.raw_query("Bitmap(frame='stargazer', stargazer_id=5)")
 
 Please check [Pilosa documentation](https://www.pilosa.com/docs) for PQL details. Here is a list of methods corresponding to PQL calls:
 
-Database:
+Index:
 
 * `union(self, *bitmaps)`
 * `intersect(self, *bitmaps)`
 * `difference(self, *bitmaps)`
 * `count(self, bitmap)`
-* `set_profile_attrs(self, column_id, attrs)`
+* `set_column_attrs(self, column_id, attrs)`
 
 Frame:
 
 * `bitmap(self, row_id)`
-* `setbit(self, row_id, column_id)`
+* `setbit(self, row_id, column_id, timestamp=None)`
 * `clearbit(self, row_id, column_id)`
 * `topn(self, n, bitmap=None, field="", *values)`
 * `range(self, row_id, start, end)`
-* `set_bitmap_attrs(self, row_id, attrs)`
+* `set_row_attrs(self, row_id, attrs)`
 
 ### Pilosa URI
 
@@ -170,7 +170,7 @@ All parts of the URI are optional, but at least one of them must be specified. T
 * `localhost`
 * `:10101`
 
-A Pilosa URI is represented by `pilosa.URI` class. Below is a few ways to create `URI` objects:
+A Pilosa URI is represented by the `pilosa.URI` class. Below are a few ways to create `URI` objects:
 
 ```python
 # create the default URI: http://localhost:10101
@@ -199,7 +199,7 @@ To use a a custom server address, pass the address in the first argument:
 client = pilosa.Client("http://db1.pilosa.com:15000")
 ```
 
-If you are running a cluster of Pilosa servers, you can create a `pilosa.Cluster` object that keeps addresses of those servers for increased robustness:
+If you are running a cluster of Pilosa servers, you can create a `pilosa.Cluster` object that keeps addresses of those servers:
 
 ```python
 cluster = pilosa.Cluster(
@@ -223,19 +223,19 @@ client = pilosa.Client(cluster,
 )
 ```
 
-Once you create a client, you can create databases, frames and start sending queries.
+Once you create a client, you can create indexes, frames and start sending queries.
 
-Here is how you would create a database and frame:
+Here is how you would create a index and frame:
 
 ```python
-# materialize repository database instance initialized before
-client.create_database(repository)
+# materialize repository index instance initialized before
+client.create_index(repository)
 
 # materialize stargazer frame instance initialized before
 client.create_frame(stargazer)
 ```
 
-If the database or frame exists on the server, you would receive a `PilosaError`. You can use `ensure_database` and `ensure_frame` methods to ignore existing databases and frames.
+If the index or frame exists on the server, you will receive a `PilosaError`. You can use `ensure_index` and `ensure_frame` methods to ignore existing indexes and frames.
 
 You can send queries to a Pilosa server using the `query` method of client objects:
 
@@ -243,19 +243,19 @@ You can send queries to a Pilosa server using the `query` method of client objec
 response = client.query(frame.bitmap(5))
 ```
 
-`query` method accepts optional `profiles` argument:
+`query` method accepts optional `columns` argument:
 
 ```python
 response = client.query(frame.bitmap(5),
-    profiles=True  # return column data in the response
+    columns=True  # return column data in the response
 )
 ```
 
 ### Server Response
 
-When a query is sent to a Pilosa server, the server fulfills the query or sends an error message. In the latter case, `PilosaError` is thrown, otherwise a `QueryResponse` object is returned.
+When a query is sent to a Pilosa server, the server either fulfills the query or sends an error message. In the case of an error, `PilosaError` is thrown, otherwise a `QueryResponse` object is returned.
 
-A `QueryResponse` object may contain zero or more results of `QueryResult` type. You can access all results using `results` property of `QueryResponse`, which returns a list of `QueryResult` objects. Or, using `result` property, which returns the first result if there are any or `None` otherwise:
+A `QueryResponse` object may contain zero or more results of `QueryResult` type. You can access all results using the `results` property of `QueryResponse` (which returns a list of `QueryResult` objects) or you can use the `result` property (which returns either the first result or `None` if there are no results):
 
 ```python
 response = client.query(frame.bitmap(5))
@@ -284,7 +284,7 @@ for profile in response.profiles:
     # act on the profile
 ```
 
-`QueryResult` objects contain
+`QueryResult` objects contain:
 
 * `bitmap` property to retrieve a bitmap result,
 * `count_items` property to retrieve column count per row ID entries returned from `topn` queries,
@@ -330,7 +330,7 @@ Protobuf classes are already checked in to source control, so this step is only 
 Before running the following step, make sure you have the [Protobuf compiler](https://github.com/google/protobuf) installed:
 
 ```
-make generate-proto
+make generate
 ```
 
 ## License
