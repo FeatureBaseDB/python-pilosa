@@ -163,6 +163,14 @@ class FrameTestCase(unittest.TestCase):
 
             qry2.serialize())
 
+    def test_setbit_with_timestamp(self):
+        timestamp = datetime(2017, 4, 24, 12, 14)
+        qry = collabFrame.setbit(10, 20, timestamp)
+        self.assertEquals(
+            "SetBit(project=10, frame='collaboration', user=20, timestamp='2017-04-24T12:14')",
+            qry.serialize()
+        )
+
     def test_clearbit(self):
         qry1 = sampleFrame.clearbit(5, 10)
         self.assertEquals(
