@@ -2,31 +2,31 @@ import unittest
 from datetime import datetime
 
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Database, TimeQuantum
+from pilosa.orm import Index, TimeQuantum
 
-sampleDb = Database("sample-db")
-sampleFrame = sampleDb.frame("sample-frame")
-projectDb = Database("project-db", column_label="user")
-collabFrame = projectDb.frame("collaboration", row_label="project")
+sampleIndex = Index("sample-db")
+sampleFrame = sampleIndex.frame("sample-frame")
+projectIndex = Index("project-db", column_label="user")
+collabFrame = projectIndex.frame("collaboration", row_label="project")
 
 
-class DatabaseTestCase(unittest.TestCase):
+class IndexTestCase(unittest.TestCase):
 
-    def test_create_database(self):
-        database = Database("sample-db")
-        self.assertEqual("sample-db", database.name)
-        self.assertEqual("col_id", database.column_label)
-        self.assertEqual(TimeQuantum.NONE, database.time_quantum)
+    def test_create_index(self):
+        index = Index("sample-db")
+        self.assertEqual("sample-db", index.name)
+        self.assertEqual("col_id", index.column_label)
+        self.assertEqual(TimeQuantum.NONE, index.time_quantum)
 
-        database = Database("sample-db",
-                            column_label="profile_id",
-                            time_quantum=TimeQuantum.YEAR_MONTH)
-        self.assertEqual("sample-db", database.name)
-        self.assertEqual("profile_id", database.column_label)
-        self.assertEqual(TimeQuantum.YEAR_MONTH, database.time_quantum)
+        index = Index("sample-db",
+                      column_label="col_id",
+                      time_quantum=TimeQuantum.YEAR_MONTH)
+        self.assertEqual("sample-db", index.name)
+        self.assertEqual("col_id", index.column_label)
+        self.assertEqual(TimeQuantum.YEAR_MONTH, index.time_quantum)
 
     def test_raw_query(self):
-        q = projectDb.raw_query("No validation whatsoever for raw queries")
+        q = projectIndex.raw_query("No validation whatsoever for raw queries")
         self.assertEquals(
             "No validation whatsoever for raw queries",
             q.serialize())
@@ -37,17 +37,17 @@ class DatabaseTestCase(unittest.TestCase):
         b3 = sampleFrame.bitmap(42)
         b4 = collabFrame.bitmap(2)
 
-        q1 = sampleDb.union(b1, b2)
+        q1 = sampleIndex.union(b1, b2)
         self.assertEquals(
             "Union(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'))",
             q1.serialize())
 
-        q2 = sampleDb.union(b1, b2, b3)
+        q2 = sampleIndex.union(b1, b2, b3)
         self.assertEquals(
             "Union(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'), Bitmap(id=42, frame='sample-frame'))",
             q2.serialize())
 
-        q3 = sampleDb.union(b1, b4)
+        q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
             "Union(Bitmap(id=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
@@ -58,17 +58,17 @@ class DatabaseTestCase(unittest.TestCase):
         b3 = sampleFrame.bitmap(42)
         b4 = collabFrame.bitmap(2)
 
-        q1 = sampleDb.intersect(b1, b2)
+        q1 = sampleIndex.intersect(b1, b2)
         self.assertEquals(
             "Intersect(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'))",
             q1.serialize())
 
-        q2 = sampleDb.intersect(b1, b2, b3)
+        q2 = sampleIndex.intersect(b1, b2, b3)
         self.assertEquals(
             "Intersect(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'), Bitmap(id=42, frame='sample-frame'))",
             q2.serialize())
 
-        q3 = sampleDb.intersect(b1, b4)
+        q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
             "Intersect(Bitmap(id=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
@@ -79,55 +79,55 @@ class DatabaseTestCase(unittest.TestCase):
         b3 = sampleFrame.bitmap(42)
         b4 = collabFrame.bitmap(2)
 
-        q1 = sampleDb.difference(b1, b2)
+        q1 = sampleIndex.difference(b1, b2)
         self.assertEquals(
             "Difference(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'))",
             q1.serialize())
 
-        q2 = sampleDb.difference(b1, b2, b3)
+        q2 = sampleIndex.difference(b1, b2, b3)
         self.assertEquals(
             "Difference(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'), Bitmap(id=42, frame='sample-frame'))",
             q2.serialize())
 
-        q3 = sampleDb.difference(b1, b4)
+        q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
             "Difference(Bitmap(id=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
 
     def test_union_invalid_bitmap_count_fails(self):
-        self.assertRaises(PilosaError, projectDb.union)
+        self.assertRaises(PilosaError, projectIndex.union)
 
     def test_count(self):
         b = collabFrame.bitmap(42)
-        q = projectDb.count(b)
+        q = projectIndex.count(b)
         self.assertEquals(
             "Count(Bitmap(project=42, frame='collaboration'))",
             q.serialize())
 
-    def test_set_profile_attributes(self):
+    def test_set_column_attributes(self):
         attrs_map = {
             "quote": '''"Don't worry, be happy"''',
             "happy": True
         }
-        q = projectDb.set_profile_attrs(5, attrs_map)
+        q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            "SetProfileAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetColumnAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
-    def test_set_profile_attributes_invalid_values(self):
+    def test_set_column_attributes_invalid_values(self):
         attrs_map = {
             "color": "blue",
             "dt": datetime.now()
         }
-        self.assertRaises(PilosaError, projectDb.set_profile_attrs, 5, attrs_map)
+        self.assertRaises(PilosaError, projectIndex.set_column_attrs, 5, attrs_map)
 
 
 class FrameTestCase(unittest.TestCase):
 
     def test_create_frame(self):
-        db = Database("foo")
+        db = Index("foo")
         frame = db.frame("sample-frame")
-        self.assertEqual(db, frame.database)
+        self.assertEqual(db, frame.index)
         self.assertEqual("sample-frame", frame.name)
         self.assertEqual("id", frame.row_label)
         self.assertEqual(TimeQuantum.NONE, frame.time_quantum)
@@ -144,7 +144,7 @@ class FrameTestCase(unittest.TestCase):
             qry2.serialize())
 
     def test_inverse_bitmap(self):
-        f1 = projectDb.frame("f1-inversable", row_label="row_label", inverse_enabled=True)
+        f1 = projectIndex.frame("f1-inversable", row_label="row_label", inverse_enabled=True)
         qry = f1.inverse_bitmap(5)
         self.assertEquals(
             "Bitmap(user=5, frame='f1-inversable')",
@@ -198,18 +198,18 @@ class FrameTestCase(unittest.TestCase):
             "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q.serialize())
 
-    def test_set_bitmap_attributes(self):
+    def test_set_row_attributes(self):
         attrs_map = {
             "quote": '''"Don't worry, be happy"''',
             "active": True
         }
-        q = collabFrame.set_bitmap_attrs(5, attrs_map)
+        q = collabFrame.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            "SetBitmapAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_inverse_bitmap_fails_if_not_enabled(self):
-        frame = projectDb.frame("inverse-not-enabled")
+        frame = projectIndex.frame("inverse-not-enabled")
         self.assertRaises(PilosaError, frame.inverse_bitmap, 5)
 
 

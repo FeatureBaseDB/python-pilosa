@@ -4,7 +4,7 @@ import re
 
 import urllib3
 
-from .exceptions import PilosaError, PilosaURIError, DatabaseExistsError, FrameExistsError
+from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExistsError
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum
 from .response import QueryResponse
@@ -40,28 +40,28 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, profiles=False, time_quantum=TimeQuantum.NONE):
-        request = QueryRequest(query.serialize(), profiles=profiles,
+    def query(self, query, columns=False, time_quantum=TimeQuantum.NONE):
+        request = QueryRequest(query.serialize(), columns=columns,
                                time_quantum=time_quantum)
         data = request.to_protobuf()
-        uri = "%s/db/%s/query" % (self.__get_address(), query.database.name)
+        uri = "%s/db/%s/query" % (self.__get_address(), query.index.name)
         response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
         query_response = QueryResponse.from_protobuf(response.data)
         if query_response.error_message:
             raise PilosaError(query_response.error_message)
         return query_response
 
-    def create_database(self, database):
+    def create_index(self, index):
         data = json.dumps({
-            "options": {"columnLabel": database.column_label}
+            "options": {"columnLabel": index.column_label}
         })
-        uri = "%s/db/%s" % (self.__get_address(), database.name)
+        uri = "%s/db/%s" % (self.__get_address(), index.name)
         self.__http_request("POST", uri, data=data)
-        if database.time_quantum != TimeQuantum.NONE:
-            self.__patch_database_time_quantum(database)
+        if index.time_quantum != TimeQuantum.NONE:
+            self.__patch_index_time_quantum(index)
 
-    def delete_database(self, database):
-        uri = "%s/db/%s" % (self.__get_address(), database.name)
+    def delete_index(self, index):
+        uri = "%s/db/%s" % (self.__get_address(), index.name)
         self.__http_request("DELETE", uri)
 
     def create_frame(self, frame):
@@ -71,19 +71,19 @@ class Client(object):
                 "inverseEnabled": frame.inverse_enabled
             }
         })
-        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.database.name, frame.name)
+        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("POST", uri, data=data)
         if frame.time_quantum != TimeQuantum.NONE:
             self.__patch_frame_time_quantum(frame)
 
     def delete_frame(self, frame):
-        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.database.name, frame.name)
+        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("DELETE", uri)
 
-    def ensure_database(self, database):
+    def ensure_index(self, index):
         try:
-            self.create_database(database)
-        except DatabaseExistsError:
+            self.create_index(index)
+        except IndexExistsError:
             pass
 
     def ensure_frame(self, frame):
@@ -92,14 +92,14 @@ class Client(object):
         except FrameExistsError:
             pass
 
-    def __patch_database_time_quantum(self, database):
-        uri = "%s/db/%s/time-quantum" % (self.__get_address(), database.name)
-        data = '{\"time_quantum\":\"%s\"}"' % str(database.time_quantum)
+    def __patch_index_time_quantum(self, index):
+        uri = "%s/db/%s/time-quantum" % (self.__get_address(), index.name)
+        data = '{\"time_quantum\":\"%s\"}"' % str(index.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
     def __patch_frame_time_quantum(self, frame):
         uri = "%s/db/%s/frame/%s/time-quantum" % \
-              (self.__get_address(), frame.database.name, frame.name)
+              (self.__get_address(), frame.index.name, frame.name)
         data = '{\"time_quantum\":\"%s\"}"' % str(frame.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
@@ -143,7 +143,7 @@ class Client(object):
         self.__client = client
 
     __RECOGNIZED_ERRORS = {
-        "database already exists\n": DatabaseExistsError,
+        "database already exists\n": IndexExistsError,
         "frame already exists\n": FrameExistsError,
     }
 
@@ -244,14 +244,14 @@ class Cluster:
 
 class QueryRequest:
 
-    def __init__(self, query, profiles=False, time_quantum=TimeQuantum.NONE,):
+    def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE, ):
         self.query = query
-        self.profiles = profiles
+        self.columns = columns
         self.time_quantum = time_quantum
 
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
-        qr.Profiles = self.profiles
+        qr.ColumnAttrs = self.columns
         qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()
