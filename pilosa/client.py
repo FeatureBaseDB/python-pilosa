@@ -44,7 +44,7 @@ class Client(object):
         request = QueryRequest(query.serialize(), columns=columns,
                                time_quantum=time_quantum)
         data = request.to_protobuf()
-        uri = "%s/db/%s/query" % (self.__get_address(), query.index.name)
+        uri = "%s/index/%s/query" % (self.__get_address(), query.index.name)
         response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
         query_response = QueryResponse.from_protobuf(response.data)
         if query_response.error_message:
@@ -55,13 +55,13 @@ class Client(object):
         data = json.dumps({
             "options": {"columnLabel": index.column_label}
         })
-        uri = "%s/db/%s" % (self.__get_address(), index.name)
+        uri = "%s/index/%s" % (self.__get_address(), index.name)
         self.__http_request("POST", uri, data=data)
         if index.time_quantum != TimeQuantum.NONE:
             self.__patch_index_time_quantum(index)
 
     def delete_index(self, index):
-        uri = "%s/db/%s" % (self.__get_address(), index.name)
+        uri = "%s/index/%s" % (self.__get_address(), index.name)
         self.__http_request("DELETE", uri)
 
     def create_frame(self, frame):
@@ -71,13 +71,13 @@ class Client(object):
                 "inverseEnabled": frame.inverse_enabled
             }
         })
-        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
+        uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("POST", uri, data=data)
         if frame.time_quantum != TimeQuantum.NONE:
             self.__patch_frame_time_quantum(frame)
 
     def delete_frame(self, frame):
-        uri = "%s/db/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
+        uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("DELETE", uri)
 
     def ensure_index(self, index):
@@ -93,14 +93,14 @@ class Client(object):
             pass
 
     def __patch_index_time_quantum(self, index):
-        uri = "%s/db/%s/time-quantum" % (self.__get_address(), index.name)
-        data = '{\"time_quantum\":\"%s\"}"' % str(index.time_quantum)
+        uri = "%s/index/%s/time-quantum" % (self.__get_address(), index.name)
+        data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
     def __patch_frame_time_quantum(self, frame):
-        uri = "%s/db/%s/frame/%s/time-quantum" % \
+        uri = "%s/index/%s/frame/%s/time-quantum" % \
               (self.__get_address(), frame.index.name, frame.name)
-        data = '{\"time_quantum\":\"%s\"}"' % str(frame.time_quantum)
+        data = '{\"timeQuantum\":\"%s\"}"' % str(frame.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
     def __http_request(self, method, uri, data=None, client_response=0):
@@ -143,7 +143,7 @@ class Client(object):
         self.__client = client
 
     __RECOGNIZED_ERRORS = {
-        "database already exists\n": IndexExistsError,
+        "index already exists\n": IndexExistsError,
         "frame already exists\n": FrameExistsError,
     }
 

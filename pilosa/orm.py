@@ -95,9 +95,10 @@ class Frame:
         return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.column_label, column_id, self.name),
                         self.index)
 
-    def setbit(self, row_id, column_id):
-        return PQLQuery(u"SetBit(%s=%d, frame='%s', %s=%d)" % \
-                        (self.row_label, row_id, self.name, self.column_label, column_id),
+    def setbit(self, row_id, column_id, timestamp=None):
+        ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
+        return PQLQuery(u"SetBit(%s=%d, frame='%s', %s=%d%s)" % \
+                        (self.row_label, row_id, self.name, self.column_label, column_id, ts),
                         self.index)
 
     def clearbit(self, row_id, column_id):
