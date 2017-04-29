@@ -12,11 +12,6 @@ generate:
 publish:
 	python setup.py sdist upload
 
-readme: README.rst
-
-README.rst: README.md
-	pandoc --from=markdown --to=rst --output=README.rst README.md
-
 test:
 	py.test tests
 
