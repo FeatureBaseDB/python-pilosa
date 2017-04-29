@@ -65,14 +65,14 @@ TimeQuantum.YEAR_MONTH_DAY_HOUR = TimeQuantum("YMDH")
 
 class Index:
 
-    def __init__(self, name, column_label="col_id", time_quantum=TimeQuantum.NONE):
+    def __init__(self, name, column_label="columnID", time_quantum=TimeQuantum.NONE):
         validate_index_name(name)
         validate_label(column_label)
         self.name = name
         self.column_label = column_label
         self.time_quantum = time_quantum
 
-    def frame(self, name, row_label="id", time_quantum=TimeQuantum.NONE, inverse_enabled=False):
+    def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE, inverse_enabled=False):
         return Frame(self, name, row_label, time_quantum, inverse_enabled)
 
     def raw_query(self, query):

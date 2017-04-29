@@ -48,7 +48,7 @@ class IndexTestCase(unittest.TestCase):
     def test_create_index(self):
         index = Index("sample-db")
         self.assertEqual("sample-db", index.name)
-        self.assertEqual("col_id", index.column_label)
+        self.assertEqual("columnID", index.column_label)
         self.assertEqual(TimeQuantum.NONE, index.time_quantum)
 
         index = Index("sample-db",
@@ -72,17 +72,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.union(b1, b2)
         self.assertEquals(
-            "Union(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'))",
+            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
             q1.serialize())
 
         q2 = sampleIndex.union(b1, b2, b3)
         self.assertEquals(
-            "Union(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'), Bitmap(id=42, frame='sample-frame'))",
+            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
             q2.serialize())
 
         q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
-            "Union(Bitmap(id=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
 
     def test_intersect(self):
@@ -93,17 +93,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.intersect(b1, b2)
         self.assertEquals(
-            "Intersect(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'))",
+            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
             q1.serialize())
 
         q2 = sampleIndex.intersect(b1, b2, b3)
         self.assertEquals(
-            "Intersect(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'), Bitmap(id=42, frame='sample-frame'))",
+            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
             q2.serialize())
 
         q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
-            "Intersect(Bitmap(id=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
 
     def test_difference(self):
@@ -114,17 +114,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.difference(b1, b2)
         self.assertEquals(
-            "Difference(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'))",
+            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
             q1.serialize())
 
         q2 = sampleIndex.difference(b1, b2, b3)
         self.assertEquals(
-            "Difference(Bitmap(id=10, frame='sample-frame'), Bitmap(id=20, frame='sample-frame'), Bitmap(id=42, frame='sample-frame'))",
+            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
             q2.serialize())
 
         q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
-            "Difference(Bitmap(id=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
 
     def test_union_invalid_bitmap_count_fails(self):
@@ -162,13 +162,13 @@ class FrameTestCase(unittest.TestCase):
         frame = db.frame("sample-frame")
         self.assertEqual(db, frame.index)
         self.assertEqual("sample-frame", frame.name)
-        self.assertEqual("id", frame.row_label)
+        self.assertEqual("rowID", frame.row_label)
         self.assertEqual(TimeQuantum.NONE, frame.time_quantum)
 
     def test_bitmap(self):
         qry1 = sampleFrame.bitmap(5)
         self.assertEquals(
-            "Bitmap(id=5, frame='sample-frame')",
+            "Bitmap(rowID=5, frame='sample-frame')",
             qry1.serialize())
 
         qry2 = collabFrame.bitmap(10)
@@ -187,7 +187,7 @@ class FrameTestCase(unittest.TestCase):
     def test_setbit(self):
         qry1 = sampleFrame.setbit(5, 10)
         self.assertEquals(
-            "SetBit(id=5, frame='sample-frame', col_id=10)",
+            "SetBit(rowID=5, frame='sample-frame', columnID=10)",
             qry1.serialize())
 
         qry2 = collabFrame.setbit(10, 20)
@@ -207,7 +207,7 @@ class FrameTestCase(unittest.TestCase):
     def test_clearbit(self):
         qry1 = sampleFrame.clearbit(5, 10)
         self.assertEquals(
-            "ClearBit(id=5, frame='sample-frame', col_id=10)",
+            "ClearBit(rowID=5, frame='sample-frame', columnID=10)",
             qry1.serialize())
 
         qry2 = collabFrame.clearbit(10, 20)
