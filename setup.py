@@ -5,8 +5,12 @@ from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+try:
+    import pypandoc
+    long_description = pypandoc.convert_file("README.md", "rst")
+except ImportError:
+    # long_description is required only during the release to PyPI
+    long_description = u''
 
 exec(open(path.join(here, 'pilosa/version.py'), 'r').read())
 
@@ -18,7 +22,7 @@ setup(
     url='https://github.com/pilosa/python-pilosa',
     author='Pilosa Engineering',
     author_email='dev@pilosa.com',
-    license='MIT',
+    license='BSD',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -32,6 +36,8 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Operating System :: OS Independent',
+        'License :: OSI Approved :: BSD License',
     ],
 
     keywords='pilosa,pql',
