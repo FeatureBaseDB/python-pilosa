@@ -38,6 +38,7 @@ import pkg_resources
 
 DEFAULT_VERSION = '0.0.0-unversioned'
 
+
 def _git_version():
     try:
         path = os.path.dirname(os.path.abspath(__file__))
@@ -47,17 +48,20 @@ def _git_version():
     except (OSError, AttributeError, subprocess.CalledProcessError):
         return None
 
+
 def _installed_version():
     try:
         return pkg_resources.require('pilosa-driver')[0].version
     except pkg_resources.DistributionNotFound:
         return None
 
+
 def get_version():
     """
     Returns the version being used
     """
     return _installed_version() or _git_version() or DEFAULT_VERSION
+
 
 def get_version_setup():
     """

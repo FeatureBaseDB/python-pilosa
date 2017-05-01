@@ -36,6 +36,8 @@ import json
 from .exceptions import PilosaError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
+__all__ = ("TimeQuantum", "Index", "Frame", "PQLQuery", "PQLBatchQuery")
+
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 
