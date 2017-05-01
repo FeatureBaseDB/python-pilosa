@@ -31,19 +31,10 @@
 # DAMAGE.
 #
 
-class PilosaException(Exception):
-    pass
+__all__ = ("PilosaError", "ValidationError", "PilosaURIError", "IndexExistsError", "FrameExistsError")
 
 
-class PilosaError(PilosaException):
-    pass
-
-
-class PilosaNotAvailable(PilosaException):
-    pass
-
-
-class InvalidQuery(PilosaException):
+class PilosaError(Exception):
     pass
 
 

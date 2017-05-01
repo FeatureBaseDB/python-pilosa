@@ -43,7 +43,7 @@ from .orm import TimeQuantum
 from .response import QueryResponse
 from .version import get_version
 
-__all__ = ["Client", "Cluster", "URI"]
+__all__ = ("Client", "Cluster", "URI")
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +277,7 @@ class Cluster:
 
 class QueryRequest:
 
-    def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE, ):
+    def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE):
         self.query = query
         self.columns = columns
         self.time_quantum = time_quantum

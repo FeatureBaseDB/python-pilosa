@@ -74,7 +74,7 @@ setup(
     ],
 
     keywords='pilosa,pql',
-    packages=['pilosa'],
+    packages=['pilosa', 'pilosa.internal'],
 
     setup_requires=['pytest-runner'],
     install_requires=['urllib3', 'protobuf'],

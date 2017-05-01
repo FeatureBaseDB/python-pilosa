@@ -35,6 +35,9 @@ from .exceptions import PilosaError
 from .internal import public_pb2 as internal
 
 
+__all__ = ("BitmapResult", "CountResultItem", "QueryResult", "ColumnItem", "QueryResponse")
+
+
 class BitmapResult:
 
     def __init__(self, bits=None, attributes=None):

@@ -4,7 +4,7 @@
 
 <img src="https://dc3kpxyuw05cb.cloudfront.net/img/ce.svg" style="float: right" align="right" height="301">
 
-Python client for Pilosa high performance index.
+Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 

@@ -35,6 +35,10 @@ import re
 
 from pilosa.exceptions import ValidationError
 
+__all__ = ("valid_index_name", "validate_index_name", "valid_frame_name",
+           "validate_frame_name", "valid_label", "validate_label")
+
+
 __INDEX_NAME = re.compile(r"^[a-z0-9_-]+$")
 __FRAME_NAME = re.compile(r"^[a-z0-9][.a-z0-9_-]*$")
 __LABEL = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
