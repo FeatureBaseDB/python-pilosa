@@ -98,16 +98,9 @@ class Client(object):
         self.__http_request("DELETE", uri)
 
     def create_frame(self, frame):
-        data = json.dumps({
-            "options": {
-                "rowLabel": frame.row_label,
-                "inverseEnabled": frame.inverse_enabled
-            }
-        })
+        data = frame.get_options_string()
         uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("POST", uri, data=data)
-        if frame.time_quantum != TimeQuantum.NONE:
-            self.__patch_frame_time_quantum(frame)
 
     def delete_frame(self, frame):
         uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
@@ -128,12 +121,6 @@ class Client(object):
     def __patch_index_time_quantum(self, index):
         uri = "%s/index/%s/time-quantum" % (self.__get_address(), index.name)
         data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
-        self.__http_request("PATCH", uri, data=data)
-
-    def __patch_frame_time_quantum(self, frame):
-        uri = "%s/index/%s/frame/%s/time-quantum" % \
-              (self.__get_address(), frame.index.name, frame.name)
-        data = '{\"timeQuantum\":\"%s\"}"' % str(frame.time_quantum)
         self.__http_request("PATCH", uri, data=data)
 
     def __http_request(self, method, uri, data=None, client_response=0):

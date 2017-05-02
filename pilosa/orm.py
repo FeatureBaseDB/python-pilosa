@@ -36,7 +36,7 @@ import json
 from .exceptions import PilosaError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
-__all__ = ("TimeQuantum", "Index", "Frame", "PQLQuery", "PQLBatchQuery")
+__all__ = ("TimeQuantum", "CacheType", "Index", "Frame", "PQLQuery", "PQLBatchQuery")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -50,7 +50,9 @@ class TimeQuantum:
         return self.value
 
     def __eq__(self, other):
-        return self.value == other.value
+        if isinstance(other, TimeQuantum):
+            return self.value == other.value
+        return False
 
 TimeQuantum.NONE = TimeQuantum("")
 TimeQuantum.YEAR = TimeQuantum("Y")
@@ -65,6 +67,24 @@ TimeQuantum.MONTH_DAY_HOUR = TimeQuantum("MDH")
 TimeQuantum.YEAR_MONTH_DAY_HOUR = TimeQuantum("YMDH")
 
 
+class CacheType:
+
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return self.value
+
+    def __eq__(self, other):
+        if isinstance(other, CacheType):
+            return self.value == other.value
+        return False
+
+CacheType.DEFAULT = CacheType("")
+CacheType.LRU = CacheType("lru")
+CacheType.RANKED = CacheType("ranked")
+
+
 class Index:
 
     def __init__(self, name, column_label="columnID", time_quantum=TimeQuantum.NONE):
@@ -74,8 +94,10 @@ class Index:
         self.column_label = column_label
         self.time_quantum = time_quantum
 
-    def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE, inverse_enabled=False):
-        return Frame(self, name, row_label, time_quantum, inverse_enabled)
+    def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE,
+              inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0):
+        return Frame(self, name, row_label, time_quantum, inverse_enabled,
+                     cache_type, cache_size)
 
     def raw_query(self, query):
         return PQLQuery(query, self)
@@ -110,13 +132,16 @@ class Index:
 
 class Frame:
 
-    def __init__(self, index, name, row_label, time_quantum, inverse_enabled):
+    def __init__(self, index, name, row_label, time_quantum, inverse_enabled,
+                 cache_type, cache_size):
         validate_frame_name(name)
         validate_label(row_label)
         self.index = index
         self.name = name
         self.time_quantum = time_quantum
         self.inverse_enabled = inverse_enabled
+        self.cache_type = cache_type
+        self.cache_size = cache_size
         self.row_label = row_label
         self.column_label = index.column_label
 
@@ -165,6 +190,18 @@ class Frame:
         return PQLQuery(u"SetRowAttrs(%s=%d, frame='%s', %s)" %
                         (self.row_label, row_id, self.name, attrs_str),
                         self.index)
+
+    def get_options_string(self):
+        data = {"rowLabel": self.row_label}
+        if self.inverse_enabled:
+            data["inverseEnabled"] = True
+        if self.time_quantum != TimeQuantum.NONE:
+            data["timeQuantum"] = str(self.time_quantum)
+        if self.cache_type != CacheType.DEFAULT:
+            data["cacheType"] = str(self.cache_type)
+        if self.cache_size > 0:
+            data["cacheSize"] = self.cache_size
+        return json.dumps({"options": data}, sort_keys=True)
 
 
 class PQLQuery:
