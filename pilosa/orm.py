@@ -201,7 +201,7 @@ class Frame:
             data["cacheType"] = str(self.cache_type)
         if self.cache_size > 0:
             data["cacheSize"] = self.cache_size
-        return json.dumps({"options": data})
+        return json.dumps({"options": data}, sort_keys=True)
 
 
 class PQLQuery:

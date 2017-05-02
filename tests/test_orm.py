@@ -258,7 +258,7 @@ class FrameTestCase(unittest.TestCase):
                                   inverse_enabled=True,
                                   cache_type=CacheType.RANKED,
                                   cache_size=1000)
-        target = '{"options": {"cacheSize": 1000, "inverseEnabled": true, "cacheType": "ranked", "rowLabel": "rowID", "timeQuantum": "DH"}}'
+        target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "inverseEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
         self.assertEquals(target, frame.get_options_string())
 
 
