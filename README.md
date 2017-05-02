@@ -1,14 +1,16 @@
 # Python Client for Pilosa
 
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.3.1-blue.svg"></a>
 <a href="https://travis-ci.com/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
 
-<img src="https://dc3kpxyuw05cb.cloudfront.net/img/ce.svg" style="float: right" align="right" height="301">
+<img src="https://www.pilosa.com/img/ce.svg" style="float: right" align="right" height="301">
 
 Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* 2017-05-01: Initial version
+* **v0.3.1** (2017-05-01): Initial version
+    * Supports Pilosa Server v0.3.1
 
 ## Requirements
 

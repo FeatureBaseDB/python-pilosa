@@ -34,8 +34,7 @@
 import unittest
 from datetime import datetime
 
-from pilosa.exceptions import PilosaError
-from pilosa.orm import Index, TimeQuantum
+from pilosa import PilosaError, Index, TimeQuantum, CacheType
 
 sampleIndex = Index("sample-db")
 sampleFrame = sampleIndex.frame("sample-frame")
@@ -253,6 +252,15 @@ class FrameTestCase(unittest.TestCase):
         frame = projectIndex.frame("inverse-not-enabled")
         self.assertRaises(PilosaError, frame.inverse_bitmap, 5)
 
+    def test_get_options_string(self):
+        frame = sampleIndex.frame("stargazer_id",
+                                  time_quantum=TimeQuantum.DAY_HOUR,
+                                  inverse_enabled=True,
+                                  cache_type=CacheType.RANKED,
+                                  cache_size=1000)
+        target = '{"options": {"cacheSize": 1000, "inverseEnabled": true, "cacheType": "ranked", "rowLabel": "rowID", "timeQuantum": "DH"}}'
+        self.assertEquals(target, frame.get_options_string())
+
 
 class TimeQuantumTestCase(unittest.TestCase):
 
@@ -260,3 +268,19 @@ class TimeQuantumTestCase(unittest.TestCase):
         tq = TimeQuantum.YEAR_MONTH_DAY_HOUR
         self.assertEqual("YMDH", str(tq))
 
+    def test_equality(self):
+        self.assertTrue(TimeQuantum.YEAR_MONTH_DAY_HOUR == TimeQuantum.YEAR_MONTH_DAY_HOUR)
+        self.assertFalse(TimeQuantum.YEAR_MONTH_DAY_HOUR == TimeQuantum.YEAR)
+        self.assertFalse(TimeQuantum.YEAR_MONTH_DAY_HOUR == "YMDH")
+
+
+class CacheTypeTestCase(unittest.TestCase):
+
+    def test_value(self):
+        ct = CacheType.LRU
+        self.assertEqual("lru", str(ct))
+
+    def test_equality(self):
+        self.assertTrue(CacheType.RANKED == CacheType.RANKED)
+        self.assertFalse(CacheType.RANKED == CacheType.LRU)
+        self.assertFalse(CacheType.RANKED == "ranked")
