@@ -36,3 +36,4 @@ from .exceptions import *
 from .orm import *
 from .response import *
 from .validator import *
+from .version import VERSION

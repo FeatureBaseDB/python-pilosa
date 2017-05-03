@@ -51,7 +51,7 @@ def _git_version():
 
 def _installed_version():
     try:
-        return pkg_resources.require('pilosa-driver')[0].version
+        return pkg_resources.require('pilosa')[0].version
     except pkg_resources.DistributionNotFound:
         return None
 
@@ -68,3 +68,6 @@ def get_version_setup():
     Returns the version for setup.py
     """
     return _git_version() or _installed_version() or DEFAULT_VERSION
+
+
+VERSION = get_version()

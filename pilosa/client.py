@@ -41,7 +41,7 @@ from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExis
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum
 from .response import QueryResponse
-from .version import get_version
+from .version import VERSION
 
 __all__ = ("Client", "Cluster", "URI")
 
@@ -154,7 +154,7 @@ class Client(object):
         headers = {
             'Content-Type': 'application/x-protobuf',
             'Accept': 'application/x-protobuf',
-            'User-Agent': 'python-pilosa/' + get_version(),
+            'User-Agent': 'python-pilosa/' + VERSION,
         }
 
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
