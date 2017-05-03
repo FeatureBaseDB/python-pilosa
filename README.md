@@ -10,16 +10,20 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **v0.3.1** (2017-05-01): Initial version
+* **v0.3.2** (2017-05-01):
+    * Fixes a bug with getting the version of the package
+    
+* **v0.3.1** (2017-05-01):
+    * Initial version
     * Supports Pilosa Server v0.3.1
 
 ## Requirements
 
-* Python 2.6 and higher or Python 3.4 and higher
+* Python 2.6 and higher or Python 3.3 and higher
 
 ## Install
 
-Pilosa client is on [PyPI](https://pypi.python.org/package/pilosa). You can install the library using `pip`:
+Pilosa client is on [PyPI](https://pypi.python.org/pypi/pilosa). You can install the library using `pip`:
 
 ```
 pip install pilosa
@@ -65,14 +69,14 @@ if result:
 
 # You can batch queries to improve throughput
 response = client.query(
-    mydb.batch_query(
+    myindex.batch_query(
         myframe.bitmap(5),
         myframe.bitmap(10),
     )    
 )
-for result in response.results {
+for result in response.results:
     # Act on the result
-}
+    print(result)
 ```
 
 ### Data Model and Queries
