@@ -43,6 +43,18 @@ _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 class TimeQuantum:
 
+    NONE = None
+    YEAR = None
+    MONTH = None
+    DAY = None
+    HOUR = None
+    YEAR_MONTH = None
+    MONTH_DAY = None
+    DAY_HOUR = None
+    YEAR_MONTH_DAY = None
+    MONTH_DAY_HOUR = None
+    YEAR_MONTH_DAY_HOUR = None
+
     def __init__(self, value):
         self.value = value
 
