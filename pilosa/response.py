@@ -86,8 +86,8 @@ class QueryResult:
 class ColumnItem:
     """Contains data about a column.
     
-    Column data is returned from ``QueryResponse.getColumns()` method.
-    They are only returned if ``Client.query` was called with ``columns=True``.
+    Column data is returned from ``QueryResponse.getColumns()`` method.
+    They are only returned if ``Client.query`` was called with ``columns=True``.
  """
 
     def __init__(self, id, attributes):
