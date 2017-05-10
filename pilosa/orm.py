@@ -42,6 +42,10 @@ _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 
 class TimeQuantum:
+    """Valid time quantum values for frames having support for that.
+    
+    * See: `Data Model <https://www.pilosa.com/docs/data-model/>`_
+    """
 
     NONE = None
     YEAR = None
@@ -81,6 +85,10 @@ TimeQuantum.YEAR_MONTH_DAY_HOUR = TimeQuantum("YMDH")
 
 class CacheType:
 
+    DEFAULT = None
+    LRU = None
+    RANKED = None
+
     def __init__(self, value):
         self.value = value
 
@@ -98,6 +106,17 @@ CacheType.RANKED = CacheType("ranked")
 
 
 class Index:
+    """The purpose of the Index is to represent a data namespace.
+    
+    You cannot perform cross-index queries. Column-level attributes are global to the Index.
+    
+    :param str name: index name
+    :param str column_label: a valid column label
+    :param pilosa.TimeQuantum time_quantum: Sets the time quantum
+
+    * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
+    """
 
     def __init__(self, name, column_label="columnID", time_quantum=TimeQuantum.NONE):
         validate_index_name(name)
@@ -108,30 +127,107 @@ class Index:
 
     def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE,
               inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0):
+        """Creates a frame object with the specified name and defaults.
+        
+        :param str name: frame name
+        :param str row_label: a valid row label
+        :param pilosa.TimeQuantum time_quantum: Sets the time quantum for the frame. If a Frame has a time quantum, then Views are generated for each of the defined time segments.
+        :param bool inverse_enabled:
+        :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
+        :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
+        :return: Pilosa frame
+        :rtype: pilosa.Frame
+        """
         return Frame(self, name, row_label, time_quantum, inverse_enabled,
                      cache_type, cache_size)
 
     def raw_query(self, query):
+        """Creates a raw query.
+        
+        Note that the query is not validated before sending to the server.
+        
+        :param str query:
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
         return PQLQuery(query, self)
 
     def batch_query(self, *queries):
+        """Creates a batch query.
+        
+        :param pilosa.PQLQuery queries: the queries in the batch
+        :return: Pilosa batch query
+        :rtype: pilosa.PQLBatchQuery
+        """
         q = PQLBatchQuery(self)
         q.add(*queries)
         return q
 
     def union(self, *bitmaps):
+        """Creates a ``Union`` query.
+        
+        ``Union`` performs a logical OR on the results of each BITMAP_CALL query passed to it.
+        
+        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to union
+        :return: Pilosa bitmap query
+        :rtype: pilosa.PQLBitmapQuery
+        :raise PilosaError: if the number of bitmaps is less than 2
+        """
         return self._bitmap_op("Union", bitmaps)
 
     def intersect(self, *bitmaps):
+        """Creates an ``Intersect`` query.
+
+        ``Intersect`` performs a logical AND on the results of each BITMAP_CALL query passed to it.
+        
+        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to intersect
+        :return: Pilosa bitmap query
+        :rtype: pilosa.PQLBitmapQuery
+        :raise PilosaError: if the number of bitmaps is less than 2
+        """
         return self._bitmap_op("Intersect", bitmaps)
 
     def difference(self, *bitmaps):
+        """Creates a ``Difference`` query.
+
+        ``Difference`` returns all of the bits from the first BITMAP_CALL argument passed to it,
+        without the bits from each subsequent BITMAP_CALL.
+        
+        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to differentiate
+        :return: Pilosa bitmap query
+        :rtype: pilosa.PQLBitmapQuery
+        :raise PilosaError: if the number of bitmaps is less than 2
+        """
         return self._bitmap_op("Difference", bitmaps)
 
     def count(self, bitmap):
+        """Creates a Count query.
+        
+        ``Count`` returns the number of set bits in the BITMAP_CALL passed in.
+        
+        :param pilosa.PQLQuery bitmap: the bitmap query
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
         return PQLQuery(u"Count(%s)" % bitmap.serialize(), self)
 
     def set_column_attrs(self, column_id, attrs):
+        """Creates a SetColumnAttrs query.
+        
+        ``SetColumnAttrs`` associates arbitrary key/value pairs with a column in an index.
+        
+        Following object types are accepted:
+        
+        * int
+        * str
+        * bool
+        * float
+        
+        :param int column_id:
+        :param dict attrs: column attributes
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery        
+        """
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(u"SetColumnAttrs(%s=%d, %s)" %
                         (self.column_label, column_id, attrs_str), self)
@@ -143,6 +239,16 @@ class Index:
 
 
 class Frame:
+    """Frames are used to segment and define different functional characteristics within your entire index.
+    
+    You can think of a Frame as a table-like data partition within your Index.
+    Row-level attributes are namespaced at the Frame level.
+    
+    Do not create a Frame object directly. Instead, use ``pilosa.Index.frame`` method.
+        
+    * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
+    """
 
     def __init__(self, index, name, row_label, time_quantum, inverse_enabled,
                  cache_type, cache_size):
@@ -158,27 +264,77 @@ class Frame:
         self.column_label = index.column_label
 
     def bitmap(self, row_id):
+        """Creates a Bitmap query.
+        
+        Bitmap retrieves the indices of all the set bits in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
+        
+        This variant of Bitmap query uses the row label.
+        
+        :param int row_id:
+        :return: Pilosa bitmap query
+        :rtype: pilosa.PQLBitmapQuery
+        """
         return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.row_label, row_id, self.name),
                         self.index)
 
     def inverse_bitmap(self, column_id):
+        """Creates a Bitmap query.
+
+        ``Bitmap`` retrieves the indices of all the set bits in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
+
+        This variant of Bitmap query uses the column label.
+
+        :param int column_id:
+        :return: Pilosa bitmap query
+        :rtype: pilosa.PQLBitmapQuery
+        """
         if not self.inverse_enabled:
             raise PilosaError("Inverse bitmaps support was not enabled for this frame")
         return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.column_label, column_id, self.name),
                         self.index)
 
     def setbit(self, row_id, column_id, timestamp=None):
+        """Creates a SetBit query.
+        
+        ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given frame with the given column.
+        
+        :param int row_id:
+        :param int column_id:
+        :param pilosa.TimeStamp timestamp:
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
         ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
         return PQLQuery(u"SetBit(%s=%d, frame='%s', %s=%d%s)" % \
                         (self.row_label, row_id, self.name, self.column_label, column_id, ts),
                         self.index)
 
     def clearbit(self, row_id, column_id):
+        """Creates a ClearBit query.
+        
+        ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given frame from the given column.
+        
+        :param int row_id:
+        :param int column_id:
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
         return PQLQuery(u"ClearBit(%s=%d, frame='%s', %s=%d)" % \
                         (self.row_label, row_id, self.name, self.column_label, column_id),
                         self.index)
 
     def topn(self, n, bitmap=None, field="", *values):
+        """Creates a TopN query.
+        
+        ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the frame.
+        
+        * see: `TopN Query <https://www.pilosa.com/docs/query-language/#topn>`_
+
+        :param int n: number of items to return
+        :param pilosa.PQLBitmapQuery bitmap: a PQL Bitmap query
+        :param field str field: field name
+        :param object values: filter values to be matched against the field
+        """
         if field and bitmap:
             validate_label(field)
             values_str = json.dumps(values, separators=(',', ': '))
@@ -191,6 +347,16 @@ class Frame:
         return PQLQuery(qry, self.index)
 
     def range(self, row_id, start, end):
+        """Creates a Range query.
+        
+        Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
+
+        * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
+        
+        :param int row_id:
+        :param datetime.datetime start: start timestamp
+        :param datetime.datetime end: end timestamp
+        """
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
         return PQLQuery(u"Range(%s=%d, frame='%s', start='%s', end='%s')" %
@@ -198,12 +364,28 @@ class Frame:
                         self.index)
 
     def set_row_attrs(self, row_id, attrs):
+        """Creates a SetRowAttrs query.
+        
+        ``SetRowAttrs`` associates arbitrary key/value pairs with a row in a frame.
+        
+        Following object types are accepted:
+        
+        * int
+        * str
+        * bool
+        * float
+        
+        :param int row_id:
+        :param dict attrs: row attributes
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery        
+        """
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(u"SetRowAttrs(%s=%d, frame='%s', %s)" %
                         (self.row_label, row_id, self.name, attrs_str),
                         self.index)
 
-    def get_options_string(self):
+    def _get_options_string(self):
         data = {"rowLabel": self.row_label}
         if self.inverse_enabled:
             data["inverseEnabled"] = True

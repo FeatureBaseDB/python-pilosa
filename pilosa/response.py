@@ -39,6 +39,10 @@ __all__ = ("BitmapResult", "CountResultItem", "QueryResult", "ColumnItem", "Quer
 
 
 class BitmapResult:
+    """Represents a result from ``Bitmap``, ``Union``, ``Intersect``, ``Difference`` and ``Range`` PQL calls.
+    
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
+    """
 
     def __init__(self, bits=None, attributes=None):
         self.bits = bits or []
@@ -50,6 +54,10 @@ class BitmapResult:
 
 
 class CountResultItem:
+    """Represents a result from ``TopN`` call.
+
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
+    """
 
     def __init__(self, id, count):
         self.id = id
@@ -57,6 +65,10 @@ class CountResultItem:
 
 
 class QueryResult:
+    """Represent one of the results in the response.
+    
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
+    """
 
     def __init__(self, bitmap=None, count_items=None, count=0):
         self.bitmap = bitmap or BitmapResult()
@@ -72,17 +84,26 @@ class QueryResult:
 
 
 class ColumnItem:
+    """Contains data about a column.
+    
+    Column data is returned from ``QueryResponse.getColumns()` method.
+    They are only returned if ``Client.query` was called with ``columns=True``.
+ """
 
     def __init__(self, id, attributes):
         self.id = id
         self.attributes = attributes
 
     @classmethod
-    def from_internal(cls, obj):
+    def _from_internal(cls, obj):
         return cls(obj.ID, _convert_protobuf_attrs_to_dict(obj.Attrs))
 
 
 class QueryResponse(object):
+    """Represents the response from a Pilosa query.
+
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
+    """
 
     def __init__(self, results=None, columns=None, error_message=""):
         self.results = results or []
@@ -90,11 +111,11 @@ class QueryResponse(object):
         self.error_message = error_message
 
     @classmethod
-    def from_protobuf(cls, bin):
+    def _from_protobuf(cls, bin):
         response = internal.QueryResponse()
         response.ParseFromString(bin)
         results = [QueryResult.from_internal(r) for r in response.Results]
-        columns = [ColumnItem.from_internal(p) for p in response.ColumnAttrSets]
+        columns = [ColumnItem._from_internal(p) for p in response.ColumnAttrSets]
         error_message = response.Err
         return cls(results, columns, error_message)
 

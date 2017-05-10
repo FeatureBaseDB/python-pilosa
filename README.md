@@ -10,12 +10,16 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **v0.3.2** (2017-05-01):
-    * Fixes a bug with getting the version of the package
+* **v0.3.3** (2017-05-10):
+    * This version has the updated documentation.
+    * Some light refactoring which shouldn't affect any user code.
+
+* **v0.3.2** (2017-05-03):
+    * Fixes a bug with getting the version of the package.
     
 * **v0.3.1** (2017-05-01):
-    * Initial version
-    * Supports Pilosa Server v0.3.1
+    * Initial version.
+    * Supports Pilosa Server v0.3.1.
 
 ## Requirements
 

@@ -63,7 +63,7 @@ def get_version():
     return _installed_version() or _git_version() or DEFAULT_VERSION
 
 
-def get_version_setup():
+def _get_version_setup():
     """
     Returns the version for setup.py
     """
