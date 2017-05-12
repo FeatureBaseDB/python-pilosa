@@ -6,3 +6,5 @@
 .coverage
 build/
 README.rst
+.coveralls.yml
+doc/_build
