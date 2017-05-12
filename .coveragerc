@@ -1,0 +1,4 @@
+[run]
+omit = 
+    pilosa/internal/*
+
