@@ -1,10 +1,10 @@
 # Python Client for Pilosa
 
 <a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.3.1-blue.svg"></a>
-<a href="https://travis-ci.com/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
-<a href="https://coveralls.io/github/yuce/python-pilosa?branch=coveralls"><img src="https://coveralls.io/repos/github/yuce/python-pilosa/badge.svg?branch=coveralls"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592000"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
+<a href="https://travis-ci.com/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
+<a href="https://coveralls.io/github/pilosa/python-pilosa?branch=coveralls"><img src="https://coveralls.io/repos/github/yuce/python-pilosa/badge.svg?branch=coveralls"></a>
 
 <img src="https://www.pilosa.com/img/ce.svg" style="float: right" align="right" height="301">
 
