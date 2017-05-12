@@ -48,6 +48,6 @@ class QueryResultTestCase(unittest.TestCase):
         attr.StringValue = "bar"
         attr.Type = 0
         bin = qr.SerializeToString()
-        self.assertRaises(PilosaError, QueryResponse.from_protobuf, bin)
+        self.assertRaises(PilosaError, QueryResponse._from_protobuf, bin)
 
 

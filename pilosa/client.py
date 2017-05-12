@@ -49,6 +49,29 @@ logger = logging.getLogger(__name__)
 
 
 class Client(object):
+    """Pilosa HTTP client
+
+    This client uses Pilosa's http+protobuf API.
+
+    Usage: ::
+
+        import pilosa
+
+        # Create a Client instance
+        client = pilosa.Client()
+
+        # Create an Index instance
+        index = pilosa.Index("repository")
+
+        stargazer = index.frame("stargazer")
+        response = client.query(stargazer.bitmap(5))
+
+        # Act on the result
+        print(response.result)
+
+    * See `Pilosa API Reference <https://www.pilosa.com/docs/api-reference/>`_.
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_.
+    """
 
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
@@ -74,17 +97,30 @@ class Client(object):
         self.__client = None
 
     def query(self, query, columns=False, time_quantum=TimeQuantum.NONE):
-        request = QueryRequest(query.serialize(), columns=columns,
-                               time_quantum=time_quantum)
+        """Runs the given query against the server with the given options.
+        
+        :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
+        :param bool columns: Enables returning column data from bitmap queries
+        :param pilosa.TimeQuantum time_quantum: Sets the time quantum for this query 
+        :return: Pilosa response
+        :rtype: pilosa.Response
+        """
+        request = _QueryRequest(query.serialize(), columns=columns,
+                                time_quantum=time_quantum)
         data = request.to_protobuf()
         uri = "%s/index/%s/query" % (self.__get_address(), query.index.name)
         response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
-        query_response = QueryResponse.from_protobuf(response.data)
+        query_response = QueryResponse._from_protobuf(response.data)
         if query_response.error_message:
             raise PilosaError(query_response.error_message)
         return query_response
 
     def create_index(self, index):
+        """Creates an index on the server using the given Index object.
+        
+        :param pilosa.Index index:
+        :raises pilosa.IndexExistsError: if there already is a index with the given name
+        """
         data = json.dumps({
             "options": {"columnLabel": index.column_label}
         })
@@ -94,25 +130,48 @@ class Client(object):
             self.__patch_index_time_quantum(index)
 
     def delete_index(self, index):
+        """Deletes the given index on the server.
+        
+        :param pilosa.Index index:
+        :raises pilosa.PilosaError: if the index does not exist
+        """
         uri = "%s/index/%s" % (self.__get_address(), index.name)
         self.__http_request("DELETE", uri)
 
     def create_frame(self, frame):
-        data = frame.get_options_string()
+        """Creates a frame on the server using the given Frame object.
+        
+        :param pilosa.Frame frame:
+        :raises pilosa.FrameExistsError: if there already is a frame with the given name
+        """
+        data = frame._get_options_string()
         uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("POST", uri, data=data)
 
     def delete_frame(self, frame):
+        """Deletes the given frame on the server.
+        
+        :param pilosa.Frame frame:
+        :raises pilosa.PilosaError: if the frame does not exist
+        """
         uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
         self.__http_request("DELETE", uri)
 
     def ensure_index(self, index):
+        """Creates an index on the server if it does not exist.
+        
+        :param pilosa.Index index:
+        """
         try:
             self.create_index(index)
         except IndexExistsError:
             pass
 
     def ensure_frame(self, frame):
+        """Creates a frame on the server if it does not exist.
+        
+        :param pilosa.Frame frame:
+        """
         try:
             self.create_frame(frame)
         except FrameExistsError:
@@ -147,7 +206,7 @@ class Client(object):
     def __get_address(self):
         if self.__current_host is None:
             self.__current_host = self.cluster.get_host()
-        return self.__current_host.normalize()
+        return self.__current_host._normalize()
 
     def __connect(self):
         num_pools = float(self.pool_size_total) / self.pool_size_per_route
@@ -172,17 +231,23 @@ class URI:
     """Represents a Pilosa URI
 
     A Pilosa URI consists of three parts:
-    - Scheme: Protocol of the URI. Default: http
-    - Host: Hostname or IP URI. Default: localhost
-    - Port: Port of the URI. Default 10101
+    
+    * Scheme: Protocol of the URI. Default: ``http``
+    * Host: Hostname or IP URI. Default: ``localhost``
+    * Port: Port of the URI. Default ``10101``
     
     All parts of the URI are optional. The following are equivalent:
-    - http://localhost:10101
-    - http://localhost
-    - http://:10101
-    - localhost:10101
-    - localhost
-    - :10101
+    
+    * ``http://localhost:10101``
+    * ``http://localhost``
+    * ``http://:10101``
+    * ``localhost:10101``
+    * ``localhost``
+    * ``:10101``
+
+    :param str scheme: is the scheme of the Pilosa Server. Currently only ``http`` is supported     
+    :param str host: is the hostname or IP address of the Pilosa server
+    :param int port: is the port of the Pilosa server
     """
     __PATTERN = re.compile("^(([+a-z]+)://)?([0-9a-z.-]+)?(:([0-9]+))?$")
 
@@ -193,11 +258,17 @@ class URI:
 
     @classmethod
     def address(cls, address):
+        """ Creates a URI from an address.
+        
+        :param str address: of the form ``${SCHEME}://${HOST}:{$PORT}``
+        :return: a Pilosa URI
+        :type: pilosa.URI
+        """
         uri = cls()
         uri._parse(address)
         return uri
 
-    def normalize(self):
+    def _normalize(self):
         scheme = self.scheme
         try:
             index = scheme.index("+")
@@ -238,7 +309,10 @@ class URI:
 
 
 class Cluster:
-    """Contains hosts in a Pilosa cluster"""
+    """Contains hosts in a Pilosa cluster.
+    
+    :param hosts: URIs of hosts. Leaving out hosts creates the default cluster
+    """
 
     def __init__(self, *hosts):
         """Returns the cluster with the given hosts"""
@@ -246,15 +320,25 @@ class Cluster:
         self.__next_index = 0
 
     def add_host(self, uri):
-        """Adds a host to the cluster"""
+        """Adds a host to the cluster.
+        
+        :param pilosa.URI uri:
+        """
         self.hosts.append(uri)
 
     def remove_host(self, uri):
-        """Removes the host with the given URI from the cluster."""
+        """Removes the host with the given URI from the cluster.
+        
+        :param pilosa.URI uri:
+        """
         self.hosts.remove(uri)
 
     def get_host(self):
-        """Returns the next host in the cluster"""
+        """Returns the next host in the cluster.
+        
+        :return: next host
+        :rtype: pilosa.URI         
+        """
         if len(self.hosts) == 0:
             raise PilosaError("There are no available hosts")
         next_host = self.hosts[self.__next_index % len(self.hosts)]
@@ -262,7 +346,7 @@ class Cluster:
         return next_host
 
 
-class QueryRequest:
+class _QueryRequest:
 
     def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE):
         self.query = query

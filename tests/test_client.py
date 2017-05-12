@@ -35,7 +35,7 @@ import logging
 import unittest
 
 import pilosa.internal.public_pb2 as internal
-from pilosa.client import Client, URI, Cluster, QueryRequest, TimeQuantum
+from pilosa.client import Client, URI, Cluster, _QueryRequest, TimeQuantum
 from pilosa.exceptions import PilosaURIError, PilosaError
 
 logger = logging.getLogger(__name__)
@@ -97,10 +97,10 @@ class URITestCase(unittest.TestCase):
 
     def test_normalized_address(self):
         uri = URI.address("https+pb://big-data.pilosa.com:6888")
-        self.assertEquals("https://big-data.pilosa.com:6888", uri.normalize())
+        self.assertEquals("https://big-data.pilosa.com:6888", uri._normalize())
 
         uri = URI.address("https://big-data.pilosa.com:6888")
-        self.assertEquals("https://big-data.pilosa.com:6888", uri.normalize())
+        self.assertEquals("https://big-data.pilosa.com:6888", uri._normalize())
 
     def test_invalid_address(self):
         for address in ["foo:bar", "http://foo:", "http://foo:", "foo:", ":bar"]:
@@ -175,7 +175,7 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = QueryRequest("Bitmap(frame='foo', id=1)", columns=True, time_quantum=TimeQuantum.YEAR)
+        qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True, time_quantum=TimeQuantum.YEAR)
         bin = qr.to_protobuf()
         self.assertTrue(bin is not None)
 

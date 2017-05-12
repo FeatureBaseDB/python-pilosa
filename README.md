@@ -3,6 +3,7 @@
 <a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.3.1-blue.svg"></a>
 <a href="https://travis-ci.com/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592000"></a>
+<a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 
 <img src="https://www.pilosa.com/img/ce.svg" style="float: right" align="right" height="301">
 
@@ -10,12 +11,16 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **v0.3.2** (2017-05-01):
-    * Fixes a bug with getting the version of the package
+* **v0.3.3** (2017-05-10):
+    * This version has the updated documentation.
+    * Some light refactoring which shouldn't affect any user code.
+
+* **v0.3.2** (2017-05-03):
+    * Fixes a bug with getting the version of the package.
     
 * **v0.3.1** (2017-05-01):
-    * Initial version
-    * Supports Pilosa Server v0.3.1
+    * Initial version.
+    * Supports Pilosa Server v0.3.1.
 
 ## Requirements
 

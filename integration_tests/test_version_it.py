@@ -36,7 +36,7 @@ import unittest
 
 import pkg_resources
 
-from pilosa.version import _git_version, get_version_setup
+from pilosa.version import _git_version, _get_version_setup
 
 
 class VersionTestCase(unittest.TestCase):
@@ -58,7 +58,7 @@ class VersionTestCase(unittest.TestCase):
         backup2 = pkg_resources.require
         pkg_resources.require = mock2
         try:
-            self.assertEquals("0.0.0-unversioned", get_version_setup())
+            self.assertEquals("0.0.0-unversioned", _get_version_setup())
         finally:
             if backup1:
                 subprocess.check_output = backup1
