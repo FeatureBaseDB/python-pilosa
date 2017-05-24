@@ -42,7 +42,7 @@ from pilosa.validator import validate_frame_name, validate_index_name, validate_
 class ValidatorTestCase(unittest.TestCase):
 
     VALID_INDEX_NAMES = [
-        "a", "ab", "ab1", "1", "_", "-", "b-c", "d_e",
+        "a", "ab", "ab1", "b-c", "d_e",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
 
@@ -52,22 +52,22 @@ class ValidatorTestCase(unittest.TestCase):
     ]
 
     VALID_FRAME_NAMES = [
-        "a", "ab", "ab1", "b-c", "d_e", "d.e", "1",
+        "a", "ab", "ab1", "b-c", "d_e",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
 
     INVALID_FRAME_NAMES = [
-        "", "'", "^", "/", "\\", "A", "*", "a:b", "valid?no", "yüce", "_", "-", ".data",
+        "", "'", "^", "/", "\\", "A", "*", "a:b", "valid?no", "yüce", "_", "-", ".data", "d.e", "1",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
 
     VALID_LABELS = [
-        "a", "ab", "ab1", "d_e", "A", "Bc", "B1", "aB",
+        "a", "ab", "ab1", "d_e", "A", "Bc", "B1", "aB", "b-c",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
 
     INVALID_LABELS = [
-        "", "1", "_", "-", "b-c", "'", "^", "/", "\\", "*", "a:b", "valid?no", "yüce",
+        "", "1", "_", "-", "'", "^", "/", "\\", "*", "a:b", "valid?no", "yüce",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
 

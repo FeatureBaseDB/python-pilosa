@@ -39,9 +39,9 @@ __all__ = ("valid_index_name", "validate_index_name", "valid_frame_name",
            "validate_frame_name", "valid_label", "validate_label")
 
 
-__INDEX_NAME = re.compile(r"^[a-z0-9_-]+$")
-__FRAME_NAME = re.compile(r"^[a-z0-9][.a-z0-9_-]*$")
-__LABEL = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
+__INDEX_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
+__FRAME_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
+__LABEL = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
 __MAX_INDEX_NAME = 64
 __MAX_FRAME_NAME = 64
 __MAX_LABEL = 64
