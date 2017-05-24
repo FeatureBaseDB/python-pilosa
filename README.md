@@ -12,9 +12,10 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **v0.3.3** (2017-05-10):
+* **v0.3.3**
     * This version has the updated documentation.
     * Some light refactoring which shouldn't affect any user code.
+    * Updated the accepted values for index, frame names and labels to match with the Pilosa server.
 
 * **v0.3.2** (2017-05-03):
     * Fixes a bug with getting the version of the package.
