@@ -168,10 +168,9 @@ class Index:
         
         ``Union`` performs a logical OR on the results of each BITMAP_CALL query passed to it.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to union
+        :param pilosa.PQLBitmapQuery bitmaps: 0 or more bitmap queries to union
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
-        :raise PilosaError: if the number of bitmaps is less than 2
         """
         return self._bitmap_op("Union", bitmaps)
 
@@ -180,11 +179,13 @@ class Index:
 
         ``Intersect`` performs a logical AND on the results of each BITMAP_CALL query passed to it.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to intersect
+        :param pilosa.PQLBitmapQuery bitmaps: 1 or more bitmap queries to intersect
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
-        :raise PilosaError: if the number of bitmaps is less than 2
+        :raise PilosaError: if the number of bitmaps is less than 1
         """
+        if len(bitmaps) < 1:
+            raise PilosaError("Number of bitmap queries should be greater or equal to 1")
         return self._bitmap_op("Intersect", bitmaps)
 
     def difference(self, *bitmaps):
@@ -193,11 +194,13 @@ class Index:
         ``Difference`` returns all of the bits from the first BITMAP_CALL argument passed to it,
         without the bits from each subsequent BITMAP_CALL.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to differentiate
+        :param pilosa.PQLBitmapQuery bitmaps: 0 or more bitmap queries to differentiate
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
-        :raise PilosaError: if the number of bitmaps is less than 2
+        :raise PilosaError: if the number of bitmaps is less than 1
         """
+        if len(bitmaps) < 1:
+            raise PilosaError("Number of bitmap queries should be greater or equal to 1")
         return self._bitmap_op("Difference", bitmaps)
 
     def count(self, bitmap):
@@ -233,8 +236,6 @@ class Index:
                         (self.column_label, column_id, attrs_str), self)
 
     def _bitmap_op(self, name, bitmaps):
-        if len(bitmaps) < 2:
-            raise PilosaError("Number of bitmap queries should be greater or equal to 2")
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in bitmaps)), self)
 
 

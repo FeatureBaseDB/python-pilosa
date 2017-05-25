@@ -126,8 +126,19 @@ class IndexTestCase(unittest.TestCase):
             "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
 
-    def test_union_invalid_bitmap_count_fails(self):
-        self.assertRaises(PilosaError, projectIndex.union)
+    def test_union0(self):
+        q = sampleIndex.union();
+        self.assertEquals("Union()", q.serialize())
+
+    def test_union1(self):
+        q = sampleIndex.union(sampleFrame.bitmap(10));
+        self.assertEquals("Union(Bitmap(rowID=10, frame='sample-frame'))", q.serialize())
+
+    def test_intersect_invalid_bitmap_count_fails(self):
+        self.assertRaises(PilosaError, projectIndex.intersect)
+
+    def test_difference_invalid_bitmap_count_fails(self):
+        self.assertRaises(PilosaError, projectIndex.difference)
 
     def test_count(self):
         b = collabFrame.bitmap(42)
