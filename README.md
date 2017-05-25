@@ -16,6 +16,7 @@ Python client for Pilosa high performance distributed bitmap index.
     * This version has the updated documentation.
     * Some light refactoring which shouldn't affect any user code.
     * Updated the accepted values for index, frame names and labels to match with the Pilosa server.
+    * `Union` queries accept 0 or more arguments. `Intersect` and `Difference` queries accept 1 or more arguments.
 
 * **v0.3.2** (2017-05-03):
     * Fixes a bug with getting the version of the package.
