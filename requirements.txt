@@ -1,2 +1,2 @@
-urllib3==1.20
+urllib3==1.21.1
 protobuf==3.2.0

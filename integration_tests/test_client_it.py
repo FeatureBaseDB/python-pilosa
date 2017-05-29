@@ -151,14 +151,21 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(1.81, bitmap.attributes["height"])
         self.assertEquals("Mr. Pi", bitmap.attributes["name"])
 
-        topn_frame = self.db.frame("topn_test")
-        client.query(topn_frame.setbit(155, 551))
-        response4 = client.query(topn_frame.topn(1))
+    def test_topn(self):
+        client = self.get_client()
+        frame = self.db.frame("topn_test")
+        client.query(self.db.batch_query(
+            frame.setbit(10, 5),
+            frame.setbit(10, 10),
+            frame.setbit(10, 15),
+            frame.setbit(20, 5),
+            frame.setbit(30, 5)))
+        response4 = client.query(frame.topn(2))
         items = response4.result.count_items
-        self.assertEquals(1, len(items))
+        self.assertEquals(2, len(items))
         item = items[0]
-        self.assertEquals(155, item.id)
-        self.assertEquals(1, item.count)
+        self.assertEquals(10, item.id)
+        self.assertEquals(3, item.count)
 
     def test_ensure_index_exists(self):
         client = self.get_client()
