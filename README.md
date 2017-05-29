@@ -286,17 +286,17 @@ for result in response.results:
     # act on the result
 ```
 
-Similarly, a `QueryResponse` object may include a number of profiles (column objects), if `profiles=True` query option was used:
+Similarly, a `QueryResponse` object may include a number of column objects, if `columns=True` query option was used:
 
 ```python
-# check that there's a profile and act on it
-profile = response.profile
-if profile:
-    # act on the profile
+# check that there's a column object and act on it
+column = response.column
+if column:
+    # act on the column
 
-# iterate on all profiles
-for profile in response.profiles:
-    # act on the profile
+# iterate on all columns
+for column in response.columns:
+    # act on the column
 ```
 
 `QueryResult` objects contain:
