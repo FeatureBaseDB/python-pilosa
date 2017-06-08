@@ -31,6 +31,7 @@
 # DAMAGE.
 #
 
+import time
 import unittest
 
 from pilosa.client import Client
@@ -160,6 +161,8 @@ class ClientIT(unittest.TestCase):
             frame.setbit(10, 15),
             frame.setbit(20, 5),
             frame.setbit(30, 5)))
+        # XXX: The following is required to make this test pass. See: https://github.com/pilosa/pilosa/issues/625
+        time.sleep(10)
         response4 = client.query(frame.topn(2))
         items = response4.result.count_items
         self.assertEquals(2, len(items))

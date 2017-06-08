@@ -289,8 +289,6 @@ class Frame:
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         """
-        if not self.inverse_enabled:
-            raise PilosaError("Inverse bitmaps support was not enabled for this frame")
         return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.column_label, column_id, self.name),
                         self.index)
 
@@ -326,9 +324,9 @@ class Frame:
 
     def topn(self, n, bitmap=None, field="", *values):
         """Creates a TopN query.
-        
+
         ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the frame.
-        
+
         * see: `TopN Query <https://www.pilosa.com/docs/query-language/#topn>`_
 
         :param int n: number of items to return
@@ -336,32 +334,69 @@ class Frame:
         :param field str field: field name
         :param object values: filter values to be matched against the field
         """
-        if field and bitmap:
+        return self._topn(n, bitmap, field, False, *values)
+
+    def inverse_topn(self, n, bitmap=None, field="", *values):
+        """Creates a TopN query.
+
+        ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the frame.
+
+        This version sets `inverse=true`.
+
+        * see: `TopN Query <https://www.pilosa.com/docs/query-language/#topn>`_
+
+        :param int n: number of items to return
+        :param pilosa.PQLBitmapQuery bitmap: a PQL Bitmap query
+        :param field str field: field name
+        :param object values: filter values to be matched against the field
+        """
+        return self._topn(n, bitmap, field, True, *values)
+
+    def _topn(self, n, bitmap=None, field="", inverse=False, *values):
+        parts = ["frame='%s'" % self.name, "n=%d" % n, "inverse=%s" % ('true' if inverse else 'false')]
+        if bitmap:
+            parts.insert(0, bitmap.serialize())
+        if field:
             validate_label(field)
             values_str = json.dumps(values, separators=(',', ': '))
-            qry = u"TopN(%s, frame='%s', n=%d, field='%s', %s)" % \
-                   (bitmap.serialize(), self.name, n, field, values_str)
-        elif bitmap:
-            qry = u"TopN(%s, frame='%s', n=%d)" % (bitmap.serialize(), self.name, n)
-        else:
-            qry = u"TopN(frame='%s', n=%d)" % (self.name, n)
+            parts.extend(["field='%s'" % field, values_str])
+        qry = u"TopN(%s)" % ", ".join(parts)
         return PQLQuery(qry, self.index)
 
     def range(self, row_id, start, end):
         """Creates a Range query.
-        
+
         Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
 
         * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
-        
+
         :param int row_id:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
+        return self._range(row_id, start, end, inverse=False)
+
+    def inverse_range(self, row_id, start, end):
+        """Creates a Range query.
+
+        Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
+
+        This version sets `inverse=true`.
+
+        * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
+
+        :param int row_id:
+        :param datetime.datetime start: start timestamp
+        :param datetime.datetime end: end timestamp
+        """
+        return self._range(row_id, start, end, inverse=True)
+
+    def _range(self, row_id, start, end, inverse=False):
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        return PQLQuery(u"Range(%s=%d, frame='%s', start='%s', end='%s')" %
-                        (self.row_label, row_id, self.name, start_str, end_str),
+        inverse_str = 'true' if inverse else 'false'
+        return PQLQuery(u"Range(%s=%d, frame='%s', start='%s', end='%s', inverse=%s)" %
+                        (self.row_label, row_id, self.name, start_str, end_str, inverse_str),
                         self.index)
 
     def set_row_attrs(self, row_id, attrs):
