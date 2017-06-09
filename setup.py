@@ -49,7 +49,7 @@ exec(open(path.join(here, 'pilosa/version.py'), 'r').read())
 
 setup(
     name='pilosa',
-    version=get_version_setup(),
+    version=_get_version_setup(),
     description='Python client library for Pilosa',
     long_description=long_description,
     url='https://github.com/pilosa/python-pilosa',
