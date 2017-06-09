@@ -374,29 +374,25 @@ class Frame:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range(row_id, start, end, inverse=False)
+        return self._range(self.row_label, row_id, start, end)
 
-    def inverse_range(self, row_id, start, end):
+    def inverse_range(self, column_id, start, end):
         """Creates a Range query.
 
         Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
 
-        This version sets `inverse=true`.
 
-        * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
-
-        :param int row_id:
+        :param int column_id:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range(row_id, start, end, inverse=True)
+        return self._range(self.column_label, column_id, start, end)
 
-    def _range(self, row_id, start, end, inverse=False):
+    def _range(self, label, rowcol_id, start, end):
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        inverse_str = 'true' if inverse else 'false'
-        return PQLQuery(u"Range(%s=%d, frame='%s', start='%s', end='%s', inverse=%s)" %
-                        (self.row_label, row_id, self.name, start_str, end_str, inverse_str),
+        return PQLQuery(u"Range(%s=%d, frame='%s', start='%s', end='%s')" %
+                        (label, rowcol_id, self.name, start_str, end_str),
                         self.index)
 
     def set_row_attrs(self, row_id, attrs):

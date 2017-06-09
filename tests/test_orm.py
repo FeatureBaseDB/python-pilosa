@@ -251,11 +251,11 @@ class FrameTestCase(unittest.TestCase):
         end = datetime(2000, 2, 2, 3, 4)
         q1 = collabFrame.range(10, start, end)
         self.assertEquals(
-            "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04', inverse=false)",
+            "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q1.serialize())
         q2 = collabFrame.inverse_range(10, start, end)
         self.assertEquals(
-            "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04', inverse=true)",
+            "Range(user=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q2.serialize())
 
     def test_set_row_attributes(self):
