@@ -1,7 +1,7 @@
 # Python Client for Pilosa
 
-<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.3.2-blue.svg"></a>
-<a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592000&updated=1"></a>
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.4.0-blue.svg"></a>
+<a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 <a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
 <a href="https://coveralls.io/github/pilosa/python-pilosa?branch=master"><img src="https://coveralls.io/repos/github/pilosa/python-pilosa/badge.svg?branch=master"></a>
@@ -12,11 +12,14 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **v0.3.3**
+* **v0.4.0** (2017-06-08):
+    * Supports Pilosa Server v0.4.0.
     * This version has the updated documentation.
     * Some light refactoring which shouldn't affect any user code.
     * Updated the accepted values for index, frame names and labels to match with the Pilosa server.
     * `Union` queries accept 0 or more arguments. `Intersect` and `Difference` queries accept 1 or more arguments.
+    * Added `inverse TopN` and `inverse Range` calls.
+    * Inverse enabled status of frames is not checked on the client side.
 
 * **v0.3.2** (2017-05-03):
     * Fixes a bug with getting the version of the package.
@@ -166,6 +169,7 @@ Frame:
 * `setbit(self, row_id, column_id, timestamp=None)`
 * `clearbit(self, row_id, column_id)`
 * `topn(self, n, bitmap=None, field="", *values)`
+* `inverse_topn(self, n, bitmap=None, field="", *values)`
 * `range(self, row_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
 

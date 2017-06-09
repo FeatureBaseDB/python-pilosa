@@ -12,7 +12,7 @@ sudo: required
 services:
   - docker
 before_install:
-  - docker run -d -p 10101:10101 pilosa/pilosa:v0.3.2
+  - docker run -d -p 10101:10101 pilosa/pilosa:v0.4.0
 install: "pip install -r requirements.txt -r test-requirements.txt coveralls"
 script: make cover
 after_success:

@@ -127,11 +127,11 @@ class IndexTestCase(unittest.TestCase):
             q3.serialize())
 
     def test_union0(self):
-        q = sampleIndex.union();
+        q = sampleIndex.union()
         self.assertEquals("Union()", q.serialize())
 
     def test_union1(self):
-        q = sampleIndex.union(sampleFrame.bitmap(10));
+        q = sampleIndex.union(sampleFrame.bitmap(10))
         self.assertEquals("Union(Bitmap(rowID=10, frame='sample-frame'))", q.serialize())
 
     def test_intersect_invalid_bitmap_count_fails(self):
@@ -228,26 +228,35 @@ class FrameTestCase(unittest.TestCase):
     def test_topn(self):
         q1 = sampleFrame.topn(27)
         self.assertEquals(
-            "TopN(frame='sample-frame', n=27)",
+            u"TopN(frame='sample-frame', n=27, inverse=false)",
             q1.serialize())
 
         q2 = sampleFrame.topn(10, collabFrame.bitmap(3))
         self.assertEquals(
-            "TopN(Bitmap(project=3, frame='collaboration'), frame='sample-frame', n=10)",
+            u"TopN(Bitmap(project=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
             q2.serialize())
 
         q3 = sampleFrame.topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, field='category', [80,81])",
+            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', [80,81])",
             q3.serialize())
+
+        q4 = sampleFrame.inverse_topn(12, collabFrame.bitmap(7), "category", 80, 81)
+        self.assertEquals(
+            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', [80,81])",
+            q4.serialize())
 
     def test_range(self):
         start = datetime(1970, 1, 1, 0, 0)
         end = datetime(2000, 2, 2, 3, 4)
-        q = collabFrame.range(10, start, end)
+        q1 = collabFrame.range(10, start, end)
         self.assertEquals(
             "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
-            q.serialize())
+            q1.serialize())
+        q2 = collabFrame.inverse_range(10, start, end)
+        self.assertEquals(
+            "Range(user=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            q2.serialize())
 
     def test_set_row_attributes(self):
         attrs_map = {
@@ -258,10 +267,6 @@ class FrameTestCase(unittest.TestCase):
         self.assertEquals(
             "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
-
-    def test_inverse_bitmap_fails_if_not_enabled(self):
-        frame = projectIndex.frame("inverse-not-enabled")
-        self.assertRaises(PilosaError, frame.inverse_bitmap, 5)
 
     def test_get_options_string(self):
         frame = sampleIndex.frame("stargazer_id",
