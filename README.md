@@ -166,11 +166,13 @@ Index:
 Frame:
 
 * `bitmap(self, row_id)`
+* `inverse_bitmap(self, column_id)`
 * `setbit(self, row_id, column_id, timestamp=None)`
 * `clearbit(self, row_id, column_id)`
 * `topn(self, n, bitmap=None, field="", *values)`
 * `inverse_topn(self, n, bitmap=None, field="", *values)`
 * `range(self, row_id, start, end)`
+* `inverse_range(self, column_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
 
 ### Pilosa URI
