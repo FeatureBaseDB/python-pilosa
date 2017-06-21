@@ -34,9 +34,15 @@
 import time
 import unittest
 
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
+
 from pilosa.client import Client
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum
+from pilosa.imports import csv_bit_reader
 
 SERVER_ADDRESS = ":10101"
 
@@ -191,6 +197,28 @@ class ClientIT(unittest.TestCase):
         index = Index("non-existing-database")
         frame = index.frame("frm")
         self.assertRaises(PilosaError, client.create_frame, frame)
+
+    def test_csv_import(self):
+        client = self.get_client()
+        text = u"""
+            10, 7
+            10, 5
+            2, 3
+            7, 1
+        """
+        reader = csv_bit_reader(StringIO(text))
+        frame = self.db.frame("importframe")
+        client.ensure_frame(frame)
+        client.import_frame(frame, reader)
+        bq = self.db.batch_query(
+            frame.bitmap(2),
+            frame.bitmap(7),
+            frame.bitmap(10),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.bitmap.bits[0] for result in response.results])
 
     @classmethod
     def random_index_name(cls):
