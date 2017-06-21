@@ -31,7 +31,6 @@
 # DAMAGE.
 #
 
-import functools
 import json
 import logging
 import re
@@ -193,18 +192,8 @@ class Client(object):
             import_bits(index_name, frame_name, slice, bits)
 
     def _import_bits(self, index_name, frame_name, slice, bits):
-        # python3 doesn't have cmp
-        def cmp(a, b):
-            return (a > b) - (a < b)
-
-        def bit_cmp(a, b):
-            c = cmp(a.row_id, b.row_id)
-            return cmp(a.column_id, b.column_id) if c == 0 else c
-        try:
-            bits.sort(cmp=bit_cmp)
-        except TypeError:
-            # python3 doesn't have cmp keyword arg.
-            bits.sort(key=functools.cmp_to_key(bit_cmp))
+        # sort by row_id then by column_id
+        bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         for node in nodes:
             client = Client(URI.address(node["host"]))
