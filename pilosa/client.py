@@ -38,6 +38,7 @@ import re
 import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExistsError
+from .imports import batch_bits
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum
 from .response import QueryResponse
@@ -176,6 +177,38 @@ class Client(object):
             self.create_frame(frame)
         except FrameExistsError:
             pass
+
+    def import_frame(self, frame, bit_reader, batch_size=100000):
+        """Imports a frame using the given bit reader
+
+        :param frame:
+        :param bit_reader:
+        :param batch_size:
+        """
+        index_name = frame.index.name
+        frame_name = frame.name
+        import_bits = self._import_bits
+        for slice, bits in batch_bits(bit_reader, batch_size):
+            import_bits(index_name, frame_name, slice, bits)
+
+    def _import_bits(self, index_name, frame_name, slice, bits):
+        # sort by row_id then by column_id
+        bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
+        nodes = self._fetch_fragment_nodes(index_name, slice)
+        for node in nodes:
+            client = Client(URI.address(node["host"]))
+            client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
+
+    def _fetch_fragment_nodes(self, index_name, slice):
+        uri = "%s/fragment/nodes?slice=%d&index=%s" % (self.__get_address(), slice, index_name)
+        response = self.__http_request("GET", uri, client_response=Client.__ERROR_CHECKED_RESPONSE)
+        content = response.data.decode('utf-8')
+        return json.loads(content)
+
+    def _import_node(self, import_request):
+        data = import_request.to_protobuf()
+        uri = "%s/import" % self.__get_address()
+        self.__http_request("POST", uri, data=data)
 
     def __patch_index_time_quantum(self, index):
         uri = "%s/index/%s/time-quantum" % (self.__get_address(), index.name)
@@ -359,3 +392,27 @@ class _QueryRequest:
         qr.ColumnAttrs = self.columns
         qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()
+
+
+class _ImportRequest:
+
+    def __init__(self, index_name, frame_name, slice, bits):
+        self.index_name = index_name
+        self.frame_name = frame_name
+        self.slice = slice
+        self.bits = bits
+
+    def to_protobuf(self):
+        import_request = internal.ImportRequest()
+        import_request.Index = self.index_name
+        import_request.Frame = self.frame_name
+        import_request.Slice = self.slice
+        row_ids = import_request.RowIDs
+        column_ids = import_request.ColumnIDs
+        timestamps = import_request.Timestamps
+        for bit in self.bits:
+            row_ids.append(bit.row_id)
+            column_ids.append(bit.column_id)
+            timestamps.append(bit.timestamp)
+        return import_request.SerializeToString()
+
