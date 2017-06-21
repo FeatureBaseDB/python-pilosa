@@ -31,6 +31,7 @@
 # DAMAGE.
 #
 
+import functools
 import json
 import logging
 import re
@@ -179,6 +180,12 @@ class Client(object):
             pass
 
     def import_frame(self, frame, bit_reader, batch_size=100000):
+        """Imports a frame using the given bit reader
+
+        :param frame:
+        :param bit_reader:
+        :param batch_size:
+        """
         index_name = frame.index.name
         frame_name = frame.name
         import_bits = self._import_bits
@@ -186,10 +193,18 @@ class Client(object):
             import_bits(index_name, frame_name, slice, bits)
 
     def _import_bits(self, index_name, frame_name, slice, bits):
+        # python3 doesn't have cmp
+        def cmp(a, b):
+            return (a > b) - (a < b)
+
         def bit_cmp(a, b):
             c = cmp(a.row_id, b.row_id)
             return cmp(a.column_id, b.column_id) if c == 0 else c
-        bits.sort(cmp=bit_cmp)
+        try:
+            bits.sort(cmp=bit_cmp)
+        except TypeError:
+            # python3 doesn't have cmp keyword arg.
+            bits.sort(key=functools.cmp_to_key(bit_cmp))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         for node in nodes:
             client = Client(URI.address(node["host"]))

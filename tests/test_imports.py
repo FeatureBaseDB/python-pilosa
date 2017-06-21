@@ -37,18 +37,15 @@ from pilosa.exceptions import PilosaError
 from pilosa.imports import csv_bit_reader, batch_bits
 
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
-    try:
-        from StringIO import StringIO
-    except ImportError:
-        from io import StringIO
+    from StringIO import StringIO
 
 
 class ImportsTestCase(unittest.TestCase):
 
     def test_csvbititerator(self):
-        reader = csv_bit_reader(StringIO("""
+        reader = csv_bit_reader(StringIO(u"""
             1,10,683793200
             5,20,683793300
             3,41,683793385        
