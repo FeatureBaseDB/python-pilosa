@@ -12,6 +12,9 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**:
+    * *make* commands are supported on Windows.
+
 * **v0.4.0** (2017-06-08):
     * Supports Pilosa Server v0.4.0.
     * This version has the updated documentation.
