@@ -358,7 +358,7 @@ class Cluster:
 
     def __init__(self, *hosts):
         """Returns the cluster with the given hosts"""
-        self.hosts = list(hosts)
+        self.hosts = [(host, True) for host in hosts]
         self.__next_index = 0
 
     def add_host(self, uri):
@@ -366,14 +366,16 @@ class Cluster:
         
         :param pilosa.URI uri:
         """
-        self.hosts.append(uri)
+        self.hosts.append((uri, True))
 
     def remove_host(self, uri):
         """Removes the host with the given URI from the cluster.
         
         :param pilosa.URI uri:
         """
-        self.hosts.remove(uri)
+        for i, item in enumerate(self.hosts):
+            if uri == item[0]:
+                self.hosts[i] = (item[0], False)
 
     def get_host(self):
         """Returns the next host in the cluster.
@@ -381,11 +383,15 @@ class Cluster:
         :return: next host
         :rtype: pilosa.URI         
         """
-        if len(self.hosts) == 0:
+        for host, ok in self.hosts:
+            if not ok:
+                continue
+            return host
+        else:
             raise PilosaError("There are no available hosts")
-        next_host = self.hosts[self.__next_index % len(self.hosts)]
-        self.__next_index = (self.__next_index + 1) % len(self.hosts)
-        return next_host
+
+    def reset(self):
+        self.hosts = [(host, True) for host, _ in self.hosts]
 
 
 class _QueryRequest:

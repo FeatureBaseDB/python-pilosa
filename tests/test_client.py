@@ -46,13 +46,13 @@ class ClientTestCase(unittest.TestCase):
     def test_create_client(self):
         # create default client
         c = Client()
-        self.assertEquals(URI(), c.cluster.hosts[0])
+        self.assertEquals(URI(), c.cluster.hosts[0][0])
         # create with cluster
         c = Client(Cluster(URI.address(":15000")))
-        self.assertEquals(URI.address(":15000"), c.cluster.hosts[0])
+        self.assertEquals(URI.address(":15000"), c.cluster.hosts[0][0])
         # create with URI
         c = Client(URI.address(":20000"))
-        self.assertEquals(URI.address(":20000"), c.cluster.hosts[0])
+        self.assertEquals(URI.address(":20000"), c.cluster.hosts[0][0])
         # create with invalid type
         self.assertRaises(PilosaError, Client, 15000)
 
@@ -135,19 +135,19 @@ class URITestCase(unittest.TestCase):
 class ClusterTestCase(unittest.TestCase):
 
     def test_create_with_host(self):
-        target = [URI.address("http://localhost:3000")]
+        target = [(URI.address("http://localhost:3000"), True)]
         c = Cluster(URI.address("http://localhost:3000"))
         self.assertEquals(target, c.hosts)
 
     def test_add_remove_host(self):
-        target = [URI.address("http://localhost:3000")]
+        target = [(URI.address("http://localhost:3000"), True)]
         c = Cluster()
         c.add_host(URI.address("http://localhost:3000"))
         self.assertEquals(target, c.hosts)
-        target = [URI.address("http://localhost:3000"), URI()]
+        target = [(URI.address("http://localhost:3000"), True), (URI(), True)]
         c.add_host(URI())
         self.assertEquals(target, c.hosts)
-        target = [URI()]
+        target = [(URI.address("http://localhost:3000"), False), (URI(), True)]
         c.remove_host(URI.address("http://localhost:3000"))
         self.assertEquals(target, c.hosts)
 
@@ -161,7 +161,7 @@ class ClusterTestCase(unittest.TestCase):
         addr = c.get_host()
         self.assertEquals(target1, addr)
         addr = c.get_host()
-        self.assertEquals(target2, addr)
+        self.assertEquals(target1, addr)
         c.get_host()
         c.remove_host(URI.address("db1.pilosa.com"))
         addr = c.get_host()
@@ -170,6 +170,18 @@ class ClusterTestCase(unittest.TestCase):
     def test_get_host_when_no_hosts(self):
         c = Cluster()
         self.assertRaises(PilosaError, c.get_host)
+
+    def test_cluster_reset(self):
+        hosts = [URI.address("db1.pilosa.com"), URI.address("db2.pilosa.com")]
+        c = Cluster(*hosts)
+        target1 = [(host, True) for host in hosts]
+        self.assertEqual(target1, c.hosts)
+        c.remove_host(URI.address("db1.pilosa.com"))
+        c.remove_host(URI.address("db2.pilosa.com"))
+        target2 = [(host, False) for host in hosts]
+        self.assertEqual(target2, c.hosts)
+        c.reset()
+        self.assertEqual(target1, c.hosts)
 
 
 class QueryRequestTestCase(unittest.TestCase):
