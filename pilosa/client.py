@@ -362,14 +362,19 @@ class Cluster:
         self.__next_index = 0
 
     def add_host(self, uri):
-        """Adds a host to the cluster.
+        """Makes a host available.
         
         :param pilosa.URI uri:
         """
-        self.hosts.append((uri, True))
+        for i, item in enumerate(self.hosts):
+            host, _ = item
+            if host == uri:
+                self.hosts[i] = (host, True)
+        else:
+            self.hosts.append((uri, True))
 
     def remove_host(self, uri):
-        """Removes the host with the given URI from the cluster.
+        """Makes a host unavailable.
         
         :param pilosa.URI uri:
         """
