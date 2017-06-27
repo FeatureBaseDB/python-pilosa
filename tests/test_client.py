@@ -182,7 +182,7 @@ class ClusterTestCase(unittest.TestCase):
         c.remove_host(URI.address("db2.pilosa.com"))
         target2 = [(host, False) for host in hosts]
         self.assertEqual(target2, c.hosts)
-        c.reset()
+        c._reset()
         self.assertEqual(target1, c.hosts)
 
 

@@ -34,6 +34,7 @@
 import json
 import logging
 import re
+import threading
 
 import urllib3
 
@@ -82,7 +83,7 @@ class Client(object):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
-            self.cluster = cluster_or_uri
+            self.cluster = cluster_or_uri.copy()
         elif isinstance(cluster_or_uri, URI):
             self.cluster = Cluster(cluster_or_uri)
         elif isinstance(cluster_or_uri, str):
@@ -360,28 +361,31 @@ class Cluster:
         """Returns the cluster with the given hosts"""
         self.hosts = [(host, True) for host in hosts]
         self.__next_index = 0
+        self.__lock = threading.RLock()
 
     def add_host(self, uri):
         """Makes a host available.
         
         :param pilosa.URI uri:
         """
-        for i, item in enumerate(self.hosts):
-            host, _ = item
-            if host == uri:
-                self.hosts[i] = (host, True)
-                break
-        else:
-            self.hosts.append((uri, True))
+        with self.__lock:
+            for i, item in enumerate(self.hosts):
+                host, _ = item
+                if host == uri:
+                    self.hosts[i] = (host, True)
+                    break
+            else:
+                self.hosts.append((uri, True))
 
     def remove_host(self, uri):
         """Makes a host unavailable.
         
         :param pilosa.URI uri:
         """
-        for i, item in enumerate(self.hosts):
-            if uri == item[0]:
-                self.hosts[i] = (item[0], False)
+        with self.__lock:
+            for i, item in enumerate(self.hosts):
+                if uri == item[0]:
+                    self.hosts[i] = (item[0], False)
 
     def get_host(self):
         """Returns the next host in the cluster.
@@ -394,10 +398,17 @@ class Cluster:
                 continue
             return host
         else:
+            self._reset()
             raise PilosaError("There are no available hosts")
 
-    def reset(self):
-        self.hosts = [(host, True) for host, _ in self.hosts]
+    def copy(self):
+        c = Cluster()
+        c.hosts = self.hosts[:]
+        return c
+
+    def _reset(self):
+        with self.__lock:
+            self.hosts = [(host, True) for host, _ in self.hosts]
 
 
 class _QueryRequest:
