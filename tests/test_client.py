@@ -143,6 +143,8 @@ class ClusterTestCase(unittest.TestCase):
         target = [(URI.address("http://localhost:3000"), True)]
         c = Cluster()
         c.add_host(URI.address("http://localhost:3000"))
+        # add the same host, the list of hosts should be the same
+        c.add_host(URI.address("http://localhost:3000"))
         self.assertEquals(target, c.hosts)
         target = [(URI.address("http://localhost:3000"), True), (URI(), True)]
         c.add_host(URI())

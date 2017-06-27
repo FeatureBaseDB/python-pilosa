@@ -370,6 +370,7 @@ class Cluster:
             host, _ = item
             if host == uri:
                 self.hosts[i] = (host, True)
+                break
         else:
             self.hosts.append((uri, True))
 
