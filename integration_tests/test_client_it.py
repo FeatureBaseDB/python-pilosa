@@ -39,7 +39,7 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-from pilosa.client import Client
+from pilosa.client import Client, URI, Cluster
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum
 from pilosa.imports import csv_bit_reader
@@ -219,6 +219,11 @@ class ClientIT(unittest.TestCase):
         target = [3, 1, 5]
         self.assertEqual(3, len(response.results))
         self.assertEqual(target, [result.bitmap.bits[0] for result in response.results])
+
+    def test_failover_fail(self):
+        uris = [URI.address("nonexistent%s" % i) for i in range(20)]
+        client = Client(Cluster(*uris))
+        self.assertRaises(PilosaError, client.query, self.frame.bitmap(5))
 
     @classmethod
     def random_index_name(cls):
