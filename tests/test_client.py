@@ -35,7 +35,7 @@ import logging
 import unittest
 
 import pilosa.internal.public_pb2 as internal
-from pilosa.client import Client, URI, Cluster, _QueryRequest, TimeQuantum
+from pilosa.client import Client, URI, Cluster, _QueryRequest
 from pilosa.exceptions import PilosaURIError, PilosaError
 
 logger = logging.getLogger(__name__)
@@ -189,7 +189,7 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True, time_quantum=TimeQuantum.YEAR)
+        qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True)
         bin = qr.to_protobuf()
         self.assertTrue(bin is not None)
 
@@ -197,7 +197,6 @@ class QueryRequestTestCase(unittest.TestCase):
         qr.ParseFromString(bin)
         self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.ColumnAttrs)
-        self.assertEquals("Y", qr.Quantum)
 
 if __name__ == '__main__':
     unittest.main()

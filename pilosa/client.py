@@ -99,17 +99,15 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, columns=False, time_quantum=TimeQuantum.NONE):
+    def query(self, query, columns=False):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
         :param bool columns: Enables returning column data from bitmap queries
-        :param pilosa.TimeQuantum time_quantum: Sets the time quantum for this query 
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), columns=columns,
-                                time_quantum=time_quantum)
+        request = _QueryRequest(query.serialize(), columns=columns)
         data = request.to_protobuf()
         path = "/index/%s/query" % query.index.name
         response = self.__http_request("POST", path, data, Client.__RAW_RESPONSE)
@@ -413,16 +411,14 @@ class Cluster:
 
 class _QueryRequest:
 
-    def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE):
+    def __init__(self, query, columns=False):
         self.query = query
         self.columns = columns
-        self.time_quantum = time_quantum
 
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
         qr.ColumnAttrs = self.columns
-        qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()
 
 
