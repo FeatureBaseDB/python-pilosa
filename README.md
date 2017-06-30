@@ -16,6 +16,7 @@ Python client for Pilosa high performance distributed bitmap index.
     * Supports importing data to Pilosa server.
     * Failover for connection errors.
     * More logging.
+    * * *Breaking Change*: Removed `time_quantum` query option.
 
 * **v0.4.0** (2017-06-08):
     * Supports Pilosa Server v0.4.0.
