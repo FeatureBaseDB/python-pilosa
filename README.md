@@ -16,7 +16,11 @@ Python client for Pilosa high performance distributed bitmap index.
     * Supports importing data to Pilosa server.
     * Failover for connection errors.
     * More logging.
+    * Introduced schemas. No need to re-define already existing indexes and frames.
     * * *Breaking Change*: Removed `time_quantum` query option.
+    * **Deprecation** `Index` constructor. Use `schema.index` instead.
+    * **Deprecation** `client.create_index`, `client.create_frame`, `client.ensure_index`, `client.ensure_frame`. Use schemas and `client.sync_schema` instead.
+    
 
 * **v0.4.0** (2017-06-08):
     * Supports Pilosa Server v0.4.0.
