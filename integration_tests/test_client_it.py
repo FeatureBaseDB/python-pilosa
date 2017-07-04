@@ -223,8 +223,8 @@ class ClientIT(unittest.TestCase):
     def test_schema(self):
         client = self.get_client()
         schema = client.schema()
-        self.assertGreaterEqual(len(schema._indexes), 1)
-        self.assertGreaterEqual(len(list(schema._indexes.values())[0]._frames), 1)
+        self.assertTrue(len(schema._indexes) >= 1)
+        self.assertTrue(len(list(schema._indexes.values())[0]._frames) >= 1)
 
     def test_sync(self):
         client = self.get_client()
