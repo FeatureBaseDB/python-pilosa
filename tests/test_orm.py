@@ -35,27 +35,71 @@ import unittest
 from datetime import datetime
 
 from pilosa import PilosaError, Index, TimeQuantum, CacheType
+from pilosa.orm import Schema
 
-sampleIndex = Index("sample-db")
+schema = Schema()
+sampleIndex = schema.index("sample-db")
 sampleFrame = sampleIndex.frame("sample-frame")
-projectIndex = Index("project-db", column_label="user")
+projectIndex = schema.index("project-db", column_label="user")
 collabFrame = projectIndex.frame("collaboration", row_label="project")
+
+
+class SchemaTestCase(unittest.TestCase):
+
+    def test_diff(self):
+        schema1 = Schema()
+        index11 = schema1.index("diff-index1")
+        index11.frame("frame1-1")
+        index11.frame("frame1-2")
+        index12 = schema1.index("diff-index2")
+        index12.frame("frame2-1")
+
+        schema2 = Schema()
+        index21 = schema2.index("diff-index1")
+        index21.frame("another-frame")
+
+        target_diff12 = Schema()
+        target_index1 = target_diff12.index("diff-index1")
+        target_index1.frame("frame1-1")
+        target_index1.frame("frame1-2")
+        target_index2 = target_diff12.index("diff-index2")
+        target_index2.frame("frame2-1")
+
+        diff12 = schema1._diff(schema2)
+        self.assertEqual(target_diff12, diff12)
+
+    def test_same_equals(self):
+        schema = Schema()
+        self.assertEqual(schema, schema)
+
+    def test_other_class_not_equals(self):
+        schema = Schema()
+        self.assertNotEqual(schema, projectIndex)
 
 
 class IndexTestCase(unittest.TestCase):
 
     def test_create_index(self):
-        index = Index("sample-db")
-        self.assertEqual("sample-db", index.name)
+        index = schema.index("sample-index")
+        self.assertEqual("sample-index", index.name)
         self.assertEqual("columnID", index.column_label)
         self.assertEqual(TimeQuantum.NONE, index.time_quantum)
+        index2 = schema.index("sample-index")
+        self.assertEqual(index, index2)
 
-        index = Index("sample-db",
-                      column_label="col_id",
-                      time_quantum=TimeQuantum.YEAR_MONTH)
-        self.assertEqual("sample-db", index.name)
+        index = schema.index("sample-index2",
+                             column_label="col_id",
+                             time_quantum=TimeQuantum.YEAR_MONTH)
+        self.assertEqual("sample-index2", index.name)
         self.assertEqual("col_id", index.column_label)
         self.assertEqual(TimeQuantum.YEAR_MONTH, index.time_quantum)
+
+    def test_same_equals(self):
+        self.assertEqual(projectIndex, projectIndex)
+
+    def test_other_class_not_equals(self):
+        schema = Schema()
+        self.assertNotEqual(projectIndex, schema)
 
     def test_raw_query(self):
         q = projectIndex.raw_query("No validation whatsoever for raw queries")
@@ -174,6 +218,14 @@ class FrameTestCase(unittest.TestCase):
         self.assertEqual("sample-frame", frame.name)
         self.assertEqual("rowID", frame.row_label)
         self.assertEqual(TimeQuantum.NONE, frame.time_quantum)
+
+    def test_same_equals(self):
+        self.assertEqual(sampleFrame, sampleFrame)
+
+    def test_other_class_not_equals(self):
+        schema = Schema()
+        self.assertNotEqual(sampleFrame, schema)
+
 
     def test_bitmap(self):
         qry1 = sampleFrame.bitmap(5)

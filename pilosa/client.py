@@ -41,7 +41,7 @@ import urllib3
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExistsError
 from .imports import batch_bits
 from .internal import public_pb2 as internal
-from .orm import TimeQuantum
+from .orm import TimeQuantum, Schema, CacheType
 from .response import QueryResponse
 from .version import VERSION
 
@@ -177,6 +177,57 @@ class Client(object):
             self.create_frame(frame)
         except FrameExistsError:
             pass
+
+    def status(self):
+        response = self.__http_request("GET", "/status",
+                                       client_response=Client.__ERROR_CHECKED_RESPONSE)
+        return json.loads(response.data.decode('utf-8'))["status"]
+
+    def schema(self):
+        status = self.status()
+        nodes = status.get("Nodes")
+        schema = Schema()
+        for indexInfo in nodes[0].get("Indexes", []):
+            meta = indexInfo["Meta"]
+            options = {
+                "column_label": meta["ColumnLabel"],
+                "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+            }
+            index = schema.index(indexInfo["Name"], **options)
+            for frameInfo in indexInfo.get("Frames", []):
+                meta = frameInfo["Meta"]
+                options = {
+                    "row_label": meta["RowLabel"],
+                    "cache_size": meta["CacheSize"],
+                    "cache_type": CacheType(meta["CacheType"]),
+                    "inverse_enabled": meta.get("InverseEnabled", False),
+                    "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+                }
+                index.frame(frameInfo["Name"], **options)
+
+        return schema
+
+    def sync_schema(self, schema):
+        server_schema = self.schema()
+
+        # find out local - remote schema
+        diff_schema = schema._diff(server_schema)
+        # create the indexes and frames which doesn't exist on the server side
+        for index_name, index in diff_schema._indexes.items():
+            if index_name not in server_schema._indexes:
+                self.ensure_index(index)
+            for frame_name, frame in index._frames.items():
+                self.ensure_frame(frame)
+
+        # find out remote - local schema
+        diff_schema = server_schema._diff(schema)
+        for index_name, index in diff_schema._indexes.items():
+            local_index = schema._indexes.get(index_name)
+            if local_index is None:
+                schema._indexes[index_name] = index
+            else:
+                for frame_name, frame in index._frames.items():
+                    local_index._frames[frame_name] = frame
 
     def import_frame(self, frame, bit_reader, batch_size=100000):
         """Imports a frame using the given bit reader
