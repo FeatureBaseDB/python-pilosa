@@ -36,7 +36,7 @@ import json
 from .exceptions import PilosaError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
-__all__ = ("TimeQuantum", "CacheType", "Index", "Frame", "PQLQuery", "PQLBatchQuery")
+__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -105,6 +105,61 @@ CacheType.LRU = CacheType("lru")
 CacheType.RANKED = CacheType("ranked")
 
 
+class Schema:
+    """Schema is a container for index objects"""
+
+    def __init__(self):
+        self._indexes = {}
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if not isinstance(other, self.__class__):
+            return False
+        return self._indexes == other._indexes
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def index(self, name, column_label="columnID", time_quantum=TimeQuantum.NONE):
+        """Returns an index object with the given name and options.
+
+        If the index didn't exist in the schema, it is added to the schema.
+
+        :param str name: index name
+        :param str column_label: a valid column label
+        :param pilosa.TimeQuantum time_quantum: Sets the time quantum
+        :return: Index object
+
+        * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
+        * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
+        """
+        index = self._indexes.get(name)
+        if index is None:
+            index = Index(name, column_label, time_quantum)
+            self._indexes[name] = index
+        return index
+
+    def _diff(self, other):
+        result = Schema()
+        for index_name, index in self._indexes.items():
+            if index_name not in other._indexes:
+                # if the index doesn't exist in the other schema, simply copy it
+                result._indexes[index_name] = index.copy()
+            else:
+                # the index exists in the other schema; check the frames
+                result_index = index.copy(frames=False)
+                for frame_name, frame in index._frames.items():
+                    # the frame doesn't exist in the other scheme, copy it
+                    if frame_name not in result_index._frames:
+                        result_index._frames[frame_name] = frame.copy()
+                # check whether we modified result index
+                if len(result_index._frames) > 0:
+                    result._indexes[index_name] = result_index
+
+        return result
+
+
 class Index:
     """The purpose of the Index is to represent a data namespace.
     
@@ -124,6 +179,29 @@ class Index:
         self.name = name
         self.column_label = column_label
         self.time_quantum = time_quantum
+        self._frames = {}
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if not isinstance(other, self.__class__):
+            return False
+        return self._meta_eq(other) and \
+               self._frames == other._frames
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def _meta_eq(self, other):
+        return self.name == other.name and \
+               self.column_label == other.column_label and \
+               self.time_quantum == other.time_quantum
+
+    def copy(self, frames=True):
+        index = Index(self.name, column_label=self.column_label, time_quantum=self.time_quantum)
+        if frames:
+            index._frames = dict((name, frame.copy()) for name, frame in self._frames.items())
+        return index
 
     def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE,
               inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0):
@@ -138,8 +216,12 @@ class Index:
         :return: Pilosa frame
         :rtype: pilosa.Frame
         """
-        return Frame(self, name, row_label, time_quantum, inverse_enabled,
-                     cache_type, cache_size)
+        frame = self._frames.get(name)
+        if frame is None:
+            frame = Frame(self, name, row_label, time_quantum,
+                          inverse_enabled, cache_type, cache_size)
+            self._frames[name] = frame
+        return frame
 
     def raw_query(self, query):
         """Creates a raw query.
@@ -263,6 +345,29 @@ class Frame:
         self.cache_size = cache_size
         self.row_label = row_label
         self.column_label = index.column_label
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if not isinstance(other, self.__class__):
+            return False
+
+        # Note that we skip comparing the frames of the indexes by using index._meta_eq
+        # in order to avoid a call cycle
+        return self.name == other.name and \
+               self.index._meta_eq(other.index) and \
+               self.row_label == other.row_label and \
+               self.time_quantum == other.time_quantum and \
+               self.inverse_enabled == other.inverse_enabled and \
+               self.cache_type == other.cache_type and \
+               self.cache_size == other.cache_size
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def copy(self):
+        return Frame(self.index, self.name, self.row_label, self.time_quantum,
+                     self.inverse_enabled, self.cache_type, self.cache_size)
 
     def bitmap(self, row_id):
         """Creates a Bitmap query.

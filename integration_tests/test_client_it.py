@@ -34,9 +34,15 @@
 import time
 import unittest
 
-from pilosa.client import Client
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+from pilosa.client import Client, URI, Cluster
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Index, TimeQuantum
+from pilosa.orm import Index, TimeQuantum, Schema
+from pilosa.imports import csv_bit_reader
 
 SERVER_ADDRESS = ":10101"
 
@@ -191,6 +197,62 @@ class ClientIT(unittest.TestCase):
         index = Index("non-existing-database")
         frame = index.frame("frm")
         self.assertRaises(PilosaError, client.create_frame, frame)
+
+    def test_csv_import(self):
+        client = self.get_client()
+        text = u"""
+            10, 7
+            10, 5
+            2, 3
+            7, 1
+        """
+        reader = csv_bit_reader(StringIO(text))
+        frame = self.db.frame("importframe")
+        client.ensure_frame(frame)
+        client.import_frame(frame, reader)
+        bq = self.db.batch_query(
+            frame.bitmap(2),
+            frame.bitmap(7),
+            frame.bitmap(10),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.bitmap.bits[0] for result in response.results])
+
+    def test_schema(self):
+        client = self.get_client()
+        schema = client.schema()
+        self.assertTrue(len(schema._indexes) >= 1)
+        self.assertTrue(len(list(schema._indexes.values())[0]._frames) >= 1)
+
+    def test_sync(self):
+        client = self.get_client()
+        remote_index = Index("remote-index-1")
+        remote_frame = remote_index.frame("remote-frame-1")
+        schema1 = Schema()
+        index11 = schema1.index("diff-index1")
+        index11.frame("frame1-1")
+        index11.frame("frame1-2")
+        index12 = schema1.index("diff-index2")
+        index12.frame("frame2-1")
+        schema1.index(remote_index.name)
+        try:
+            client.ensure_index(remote_index)
+            client.ensure_frame(remote_frame)
+            client.sync_schema(schema1)
+        finally:
+            try:
+                client.delete_index(remote_index)
+                client.delete_index(index11)
+                client.delete_index(index12)
+            except PilosaError:
+                pass
+
+    def test_failover_fail(self):
+        uris = [URI.address("nonexistent%s" % i) for i in range(20)]
+        client = Client(Cluster(*uris))
+        self.assertRaises(PilosaError, client.query, self.frame.bitmap(5))
 
     @classmethod
     def random_index_name(cls):

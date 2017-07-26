@@ -13,8 +13,15 @@ Python client for Pilosa high performance distributed bitmap index.
 ## Change Log
 
 * **Next**:
+    * Supports importing data to Pilosa server.
+    * Failover for connection errors.
+    * More logging.
+    * Introduced schemas. No need to re-define already existing indexes and frames.
     * *make* commands are supported on Windows.
-
+    * * *Breaking Change*: Removed `time_quantum` query option.
+    * **Deprecation** `Index` constructor. Use `schema.index` instead.
+    * **Deprecation** `client.create_index`, `client.create_frame`, `client.ensure_index`, `client.ensure_frame`. Use schemas and `client.sync_schema` instead.
+    
 * **v0.4.0** (2017-06-08):
     * Supports Pilosa Server v0.4.0.
     * This version has the updated documentation.
@@ -55,17 +62,17 @@ import pilosa
 # Create the default client
 client = pilosa.Client()
 
-# Create an Index object
-myindex = pilosa.Index("myindex")
+# Retrieve the schema
+schema = client.schema()
 
-# Make sure the index exists on the server
-client.ensure_index(myindex)
+# Create an Index object
+myindex = schema.index("myindex")
 
 # Create a Frame object
 myframe = myindex.frame("myframe")
 
-# Make sure the frame exists on the server
-client.ensure_frame(myframe)
+# make sure the index and frame exists on the server
+client.sync_schema(schema)
 
 # Send a SetBit query. PilosaError is thrown if execution of the query fails.
 client.query(myframe.setbit(5, 42))
@@ -99,16 +106,17 @@ for result in response.results:
 
 *Index* and *frame*s are the main data models of Pilosa. You can check the [Pilosa documentation](https://www.pilosa.com/docs) for more detail about the data model.
 
-`Index` constructor is used to create an index object. Note that this does not create an index on the server; the index object simply defines the schema.
+`schema.index` method is used to create an index object. Note that this does not create an index on the server; the index object simply defines the schema.
 
 ```python
-repository = pilosa.Index("repository")
+schema = Schema()
+repository = schema.index("repository")
 ```
 
 Indexes support changing the column label and time quantum (*resolution*). You can pass these additional arguments to the `Index` constructor:
 
 ```python
-repository = pilosa.Index("repository",
+repository = schema.index("repository",
     column_label="repo_id", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
 ```
 
@@ -322,6 +330,60 @@ attributes = bitmap.attributes
 count_items = response.count_items
 
 count = response.count
+```
+
+## Importing Data
+
+If you have large amounts of data, it is more efficient to import it to Pilosa instead of several `SetBit` queries.
+ 
+This library supports importing bits in the CSV (comma separated values) format:
+```
+ROW_ID,COLUMN_ID
+```
+
+Optionally, a timestamp with GMT time zone can be added:
+```
+ROW_ID,COLUMN_ID,TIMESTAMP
+```
+
+Note that, each line corresponds to a single bit and the lines end with a new line (`\n` or `\r\n`).
+The target index and frame must have been created before hand.
+
+Here's some sample code:
+```python
+import pilosa
+from pilosa.imports import csv_bit_reader
+
+try:
+    # python 2.7 and 3
+    from io import StringIO
+except ImportError:
+    # python 2.6 and 2.7
+    from StringIO import StringIO
+
+text = u"""
+    1,10,683793200
+    5,20,683793300
+    3,41,683793385        
+    10,10485760,683793385        
+"""
+reader = csv_bit_reader(StringIO(text))
+index = pilosa.Index("sample-index")
+frame = index.frame("sample-frame")
+client = pilosa.Client()
+client.ensure_index(index)
+client.ensure_frame(frame)
+client.import_frame(frame, reader)
+```
+
+## Logging
+
+This library uses Python's standard logging facility. The following example sets the logging level to `DEBUG` and attaches a console handler:
+```python
+import logging
+logger = logging.getLogger("pilosa")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 ```
 
 ## Contribution

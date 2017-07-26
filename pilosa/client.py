@@ -34,18 +34,21 @@
 import json
 import logging
 import re
+import threading
 
 import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExistsError
+from .imports import batch_bits
 from .internal import public_pb2 as internal
-from .orm import TimeQuantum
+from .orm import TimeQuantum, Schema, CacheType
 from .response import QueryResponse
 from .version import VERSION
 
 __all__ = ("Client", "Cluster", "URI")
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("pilosa")
+_MAX_HOSTS = 10
 
 
 class Client(object):
@@ -80,7 +83,7 @@ class Client(object):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
-            self.cluster = cluster_or_uri
+            self.cluster = cluster_or_uri.copy()
         elif isinstance(cluster_or_uri, URI):
             self.cluster = Cluster(cluster_or_uri)
         elif isinstance(cluster_or_uri, str):
@@ -96,20 +99,18 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, columns=False, time_quantum=TimeQuantum.NONE):
+    def query(self, query, columns=False):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
         :param bool columns: Enables returning column data from bitmap queries
-        :param pilosa.TimeQuantum time_quantum: Sets the time quantum for this query 
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), columns=columns,
-                                time_quantum=time_quantum)
+        request = _QueryRequest(query.serialize(), columns=columns)
         data = request.to_protobuf()
-        uri = "%s/index/%s/query" % (self.__get_address(), query.index.name)
-        response = self.__http_request("POST", uri, data, Client.__RAW_RESPONSE)
+        path = "/index/%s/query" % query.index.name
+        response = self.__http_request("POST", path, data, Client.__RAW_RESPONSE)
         query_response = QueryResponse._from_protobuf(response.data)
         if query_response.error_message:
             raise PilosaError(query_response.error_message)
@@ -124,8 +125,8 @@ class Client(object):
         data = json.dumps({
             "options": {"columnLabel": index.column_label}
         })
-        uri = "%s/index/%s" % (self.__get_address(), index.name)
-        self.__http_request("POST", uri, data=data)
+        path = "/index/%s" % index.name
+        self.__http_request("POST", path, data=data)
         if index.time_quantum != TimeQuantum.NONE:
             self.__patch_index_time_quantum(index)
 
@@ -135,8 +136,8 @@ class Client(object):
         :param pilosa.Index index:
         :raises pilosa.PilosaError: if the index does not exist
         """
-        uri = "%s/index/%s" % (self.__get_address(), index.name)
-        self.__http_request("DELETE", uri)
+        path = "/index/%s" % index.name
+        self.__http_request("DELETE", path)
 
     def create_frame(self, frame):
         """Creates a frame on the server using the given Frame object.
@@ -145,8 +146,8 @@ class Client(object):
         :raises pilosa.FrameExistsError: if there already is a frame with the given name
         """
         data = frame._get_options_string()
-        uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
-        self.__http_request("POST", uri, data=data)
+        path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
+        self.__http_request("POST", path, data=data)
 
     def delete_frame(self, frame):
         """Deletes the given frame on the server.
@@ -154,8 +155,8 @@ class Client(object):
         :param pilosa.Frame frame:
         :raises pilosa.PilosaError: if the frame does not exist
         """
-        uri = "%s/index/%s/frame/%s" % (self.__get_address(), frame.index.name, frame.name)
-        self.__http_request("DELETE", uri)
+        path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
+        self.__http_request("DELETE", path)
 
     def ensure_index(self, index):
         """Creates an index on the server if it does not exist.
@@ -177,20 +178,110 @@ class Client(object):
         except FrameExistsError:
             pass
 
-    def __patch_index_time_quantum(self, index):
-        uri = "%s/index/%s/time-quantum" % (self.__get_address(), index.name)
-        data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
-        self.__http_request("PATCH", uri, data=data)
+    def status(self):
+        response = self.__http_request("GET", "/status",
+                                       client_response=Client.__ERROR_CHECKED_RESPONSE)
+        return json.loads(response.data.decode('utf-8'))["status"]
 
-    def __http_request(self, method, uri, data=None, client_response=0):
+    def schema(self):
+        status = self.status()
+        nodes = status.get("Nodes")
+        schema = Schema()
+        for indexInfo in nodes[0].get("Indexes", []):
+            meta = indexInfo["Meta"]
+            options = {
+                "column_label": meta["ColumnLabel"],
+                "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+            }
+            index = schema.index(indexInfo["Name"], **options)
+            for frameInfo in indexInfo.get("Frames", []):
+                meta = frameInfo["Meta"]
+                options = {
+                    "row_label": meta["RowLabel"],
+                    "cache_size": meta["CacheSize"],
+                    "cache_type": CacheType(meta["CacheType"]),
+                    "inverse_enabled": meta.get("InverseEnabled", False),
+                    "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+                }
+                index.frame(frameInfo["Name"], **options)
+
+        return schema
+
+    def sync_schema(self, schema):
+        server_schema = self.schema()
+
+        # find out local - remote schema
+        diff_schema = schema._diff(server_schema)
+        # create the indexes and frames which doesn't exist on the server side
+        for index_name, index in diff_schema._indexes.items():
+            if index_name not in server_schema._indexes:
+                self.ensure_index(index)
+            for frame_name, frame in index._frames.items():
+                self.ensure_frame(frame)
+
+        # find out remote - local schema
+        diff_schema = server_schema._diff(schema)
+        for index_name, index in diff_schema._indexes.items():
+            local_index = schema._indexes.get(index_name)
+            if local_index is None:
+                schema._indexes[index_name] = index
+            else:
+                for frame_name, frame in index._frames.items():
+                    local_index._frames[frame_name] = frame
+
+    def import_frame(self, frame, bit_reader, batch_size=100000):
+        """Imports a frame using the given bit reader
+
+        :param frame:
+        :param bit_reader:
+        :param batch_size:
+        """
+        index_name = frame.index.name
+        frame_name = frame.name
+        import_bits = self._import_bits
+        for slice, bits in batch_bits(bit_reader, batch_size):
+            import_bits(index_name, frame_name, slice, bits)
+
+    def _import_bits(self, index_name, frame_name, slice, bits):
+        # sort by row_id then by column_id
+        bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
+        nodes = self._fetch_fragment_nodes(index_name, slice)
+        for node in nodes:
+            client = Client(URI.address(node["host"]))
+            client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
+
+    def _fetch_fragment_nodes(self, index_name, slice):
+        path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
+        response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
+        content = response.data.decode('utf-8')
+        return json.loads(content)
+
+    def _import_node(self, import_request):
+        data = import_request.to_protobuf()
+        self.__http_request("POST", "/import", data=data, client_response=Client.__RAW_RESPONSE)
+
+    def __patch_index_time_quantum(self, index):
+        path = "/index/%s/time-quantum" % index.name
+        data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
+        self.__http_request("PATCH", path, data=data)
+
+    def __http_request(self, method, path, data=None, client_response=0):
         if not self.__client:
             self.__connect()
-        try:
-            response = self.__client.request(method, uri, body=data)
-        except urllib3.exceptions.MaxRetryError as e:
-            self.cluster.remove_host(self.__current_host)
-            self.__current_host = None
-            raise PilosaError(str(e))
+        # try at most 10 non-failed hosts; protect against broken cluster.remove_host
+        for _ in range(_MAX_HOSTS):
+            uri = "%s%s" % (self.__get_address(), path)
+            try:
+                _LOGGER.debug("Request: %s %s %s", method, uri,
+                              "[binary]" if client_response == Client.__RAW_RESPONSE else data)
+                response = self.__client.request(method, uri, body=data)
+                break
+            except urllib3.exceptions.MaxRetryError as e:
+                self.cluster.remove_host(self.__current_host)
+                _LOGGER.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
+                self.__current_host = None
+        else:
+            raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
 
         if client_response == Client.__RAW_RESPONSE:
             return response
@@ -206,6 +297,7 @@ class Client(object):
     def __get_address(self):
         if self.__current_host is None:
             self.__current_host = self.cluster.get_host()
+            _LOGGER.debug("Current host set: %s", self.__current_host)
         return self.__current_host._normalize()
 
     def __connect(self):
@@ -316,22 +408,33 @@ class Cluster:
 
     def __init__(self, *hosts):
         """Returns the cluster with the given hosts"""
-        self.hosts = list(hosts)
+        self.hosts = [(host, True) for host in hosts]
         self.__next_index = 0
+        self.__lock = threading.RLock()
 
     def add_host(self, uri):
-        """Adds a host to the cluster.
+        """Makes a host available.
         
         :param pilosa.URI uri:
         """
-        self.hosts.append(uri)
+        with self.__lock:
+            for i, item in enumerate(self.hosts):
+                host, _ = item
+                if host == uri:
+                    self.hosts[i] = (host, True)
+                    break
+            else:
+                self.hosts.append((uri, True))
 
     def remove_host(self, uri):
-        """Removes the host with the given URI from the cluster.
+        """Makes a host unavailable.
         
         :param pilosa.URI uri:
         """
-        self.hosts.remove(uri)
+        with self.__lock:
+            for i, item in enumerate(self.hosts):
+                if uri == item[0]:
+                    self.hosts[i] = (item[0], False)
 
     def get_host(self):
         """Returns the next host in the cluster.
@@ -339,23 +442,56 @@ class Cluster:
         :return: next host
         :rtype: pilosa.URI         
         """
-        if len(self.hosts) == 0:
+        for host, ok in self.hosts:
+            if not ok:
+                continue
+            return host
+        else:
+            self._reset()
             raise PilosaError("There are no available hosts")
-        next_host = self.hosts[self.__next_index % len(self.hosts)]
-        self.__next_index = (self.__next_index + 1) % len(self.hosts)
-        return next_host
+
+    def copy(self):
+        c = Cluster()
+        c.hosts = self.hosts[:]
+        return c
+
+    def _reset(self):
+        with self.__lock:
+            self.hosts = [(host, True) for host, _ in self.hosts]
 
 
 class _QueryRequest:
 
-    def __init__(self, query, columns=False, time_quantum=TimeQuantum.NONE):
+    def __init__(self, query, columns=False):
         self.query = query
         self.columns = columns
-        self.time_quantum = time_quantum
 
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
         qr.ColumnAttrs = self.columns
-        qr.Quantum = str(self.time_quantum)
         return qr.SerializeToString()
+
+
+class _ImportRequest:
+
+    def __init__(self, index_name, frame_name, slice, bits):
+        self.index_name = index_name
+        self.frame_name = frame_name
+        self.slice = slice
+        self.bits = bits
+
+    def to_protobuf(self):
+        import_request = internal.ImportRequest()
+        import_request.Index = self.index_name
+        import_request.Frame = self.frame_name
+        import_request.Slice = self.slice
+        row_ids = import_request.RowIDs
+        column_ids = import_request.ColumnIDs
+        timestamps = import_request.Timestamps
+        for bit in self.bits:
+            row_ids.append(bit.row_id)
+            column_ids.append(bit.column_id)
+            timestamps.append(bit.timestamp)
+        return import_request.SerializeToString()
+
