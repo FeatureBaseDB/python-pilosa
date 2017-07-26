@@ -17,11 +17,11 @@ Python client for Pilosa high performance distributed bitmap index.
     * Failover for connection errors.
     * More logging.
     * Introduced schemas. No need to re-define already existing indexes and frames.
+    * *make* commands are supported on Windows.
     * * *Breaking Change*: Removed `time_quantum` query option.
     * **Deprecation** `Index` constructor. Use `schema.index` instead.
     * **Deprecation** `client.create_index`, `client.create_frame`, `client.ensure_index`, `client.ensure_frame`. Use schemas and `client.sync_schema` instead.
     
-
 * **v0.4.0** (2017-06-08):
     * Supports Pilosa Server v0.4.0.
     * This version has the updated documentation.
@@ -395,8 +395,6 @@ Please check our [Contributor's Guidelines](https://github.com/pilosa/pilosa/CON
 3. Make sure all tests pass (use `make test-all`) and be sure that the tests cover all statements in your code (we aim for 100% test coverage).
 4. Commit your code to a feature branch and send a pull request to the `master` branch of our repo.
 
-The sections below assume your platform has `make`. Otherwise you can view the corresponding steps of the `Makefile`.
-
 ### Running tests
 
 You can run unit tests with:
@@ -407,6 +405,11 @@ make test
 And both unit and integration tests with:
 ```
 make test-all
+```
+
+Check the test coverage:
+```
+make cover
 ```
 
 ### Generating protobuf classes
