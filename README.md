@@ -1,6 +1,6 @@
 # Python Client for Pilosa
 
-<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.4.0-blue.svg"></a>
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.5.0-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 <a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
@@ -12,7 +12,7 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **Next**:
+* **v0.5.0** (2017-08-03):
     * Supports importing data to Pilosa server.
     * Failover for connection errors.
     * More logging.
