@@ -290,12 +290,12 @@ class FrameTestCase(unittest.TestCase):
 
         q3 = sampleFrame.topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', [80,81])",
+            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', filters=[80,81])",
             q3.serialize())
 
         q4 = sampleFrame.inverse_topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', [80,81])",
+            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', filters=[80,81])",
             q4.serialize())
 
     def test_range(self):

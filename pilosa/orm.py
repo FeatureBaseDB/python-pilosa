@@ -464,7 +464,7 @@ class Frame:
         if field:
             validate_label(field)
             values_str = json.dumps(values, separators=(',', ': '))
-            parts.extend(["field='%s'" % field, values_str])
+            parts.extend(["field='%s'" % field, "filters=%s" % values_str])
         qry = u"TopN(%s)" % ", ".join(parts)
         return PQLQuery(qry, self.index)
 
