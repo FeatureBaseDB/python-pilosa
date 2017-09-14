@@ -41,7 +41,7 @@ except ImportError:
 
 from pilosa.client import Client, URI, Cluster
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Index, TimeQuantum, Schema
+from pilosa.orm import Index, TimeQuantum, Schema, RangeField
 from pilosa.imports import csv_bit_reader
 
 SERVER_ADDRESS = ":10101"
@@ -253,6 +253,37 @@ class ClientIT(unittest.TestCase):
         uris = [URI.address("nonexistent%s" % i) for i in range(20)]
         client = Client(Cluster(*uris))
         self.assertRaises(PilosaError, client.query, self.frame.bitmap(5))
+
+    def test_range_frame(self):
+        client = self.get_client()
+        frame = self.col_db.frame("rangeframe", fields=[RangeField.intField("foo", 10, 20)])
+        client.ensure_frame(frame)
+        client.query(self.col_db.batch_query(
+            frame.setbit(1, 10),
+            frame.setbit(1, 100),
+            frame.set_field_value(10, "foo", 11),
+            frame.set_field_value(100, "foo", 15)
+        ))
+        response = client.query(frame.sum(frame.bitmap(1), "foo"))
+        self.assertEquals(26, response.result.sum)
+        self.assertEquals(2, response.result.count)
+
+    def test_exclude_attrs_bits(self):
+        client = self.get_client()
+        client.query(self.col_db.batch_query(
+            self.frame.setbit(1, 100),
+            self.frame.set_row_attrs(1, {"foo": "bar"})
+        ))
+
+        # test exclude bits.
+        response = client.query(self.frame.bitmap(1), exclude_bits=True)
+        self.assertEquals(0, len(response.result.bitmap.bits))
+        self.assertEquals(1, len(response.result.bitmap.attributes))
+
+        # test exclude attributes.
+        response = client.query(self.frame.bitmap(1), exclude_attrs=True)
+        self.assertEquals(1, len(response.result.bitmap.bits))
+        self.assertEquals(0, len(response.result.bitmap.attributes))
 
     @classmethod
     def random_index_name(cls):

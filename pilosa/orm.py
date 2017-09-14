@@ -33,10 +33,10 @@
 
 import json
 
-from .exceptions import PilosaError
+from .exceptions import PilosaError, ValidationError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
-__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery")
+__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "RangeField")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -204,7 +204,7 @@ class Index:
         return index
 
     def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE,
-              inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0):
+              inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0, fields=None):
         """Creates a frame object with the specified name and defaults.
         
         :param str name: frame name
@@ -213,13 +213,14 @@ class Index:
         :param bool inverse_enabled:
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
         :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
+        :param list(RangeField) fields: List of ``RangeField`` objects. E.g.: ``[RangeField.intField("rate", 0, 100)]``
         :return: Pilosa frame
         :rtype: pilosa.Frame
         """
         frame = self._frames.get(name)
         if frame is None:
             frame = Frame(self, name, row_label, time_quantum,
-                          inverse_enabled, cache_type, cache_size)
+                          inverse_enabled, cache_type, cache_size, fields or [])
             self._frames[name] = frame
         return frame
 
@@ -276,7 +277,7 @@ class Index:
         ``Difference`` returns all of the bits from the first BITMAP_CALL argument passed to it,
         without the bits from each subsequent BITMAP_CALL.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 0 or more bitmap queries to differentiate
+        :param pilosa.PQLBitmapQuery bitmaps: 1 or more bitmap queries to differentiate
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         :raise PilosaError: if the number of bitmaps is less than 1
@@ -284,6 +285,18 @@ class Index:
         if len(bitmaps) < 1:
             raise PilosaError("Number of bitmap queries should be greater or equal to 1")
         return self._bitmap_op("Difference", bitmaps)
+
+    def xor(self, *bitmaps):
+        """Creates a ``Xor`` query.
+
+        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to xor
+        :return: Pilosa bitmap query
+        :rtype: pilosa.PQLBitmapQuery
+        :raise PilosaError: if the number of bitmaps is less than 2
+        """
+        if len(bitmaps) < 2:
+            raise PilosaError("Number of bitmap queries should be greater or equal to 2")
+        return self._bitmap_op("Xor", bitmaps)
 
     def count(self, bitmap):
         """Creates a Count query.
@@ -334,7 +347,7 @@ class Frame:
     """
 
     def __init__(self, index, name, row_label, time_quantum, inverse_enabled,
-                 cache_type, cache_size):
+                 cache_type, cache_size, fields):
         validate_frame_name(name)
         validate_label(row_label)
         self.index = index
@@ -345,6 +358,7 @@ class Frame:
         self.cache_size = cache_size
         self.row_label = row_label
         self.column_label = index.column_label
+        self.fields = fields
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -360,14 +374,15 @@ class Frame:
                self.time_quantum == other.time_quantum and \
                self.inverse_enabled == other.inverse_enabled and \
                self.cache_type == other.cache_type and \
-               self.cache_size == other.cache_size
+               self.cache_size == other.cache_size and \
+               self.fields == other.fields
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def copy(self):
         return Frame(self.index, self.name, self.row_label, self.time_quantum,
-                     self.inverse_enabled, self.cache_type, self.cache_size)
+                     self.inverse_enabled, self.cache_type, self.cache_size, self.fields)
 
     def bitmap(self, row_id):
         """Creates a Bitmap query.
@@ -522,6 +537,15 @@ class Frame:
                         (self.row_label, row_id, self.name, attrs_str),
                         self.index)
 
+    def set_field_value(self, column_id, field, value):
+        return PQLQuery("SetFieldValue(frame='%s', %s=%d, %s=%d)" % \
+               (self.name, self.column_label, column_id, field, value),
+                        self.index)
+
+    def sum(self, bitmap, field):
+        qry = "Sum(%s, frame='%s', field='%s')" % (bitmap.serialize(), self.name, field)
+        return PQLQuery(qry, self.index)
+
     def _get_options_string(self):
         data = {"rowLabel": self.row_label}
         if self.inverse_enabled:
@@ -532,6 +556,9 @@ class Frame:
             data["cacheType"] = str(self.cache_type)
         if self.cache_size > 0:
             data["cacheSize"] = self.cache_size
+        if self.fields:
+            data["rangeEnabled"] = True
+            data["fields"] = [f.attrs for f in self.fields]
         return json.dumps({"options": data}, sort_keys=True)
 
 
@@ -568,3 +595,21 @@ class PQLBatchQuery:
 
     def serialize(self):
         return u''.join(q.serialize() for q in self.queries)
+
+
+class RangeField:
+
+    def __init__(self, attrs):
+        self.attrs = attrs
+
+    @classmethod
+    def intField(cls, name, min=0, max=100):
+        validate_label(name)
+        if max <= min:
+            raise ValidationError("Max should be greater than min for int fields")
+        return cls({
+            "name": name,
+            "type": "int",
+            "min": min,
+            "max": max
+        })
