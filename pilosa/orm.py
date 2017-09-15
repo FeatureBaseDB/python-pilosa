@@ -213,7 +213,7 @@ class Index:
         :param bool inverse_enabled:
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
         :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
-        :param list(RangeField) fields: List of ``RangeField`` objects. E.g.: ``[RangeField.intField("rate", 0, 100)]``
+        :param list(RangeField) fields: List of ``RangeField`` objects. E.g.: ``[RangeField.int("rate", 0, 100)]``
         :return: Pilosa frame
         :rtype: pilosa.Frame
         """
@@ -603,7 +603,7 @@ class RangeField:
         self.attrs = attrs
 
     @classmethod
-    def intField(cls, name, min=0, max=100):
+    def int(cls, name, min=0, max=100):
         validate_label(name)
         if max <= min:
             raise ValidationError("Max should be greater than min for int fields")

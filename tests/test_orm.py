@@ -351,7 +351,7 @@ class FrameTestCase(unittest.TestCase):
                                   inverse_enabled=True,
                                   cache_type=CacheType.RANKED,
                                   cache_size=1000,
-                                  fields=[RangeField.intField("foo"), RangeField.intField("bar", min=-1, max=1)])
+                                  fields=[RangeField.int("foo"), RangeField.int("bar", min=-1, max=1)])
         target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "fields": [{"max": 100, "min": 0, "name": "foo", "type": "int"}, {"max": 1, "min": -1, "name": "bar", "type": "int"}], "inverseEnabled": true, "rangeEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
         self.assertEquals(target, frame._get_options_string())
 
@@ -383,4 +383,4 @@ class CacheTypeTestCase(unittest.TestCase):
 class RangeFieldTestCase(unittest.TestCase):
 
     def test_min_greater_equals_max_fails(self):
-        self.assertRaises(ValidationError, RangeField.intField, "foo", min=10, max=9)
+        self.assertRaises(ValidationError, RangeField.int, "foo", min=10, max=9)

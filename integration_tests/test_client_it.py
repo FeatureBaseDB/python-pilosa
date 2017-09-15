@@ -256,7 +256,7 @@ class ClientIT(unittest.TestCase):
 
     def test_range_frame(self):
         client = self.get_client()
-        frame = self.col_db.frame("rangeframe", fields=[RangeField.intField("foo", 10, 20)])
+        frame = self.col_db.frame("rangeframe", fields=[RangeField.int("foo", 10, 20)])
         client.ensure_frame(frame)
         client.query(self.col_db.batch_query(
             frame.setbit(1, 10),
