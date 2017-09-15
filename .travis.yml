@@ -11,8 +11,8 @@ python:
 sudo: required
 group: deprecated-2017Q2
 before_install:
-  - curl -o pilosa https://storage.googleapis.com/pilosa/pilosa-sumreduce && chmod +x pilosa
-  - ./pilosa server &
+  - curl -o ~/pilosa-server https://storage.googleapis.com/pilosa/pilosa-sumreduce && chmod +x ~/pilosa-server
+  - ~/pilosa-server server &
   - sleep 5
 install: "pip install -r requirements.txt -r test-requirements.txt coveralls"
 script: make cover
