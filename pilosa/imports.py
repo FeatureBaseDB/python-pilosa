@@ -39,7 +39,7 @@ from pilosa.exceptions import PilosaError
 Bit = namedtuple("Bit", "row_id column_id timestamp")
 
 
-def csv_bit_reader(file_obj):
+def csv_bit_reader(file_obj, timefunc=int):
     """
     Reads bits from the given file-like object.
 
@@ -47,6 +47,7 @@ def csv_bit_reader(file_obj):
     rowID,columnID[,timestamp]
 
     :param file_obj:
+    :param timefunc: optional time parsing function, defaults to int
     :return: a generator
     """
     for line in file_obj:
@@ -61,7 +62,7 @@ def csv_bit_reader(file_obj):
                 raise PilosaError("Invalid CSV line: %s", line)
         elif len(parts) == 3:
             try:
-                bit = Bit(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=int(parts[2]))
+                bit = Bit(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=timefunc(parts[2]))
             except ValueError:
                 raise PilosaError("Invalid CSV line: %s", line)
         else:
