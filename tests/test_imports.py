@@ -33,6 +33,9 @@
 
 import unittest
 
+import datetime
+import calendar
+
 from pilosa.exceptions import PilosaError
 from pilosa.imports import csv_bit_reader, batch_bits
 
@@ -82,3 +85,31 @@ class ImportsTestCase(unittest.TestCase):
             reader = csv_bit_reader(StringIO(text))
             self.assertRaises(PilosaError, list, reader)
 
+    def test_csvbititerator_customtimefunc(self):
+        class UtcTzinfo(datetime.tzinfo):
+            ZERO = datetime.timedelta(0)
+            def utcoffset(self, dt):
+                return UtcTzinfo.ZERO
+            def dst(self, dt):
+                return UtcTzinfo.ZERO
+            def tzname(self, dt):
+                return "UTC"
+
+        def timefunc_utcstr(timeval):
+            dt = datetime.datetime.strptime(timeval, '%Y-%m-%dT%H:%M:%S')
+            dt = dt.replace(tzinfo=UtcTzinfo())
+            return calendar.timegm(dt.timetuple())
+
+        reader = csv_bit_reader(StringIO(u"""
+            1,10,1991-09-02T06:33:20
+            5,20,1991-09-02T06:35:00
+            3,41,1991-09-02T06:36:25
+            10,10485760,1991-09-02T06:36:25
+        """), timefunc=timefunc_utcstr)
+
+        rows = list(reader)
+        self.assertEqual(len(rows), 4)
+        self.assertEqual(rows[0], (1,10,683793200))
+        self.assertEqual(rows[1], (5,20,683793300))
+        self.assertEqual(rows[2], (3,41,683793385))
+        self.assertEqual(rows[3], (10,10485760,683793385))
