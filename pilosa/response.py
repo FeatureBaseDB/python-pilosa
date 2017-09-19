@@ -65,22 +65,27 @@ class CountResultItem:
 
 
 class QueryResult:
-    """Represent one of the results in the response.
+    """Represents one of the results in the response.
     
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
     """
 
-    def __init__(self, bitmap=None, count_items=None, count=0):
+    def __init__(self, bitmap=None, count_items=None, count=0, sum=0):
         self.bitmap = bitmap or BitmapResult()
         self.count_items = count_items or []
         self.count = count
+        self.sum = sum
 
     @classmethod
     def from_internal(cls, obj):
         count_items = []
         for pair in obj.Pairs:
             count_items.append(CountResultItem(pair.Key, pair.Count))
-        return cls(BitmapResult.from_internal(obj.Bitmap), count_items, obj.N)
+        count = obj.N if obj.N > 0 else obj.SumCount.Count
+        return cls(BitmapResult.from_internal(obj.Bitmap),
+                   count_items,
+                   count,
+                   obj.SumCount.Sum)
 
 
 class ColumnItem:

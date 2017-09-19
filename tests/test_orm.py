@@ -34,7 +34,7 @@
 import unittest
 from datetime import datetime
 
-from pilosa import PilosaError, Index, TimeQuantum, CacheType
+from pilosa import PilosaError, Index, TimeQuantum, CacheType, RangeField, ValidationError
 from pilosa.orm import Schema
 
 schema = Schema()
@@ -170,6 +170,15 @@ class IndexTestCase(unittest.TestCase):
             "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
             q3.serialize())
 
+    def test_xor(self):
+        b1 = sampleFrame.bitmap(10)
+        b2 = sampleFrame.bitmap(20)
+        q1 = sampleIndex.xor(b1, b2)
+
+        self.assertEquals(
+            "Xor(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            q1.serialize())
+
     def test_union0(self):
         q = sampleIndex.union()
         self.assertEquals("Union()", q.serialize())
@@ -183,6 +192,9 @@ class IndexTestCase(unittest.TestCase):
 
     def test_difference_invalid_bitmap_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.difference)
+
+    def test_xor_invalid_bitmap_count_fails(self):
+        self.assertRaises(PilosaError, projectIndex.xor, sampleFrame.bitmap(10))
 
     def test_count(self):
         b = collabFrame.bitmap(42)
@@ -320,13 +332,27 @@ class FrameTestCase(unittest.TestCase):
             "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
+    def test_set_field_value(self):
+        q = collabFrame.set_field_value(50, "foo", 15)
+        self.assertEquals(
+            "SetFieldValue(frame='collaboration', user=50, foo=15)",
+            q.serialize())
+
+    def test_sum(self):
+        b = collabFrame.bitmap(42)
+        q = sampleFrame.sum(b, "foo")
+        self.assertEquals(
+            "Sum(Bitmap(project=42, frame='collaboration'), frame='sample-frame', field='foo')",
+            q.serialize())
+
     def test_get_options_string(self):
         frame = sampleIndex.frame("stargazer_id",
                                   time_quantum=TimeQuantum.DAY_HOUR,
                                   inverse_enabled=True,
                                   cache_type=CacheType.RANKED,
-                                  cache_size=1000)
-        target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "inverseEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
+                                  cache_size=1000,
+                                  fields=[RangeField.int("foo"), RangeField.int("bar", min=-1, max=1)])
+        target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "fields": [{"max": 100, "min": 0, "name": "foo", "type": "int"}, {"max": 1, "min": -1, "name": "bar", "type": "int"}], "inverseEnabled": true, "rangeEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
         self.assertEquals(target, frame._get_options_string())
 
 
@@ -352,3 +378,9 @@ class CacheTypeTestCase(unittest.TestCase):
         self.assertTrue(CacheType.RANKED == CacheType.RANKED)
         self.assertFalse(CacheType.RANKED == CacheType.LRU)
         self.assertFalse(CacheType.RANKED == "ranked")
+
+
+class RangeFieldTestCase(unittest.TestCase):
+
+    def test_min_greater_equals_max_fails(self):
+        self.assertRaises(ValidationError, RangeField.int, "foo", min=10, max=9)

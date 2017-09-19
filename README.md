@@ -12,6 +12,11 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**:
+    * Added support for creating range encoded frames.
+    * Added `SetFieldValue`, `Sum` and `Xor` calls.
+    * Added support for excluding bits or attributes from bitmap calls. In order to exclude bits, call `setExcludeBits(true)` in your `QueryOptions.Builder`. In order to exclude attributes, call `setExcludeAttributes(true)`.
+
 * **v0.5.0** (2017-08-03):
     * Supports importing data to Pilosa server.
     * Failover for connection errors.
@@ -173,6 +178,7 @@ Index:
 * `difference(self, *bitmaps)`
 * `count(self, bitmap)`
 * `set_column_attrs(self, column_id, attrs)`
+* `xor(self, *bitmaps)`
 
 Frame:
 
@@ -185,6 +191,8 @@ Frame:
 * `range(self, row_id, start, end)`
 * `inverse_range(self, column_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
+* `set_field_value(self, column_id, field, value)`
+* `sum(self, bitmap, field)`
 
 ### Pilosa URI
 

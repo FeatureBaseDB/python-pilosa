@@ -99,15 +99,17 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, columns=False):
+    def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
         :param bool columns: Enables returning column data from bitmap queries
+        :param bool exclude_bits: Disables returning bits from bitmap queries
+        :param bool exclude_attrs: Disables returning attributes from bitmap queries
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), columns=columns)
+        request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
         data = request.to_protobuf()
         path = "/index/%s/query" % query.index.name
         response = self.__http_request("POST", path, data, Client.__RAW_RESPONSE)
@@ -462,14 +464,18 @@ class Cluster:
 
 class _QueryRequest:
 
-    def __init__(self, query, columns=False):
+    def __init__(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
         self.query = query
         self.columns = columns
+        self.exclude_bits = exclude_bits
+        self.exclude_attrs = exclude_attrs
 
     def to_protobuf(self):
         qr = internal.QueryRequest()
         qr.Query = self.query
         qr.ColumnAttrs = self.columns
+        qr.ExcludeBits = self.exclude_bits
+        qr.ExcludeAttrs = self.exclude_attrs
         return qr.SerializeToString()
 
 
