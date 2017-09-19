@@ -108,7 +108,7 @@ class Client(object):
         :rtype: pilosa.Response
         """
         request = _QueryRequest(query.serialize(), columns=columns)
-        data = request.to_protobuf()
+        data = bytearray(request.to_protobuf())
         path = "/index/%s/query" % query.index.name
         response = self.__http_request("POST", path, data, Client.__RAW_RESPONSE)
         query_response = QueryResponse._from_protobuf(response.data)
