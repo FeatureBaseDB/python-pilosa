@@ -11,7 +11,7 @@ python:
 sudo: required
 group: deprecated-2017Q2
 before_install:
-  - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-master-linux-amd64.tar.gz && tar xf pilosa.tar.gz
+  - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-master-linux-amd64.tar.gz && tar xf pilosa-master-linux-amd64.tar.gz
   - ./pilosa-master-linux-amd64/pilosa server &
 install: "pip install -r requirements.txt -r test-requirements.txt coveralls"
 script: make cover
