@@ -127,12 +127,13 @@ class Schema:
         If the index didn't exist in the schema, it is added to the schema.
 
         :param str name: index name
-        :param str column_label: a valid column label
+        :param str column_label: a valid column label. This field is deprecated and will be removed in a future release.
         :param pilosa.TimeQuantum time_quantum: Sets the time quantum
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
         * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
+        * ``column_label` field is deprecated.
         """
         index = self._indexes.get(name)
         if index is None:
@@ -208,7 +209,7 @@ class Index:
         """Creates a frame object with the specified name and defaults.
         
         :param str name: frame name
-        :param str row_label: a valid row label
+        :param str row_label: a valid row label. This field is deprecated and will be removed in a future release.
         :param pilosa.TimeQuantum time_quantum: Sets the time quantum for the frame. If a Frame has a time quantum, then Views are generated for each of the defined time segments.
         :param bool inverse_enabled:
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
@@ -216,6 +217,8 @@ class Index:
         :param list(RangeField) fields: List of ``RangeField`` objects. E.g.: ``[RangeField.int("rate", 0, 100)]``
         :return: Pilosa frame
         :rtype: pilosa.Frame
+
+        * ``column_label`` field is deprecated.
         """
         frame = self._frames.get(name)
         if frame is None:

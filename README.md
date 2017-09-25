@@ -16,6 +16,9 @@ Python client for Pilosa high performance distributed bitmap index.
     * Added support for creating range encoded frames.
     * Added `SetFieldValue`, `Sum` and `Xor` calls.
     * Added support for excluding bits or attributes from bitmap calls. In order to exclude bits, call `setExcludeBits(true)` in your `QueryOptions.Builder`. In order to exclude attributes, call `setExcludeAttributes(true)`.
+    * Customizable CSV timestamp format (Contributed by @lachlanorr).
+    * **Deprecation** Row and column labels are deprecated, and will be removed in a future release of this library. Do not use `column_label` field when creating `Index` objects and do not use `row_label` field when creating `Frame` objects for new code. See: https://github.com/pilosa/pilosa/issues/752 for more info.
+    
 
 * **v0.5.0** (2017-08-03):
     * Supports importing data to Pilosa server.
@@ -118,11 +121,10 @@ schema = Schema()
 repository = schema.index("repository")
 ```
 
-Indexes support changing the column label and time quantum (*resolution*). You can pass these additional arguments to the `Index` constructor:
+Indexes support changing the time quantum (*resolution*). You can pass these additional arguments to the `Index` constructor:
 
 ```python
-repository = schema.index("repository",
-    column_label="repo_id", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
+repository = schema.index("repository", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
 ```
 
 Frames are created with a call to `index.frame` method:
@@ -135,7 +137,7 @@ Similar to index objects, you can pass custom options to the `index.frame` metho
 
 ```python
 stargazer = repository.frame("stargazer",
-    row_label="stargazer_id", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
+    inverse_enabled=True, time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
 ```
 
 #### Queries
@@ -145,7 +147,7 @@ Once you have indexes and frame objects created, you can create queries for them
 For instance, `Bitmap` queries work on rows; use a frame object to create those queries:
 
 ```python
-bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='stargazer', stargazer_id=1)
+bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='stargazer', row=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
@@ -154,7 +156,7 @@ bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='sta
 query = repository.union(bitmap_query1, bitmap_query2)
 ```
 
-In order to increase througput, you may want to batch queries sent to the Pilosa server. The `index.batch_query` method is used for that purpose:
+In order to increase throughput, you may want to batch queries sent to the Pilosa server. The `index.batch_query` method is used for that purpose:
 
 ```python
 query = repository.batch_query(
@@ -166,7 +168,7 @@ query = repository.batch_query(
 The recommended way of creating query objects is, using dedicated methods attached to index and frame objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
 
 ```python
-query = repository.raw_query("Bitmap(frame='stargazer', stargazer_id=5)")
+query = repository.raw_query("Bitmap(frame='stargazer', row=5)")
 ```
 
 Please check [Pilosa documentation](https://www.pilosa.com/docs) for PQL details. Here is a list of methods corresponding to PQL calls:
