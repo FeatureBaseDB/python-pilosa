@@ -218,7 +218,7 @@ class Index:
         :return: Pilosa frame
         :rtype: pilosa.Frame
 
-        * ``column_label`` field is deprecated.
+        * ``row_label`` field is deprecated.
         """
         frame = self._frames.get(name)
         if frame is None:
