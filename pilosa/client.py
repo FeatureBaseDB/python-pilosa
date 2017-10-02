@@ -51,6 +51,10 @@ _LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
 
 
+class ClientOptionsError(PilosaError):
+    pass
+
+
 class Client(object):
     """Pilosa HTTP client
 
@@ -79,7 +83,8 @@ class Client(object):
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
-                 pool_size_per_route=10, pool_size_total=100, retry_count=3):
+                 pool_size_per_route=10, pool_size_total=100, retry_count=3,
+                 tls_verify=True, tls_ca_certificate_path="", tls_client_certificate_path=""):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -96,6 +101,9 @@ class Client(object):
         self.pool_size_per_route = pool_size_per_route
         self.pool_size_total = pool_size_total
         self.retry_count = retry_count
+        self.tls_verify = tls_verify
+        self.tls_ca_certificate_path = tls_ca_certificate_path
+        self.tls_client_certificate_path = tls_client_certificate_path
         self.__current_host = None
         self.__client = None
 
@@ -311,8 +319,23 @@ class Client(object):
         }
 
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
-        client = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
-            block=True, headers=headers, timeout=timeout, retries=self.retry_count)
+        client_options = {
+            "num_pools": num_pools,
+            "maxsize": self.pool_size_per_route,
+            "block": True,
+            "headers": headers,
+            "timeout": timeout,
+            "retries": self.retry_count,
+        }
+        if self.tls_verify:
+            if not self.tls_ca_certificate_path:
+                raise ClientOptionsError("tls_certificate_path option is required for clients when tls_verify is True")
+            client_options["cert_reqs"] = "CERT_REQUIRED"
+            client_options["ca_certs"] = self.tls_ca_certificate_path
+            if self.tls_client_certificate_path:
+                client_options["cert_file"] = self.tls_client_certificate_path
+
+        client = urllib3.PoolManager(**client_options)
         self.__client = client
 
     __RECOGNIZED_ERRORS = {

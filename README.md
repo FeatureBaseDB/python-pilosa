@@ -18,6 +18,7 @@ Python client for Pilosa high performance distributed bitmap index.
     * Added support for excluding bits or attributes from bitmap calls. In order to exclude bits, call `setExcludeBits(true)` in your `QueryOptions.Builder`. In order to exclude attributes, call `setExcludeAttributes(true)`.
     * Added range field operations.
     * Customizable CSV timestamp format (Contributed by @lachlanorr).
+    * `HTTPS connections are supported.
     * **Deprecation** Row and column labels are deprecated, and will be removed in a future release of this library. Do not use `column_label` field when creating `Index` objects and do not use `row_label` field when creating `Frame` objects for new code. See: https://github.com/pilosa/pilosa/issues/752 for more info.
     
 
@@ -200,7 +201,7 @@ Frame:
 ### Pilosa URI
 
 A Pilosa URI has the `${SCHEME}://${HOST}:${PORT}` format:
-* **Scheme**: Protocol of the URI. Default: `http`.
+* **Scheme**: Protocol of the URI, one of `http` or `https`. Default: `http`.
 * **Host**: Hostname or ipv4/ipv6 IP address. Default: localhost.
 * **Port**: Port number. Default: `10101`.
 
@@ -223,7 +224,7 @@ uri1 = pilosa.URI()
 uri2 = pilosa.URI.address("db1.pilosa.com:20202")
 
 # create a URI with the given host and port
-URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202);
+URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202)
 ``` 
 
 ### Pilosa Client
@@ -262,6 +263,7 @@ client = pilosa.Client(cluster,
     connect_timeout=1000,  # if can't connect in  a second, close the connection
     socket_timeout=10000,  # if no response received in 10 seconds, close the connection
     pool_size_per_route=3,  # number of connections in the pool per host
+    pool_size_total=50,  # total number of connections in the pool
     rety_count=5,  # number of retries before failing the request
 )
 ```
