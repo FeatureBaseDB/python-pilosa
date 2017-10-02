@@ -34,7 +34,7 @@
 import unittest
 from datetime import datetime
 
-from pilosa import PilosaError, Index, TimeQuantum, CacheType, RangeField, ValidationError
+from pilosa import PilosaError, Index, TimeQuantum, CacheType, IntField, ValidationError
 from pilosa.orm import Schema
 
 schema = Schema()
@@ -238,7 +238,6 @@ class FrameTestCase(unittest.TestCase):
         schema = Schema()
         self.assertNotEqual(sampleFrame, schema)
 
-
     def test_bitmap(self):
         qry1 = sampleFrame.bitmap(5)
         self.assertEquals(
@@ -332,17 +331,52 @@ class FrameTestCase(unittest.TestCase):
             "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
-    def test_set_field_value(self):
-        q = collabFrame.set_field_value(50, "foo", 15)
+    def test_field(self):
+        # only a single instance of a field should exist
+        field1 = sampleFrame.field("the-field")
+        field2 = sampleFrame.field("the-field")
+        self.assertTrue(id(field1) == id(field2))
+
+    def test_field_lt(self):
+        q = sampleFrame.field("foo").lt(10)
         self.assertEquals(
-            "SetFieldValue(frame='collaboration', user=50, foo=15)",
+            "Range(frame='sample-frame', foo < 10)",
             q.serialize())
 
-    def test_sum(self):
-        b = collabFrame.bitmap(42)
-        q = sampleFrame.sum(b, "foo")
+    def test_field_lte(self):
+        q = sampleFrame.field("foo").lte(10)
         self.assertEquals(
-            "Sum(Bitmap(project=42, frame='collaboration'), frame='sample-frame', field='foo')",
+            "Range(frame='sample-frame', foo <= 10)",
+            q.serialize())
+
+    def test_field_gt(self):
+        q = sampleFrame.field("foo").gt(10)
+        self.assertEquals(
+            "Range(frame='sample-frame', foo > 10)",
+            q.serialize())
+
+    def test_field_gte(self):
+        q = sampleFrame.field("foo").gte(10)
+        self.assertEquals(
+            "Range(frame='sample-frame', foo >= 10)",
+            q.serialize())
+
+    def test_field_between(self):
+        q = sampleFrame.field("foo").between(10, 20)
+        self.assertEquals(
+            "Range(frame='sample-frame', foo >< [10,20])",
+            q.serialize())
+
+    def test_field_set_value(self):
+        q = sampleFrame.field("foo").set_value(10, 20)
+        self.assertEquals(
+            "SetFieldValue(frame='sample-frame', columnID=10, foo=20)",
+            q.serialize())
+
+    def test_field_sum(self):
+        q = sampleFrame.field("foo").sum(sampleFrame.bitmap(10))
+        self.assertEquals(
+            "Sum(Bitmap(rowID=10, frame='sample-frame'), frame='sample-frame', field='foo')",
             q.serialize())
 
     def test_get_options_string(self):
@@ -351,7 +385,7 @@ class FrameTestCase(unittest.TestCase):
                                   inverse_enabled=True,
                                   cache_type=CacheType.RANKED,
                                   cache_size=1000,
-                                  fields=[RangeField.int("foo"), RangeField.int("bar", min=-1, max=1)])
+                                  fields=[IntField.int("foo"), IntField.int("bar", min=-1, max=1)])
         target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "fields": [{"max": 100, "min": 0, "name": "foo", "type": "int"}, {"max": 1, "min": -1, "name": "bar", "type": "int"}], "inverseEnabled": true, "rangeEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
         self.assertEquals(target, frame._get_options_string())
 
@@ -383,4 +417,4 @@ class CacheTypeTestCase(unittest.TestCase):
 class RangeFieldTestCase(unittest.TestCase):
 
     def test_min_greater_equals_max_fails(self):
-        self.assertRaises(ValidationError, RangeField.int, "foo", min=10, max=9)
+        self.assertRaises(ValidationError, IntField.int, "foo", min=10, max=9)

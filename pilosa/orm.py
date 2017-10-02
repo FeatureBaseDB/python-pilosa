@@ -36,7 +36,7 @@ import json
 from .exceptions import PilosaError, ValidationError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
-__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "RangeField")
+__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -214,7 +214,7 @@ class Index:
         :param bool inverse_enabled:
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
         :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
-        :param list(RangeField) fields: List of ``RangeField`` objects. E.g.: ``[RangeField.int("rate", 0, 100)]``
+        :param list(IntField) fields: List of ``IntField`` objects. E.g.: ``[IntField.int("rate", 0, 100)]``
         :return: Pilosa frame
         :rtype: pilosa.Frame
 
@@ -362,6 +362,7 @@ class Frame:
         self.row_label = row_label
         self.column_label = index.column_label
         self.fields = fields
+        self.range_fields = {}
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -540,14 +541,19 @@ class Frame:
                         (self.row_label, row_id, self.name, attrs_str),
                         self.index)
 
-    def set_field_value(self, column_id, field, value):
-        return PQLQuery("SetFieldValue(frame='%s', %s=%d, %s=%d)" % \
-               (self.name, self.column_label, column_id, field, value),
-                        self.index)
+    def field(self, name):
+        """Returns a _RangeField object with the given name.
 
-    def sum(self, bitmap, field):
-        qry = "Sum(%s, frame='%s', field='%s')" % (bitmap.serialize(), self.name, field)
-        return PQLQuery(qry, self.index)
+        :param name: field name
+        :return: _RangeField object
+        :rtype: _RangeField
+        """
+        field = self.range_fields.get(name)
+        if not field:
+            validate_label(name)
+            field = _RangeField(self, name)
+            self.range_fields[name] = field
+        return field
 
     def _get_options_string(self):
         data = {"rowLabel": self.row_label}
@@ -600,7 +606,7 @@ class PQLBatchQuery:
         return u''.join(q.serialize() for q in self.queries)
 
 
-class RangeField:
+class IntField:
 
     def __init__(self, attrs):
         self.attrs = attrs
@@ -616,3 +622,84 @@ class RangeField:
             "min": min,
             "max": max
         })
+
+
+class _RangeField:
+
+    def __init__(self, frame, name):
+        self.frame_name = frame.name
+        self.name = name
+        self.index = frame.index
+
+    def lt(self, n):
+        """Creates a Range query with less than (<) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation("<", n)
+
+    def lte(self, n):
+        """Creates a Range query with less than or equal (<=) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation("<=", n)
+
+    def gt(self, n):
+        """Creates a Range query with greater than (>) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation(">", n)
+
+    def gte(self, n):
+        """Creates a Range query with greater than or equal (>=) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation(">=", n)
+
+    def between(self, a, b):
+        """Creates a Range query with between (><) condition.
+
+        :param a: Closed range start
+        :param b: Closed range end
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        q = u"Range(frame='%s', %s >< [%d,%d])" % (self.frame_name, self.name, a, b)
+        return PQLQuery(q, self.index)
+
+    def sum(self, bitmap):
+        """Creates a Sum query.
+
+        :param bitmap: The bitmap query to use.
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        q = u"Sum(%s, frame='%s', field='%s')" % (bitmap.serialize(), self.frame_name, self.name)
+        return PQLQuery(q, self.index)
+
+    def set_value(self, column_id, value):
+        """Creates a SetFieldValue query.
+
+        :param column_id: column ID
+        :param value: the value to assign to the field
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        q = u"SetFieldValue(frame='%s', %s=%d, %s=%d)" % \
+            (self.frame_name, self.index.column_label, column_id, self.name, value)
+        return PQLQuery(q, self.index)
+
+    def _binary_operation(self, op, n):
+        q = u"Range(frame='%s', %s %s %d)" % (self.frame_name, self.name, op, n)
+        return PQLQuery(q, self.index)

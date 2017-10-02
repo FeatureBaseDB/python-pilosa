@@ -41,7 +41,7 @@ except ImportError:
 
 from pilosa.client import Client, URI, Cluster
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Index, TimeQuantum, Schema, RangeField
+from pilosa.orm import Index, TimeQuantum, Schema, IntField
 from pilosa.imports import csv_bit_reader
 
 SERVER_ADDRESS = ":10101"
@@ -256,17 +256,21 @@ class ClientIT(unittest.TestCase):
 
     def test_range_frame(self):
         client = self.get_client()
-        frame = self.col_db.frame("rangeframe", fields=[RangeField.int("foo", 10, 20)])
+        frame = self.col_db.frame("rangeframe", fields=[IntField.int("foo", 10, 20)])
         client.ensure_frame(frame)
         client.query(self.col_db.batch_query(
             frame.setbit(1, 10),
             frame.setbit(1, 100),
-            frame.set_field_value(10, "foo", 11),
-            frame.set_field_value(100, "foo", 15)
+            frame.field("foo").set_value(10, 11),
+            frame.field("foo").set_value(100, 15),
         ))
-        response = client.query(frame.sum(frame.bitmap(1), "foo"))
+        response = client.query(frame.field("foo").sum(frame.bitmap(1)))
         self.assertEquals(26, response.result.sum)
         self.assertEquals(2, response.result.count)
+
+        response = client.query(frame.field("foo").lt(15))
+        self.assertEquals(1, len(response.results))
+        self.assertEquals(10, response.result.bitmap.bits[0])
 
     def test_exclude_attrs_bits(self):
         client = self.get_client()
