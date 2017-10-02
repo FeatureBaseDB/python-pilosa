@@ -80,7 +80,7 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_verify=True, tls_ca_certificate_path="", tls_client_certificate_path=""):
+                 tls_skip_verify=False, tls_ca_certificate_path="", tls_client_certificate_path=""):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -97,7 +97,7 @@ class Client(object):
         self.pool_size_per_route = pool_size_per_route
         self.pool_size_total = pool_size_total
         self.retry_count = retry_count
-        self.tls_verify = tls_verify
+        self.tls_skip_verify = tls_skip_verify
         self.tls_ca_certificate_path = tls_ca_certificate_path
         self.tls_client_certificate_path = tls_client_certificate_path
         self.__current_host = None
@@ -323,7 +323,7 @@ class Client(object):
             "timeout": timeout,
             "retries": self.retry_count,
         }
-        if self.tls_verify:
+        if not self.tls_skip_verify:
             client_options["cert_reqs"] = "CERT_REQUIRED"
             client_options["ca_certs"] = self.tls_ca_certificate_path
             if self.tls_client_certificate_path:
