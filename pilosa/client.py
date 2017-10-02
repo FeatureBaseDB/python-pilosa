@@ -51,10 +51,6 @@ _LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
 
 
-class ClientOptionsError(PilosaError):
-    pass
-
-
 class Client(object):
     """Pilosa HTTP client
 
@@ -328,8 +324,6 @@ class Client(object):
             "retries": self.retry_count,
         }
         if self.tls_verify:
-            if not self.tls_ca_certificate_path:
-                raise ClientOptionsError("tls_certificate_path option is required for clients when tls_verify is True")
             client_options["cert_reqs"] = "CERT_REQUIRED"
             client_options["ca_certs"] = self.tls_ca_certificate_path
             if self.tls_client_certificate_path:
