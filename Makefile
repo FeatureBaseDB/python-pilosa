@@ -17,3 +17,11 @@ test:
 
 test-all:
 	py.test tests integration_tests
+
+build:
+	python setup.py sdist && python setup.py bdist_wheel --universal
+
+upload:
+	twine upload dist/*
+
+release: build upload
