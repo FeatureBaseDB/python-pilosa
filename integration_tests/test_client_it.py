@@ -298,4 +298,4 @@ class ClientIT(unittest.TestCase):
     def get_client(cls):
         # setting tls_client_certificate_path just for coverage,
         # it has no effect on non-https addresses
-        return Client(SERVER_ADDRESS, tls_client_certificate_path="foo")
+        return Client(SERVER_ADDRESS)

@@ -80,7 +80,7 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_skip_verify=False, tls_ca_certificate_path="", tls_client_certificate_path=""):
+                 tls_skip_verify=False, tls_ca_certificate_path=""):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -99,7 +99,6 @@ class Client(object):
         self.retry_count = retry_count
         self.tls_skip_verify = tls_skip_verify
         self.tls_ca_certificate_path = tls_ca_certificate_path
-        self.tls_client_certificate_path = tls_client_certificate_path
         self.__current_host = None
         self.__client = None
 
@@ -253,7 +252,12 @@ class Client(object):
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         for node in nodes:
-            client = Client(URI.address(node["host"]))
+            client_params={
+                "tls_skip_verify": self.tls_skip_verify,
+                "tls_ca_certificate_path": self.tls_ca_certificate_path,
+            }
+            address = "%s://%s" % (node["scheme"], node["host"])
+            client = Client(URI.address(address), **client_params)
             client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
 
     def _fetch_fragment_nodes(self, index_name, slice):
@@ -326,8 +330,6 @@ class Client(object):
         if not self.tls_skip_verify:
             client_options["cert_reqs"] = "CERT_REQUIRED"
             client_options["ca_certs"] = self.tls_ca_certificate_path
-            if self.tls_client_certificate_path:
-                client_options["cert_file"] = self.tls_client_certificate_path
 
         client = urllib3.PoolManager(**client_options)
         self.__client = client
