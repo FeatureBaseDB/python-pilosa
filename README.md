@@ -12,6 +12,9 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**:
+    * Added TLS support. In order to activate it, prefix the server address with `https://`.
+
 * **v0.7.0** (2017-10-04):
     * Added support for creating range encoded frames.
     * Added `Xor` call.
@@ -20,7 +23,6 @@ Python client for Pilosa high performance distributed bitmap index.
     * Customizable CSV timestamp format (Contributed by @lachlanorr).
     * **Deprecation** Row and column labels are deprecated, and will be removed in a future release of this library. Do not use `column_label` field when creating `Index` objects and do not use `row_label` field when creating `Frame` objects for new code. See: https://github.com/pilosa/pilosa/issues/752 for more info.
     
-
 * **v0.5.0** (2017-08-03):
     * Supports importing data to Pilosa server.
     * Failover for connection errors.
@@ -200,7 +202,7 @@ Frame:
 ### Pilosa URI
 
 A Pilosa URI has the `${SCHEME}://${HOST}:${PORT}` format:
-* **Scheme**: Protocol of the URI. Default: `http`.
+* **Scheme**: Protocol of the URI, one of `http` or `https`. Default: `http`.
 * **Host**: Hostname or ipv4/ipv6 IP address. Default: localhost.
 * **Port**: Port number. Default: `10101`.
 
@@ -223,7 +225,7 @@ uri1 = pilosa.URI()
 uri2 = pilosa.URI.address("db1.pilosa.com:20202")
 
 # create a URI with the given host and port
-URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202);
+URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202)
 ``` 
 
 ### Pilosa Client
@@ -262,6 +264,7 @@ client = pilosa.Client(cluster,
     connect_timeout=1000,  # if can't connect in  a second, close the connection
     socket_timeout=10000,  # if no response received in 10 seconds, close the connection
     pool_size_per_route=3,  # number of connections in the pool per host
+    pool_size_total=50,  # total number of connections in the pool
     rety_count=5,  # number of retries before failing the request
 )
 ```

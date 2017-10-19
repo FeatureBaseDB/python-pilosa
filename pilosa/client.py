@@ -79,7 +79,8 @@ class Client(object):
     __NO_RESPONSE, __RAW_RESPONSE, __ERROR_CHECKED_RESPONSE = range(3)
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
-                 pool_size_per_route=10, pool_size_total=100, retry_count=3):
+                 pool_size_per_route=10, pool_size_total=100, retry_count=3,
+                 tls_skip_verify=False, tls_ca_certificate_path=""):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -96,6 +97,8 @@ class Client(object):
         self.pool_size_per_route = pool_size_per_route
         self.pool_size_total = pool_size_total
         self.retry_count = retry_count
+        self.tls_skip_verify = tls_skip_verify
+        self.tls_ca_certificate_path = tls_ca_certificate_path
         self.__current_host = None
         self.__client = None
 
@@ -249,7 +252,12 @@ class Client(object):
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         for node in nodes:
-            client = Client(URI.address(node["host"]))
+            client_params={
+                "tls_skip_verify": self.tls_skip_verify,
+                "tls_ca_certificate_path": self.tls_ca_certificate_path,
+            }
+            address = "%s://%s" % (node["scheme"], node["host"])
+            client = Client(URI.address(address), **client_params)
             client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
 
     def _fetch_fragment_nodes(self, index_name, slice):
@@ -311,8 +319,19 @@ class Client(object):
         }
 
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
-        client = urllib3.PoolManager(num_pools=num_pools, maxsize=self.pool_size_per_route,
-            block=True, headers=headers, timeout=timeout, retries=self.retry_count)
+        client_options = {
+            "num_pools": num_pools,
+            "maxsize": self.pool_size_per_route,
+            "block": True,
+            "headers": headers,
+            "timeout": timeout,
+            "retries": self.retry_count,
+        }
+        if not self.tls_skip_verify:
+            client_options["cert_reqs"] = "CERT_REQUIRED"
+            client_options["ca_certs"] = self.tls_ca_certificate_path
+
+        client = urllib3.PoolManager(**client_options)
         self.__client = client
 
     __RECOGNIZED_ERRORS = {
