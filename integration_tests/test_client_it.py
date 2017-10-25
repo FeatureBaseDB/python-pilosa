@@ -44,8 +44,6 @@ from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum, Schema, IntField
 from pilosa.imports import csv_bit_reader
 
-SERVER_ADDRESS = ":10101"
-
 
 class ClientIT(unittest.TestCase):
 
@@ -296,6 +294,8 @@ class ClientIT(unittest.TestCase):
 
     @classmethod
     def get_client(cls):
-        # setting tls_client_certificate_path just for coverage,
-        # it has no effect on non-https addresses
-        return Client(SERVER_ADDRESS)
+        import os
+        server_address = os.environ.get("PILOSA_BIND", "")
+        if not server_address:
+            server_address = "http://:10101"
+        return Client(server_address, tls_skip_verify=True)
