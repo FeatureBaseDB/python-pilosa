@@ -31,7 +31,6 @@
 # DAMAGE.
 #
 
-import time
 import unittest
 
 try:
@@ -166,7 +165,7 @@ class ClientIT(unittest.TestCase):
             frame.setbit(20, 5),
             frame.setbit(30, 5)))
         # XXX: The following is required to make this test pass. See: https://github.com/pilosa/pilosa/issues/625
-        time.sleep(10)
+        client.http_request("POST", "/recalculate-caches")
         response4 = client.query(frame.topn(2))
         items = response4.result.count_items
         self.assertEquals(2, len(items))
@@ -286,6 +285,13 @@ class ClientIT(unittest.TestCase):
         response = client.query(self.frame.bitmap(1), exclude_attrs=True)
         self.assertEquals(1, len(response.result.bitmap.bits))
         self.assertEquals(0, len(response.result.bitmap.attributes))
+
+    def test_http_request(self):
+        self.get_client().http_request("GET", "/status")
+
+    def test_http_request_without_path_fails(self):
+        self.assertRaises(ValueError, self.get_client().http_request, "GET", "")
+
 
     @classmethod
     def random_index_name(cls):
