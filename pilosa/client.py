@@ -291,8 +291,6 @@ class Client(object):
         self.__http_request("PATCH", path, data=data)
 
     def __http_request(self, method, path, data=None, headers=None, client_response=0):
-        if not path:
-            raise ValueError("path should be given")
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host

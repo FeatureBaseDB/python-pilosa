@@ -289,9 +289,6 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
-    def test_http_request_without_path_fails(self):
-        self.assertRaises(ValueError, self.get_client().http_request, "GET", "")
-
 
     @classmethod
     def random_index_name(cls):
