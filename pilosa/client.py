@@ -102,17 +102,18 @@ class Client(object):
         self.__current_host = None
         self.__client = None
 
-    def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
+    def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False, slices=[]):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
         :param bool columns: Enables returning column data from bitmap queries
         :param bool exclude_bits: Disables returning bits from bitmap queries
         :param bool exclude_attrs: Disables returning attributes from bitmap queries
+        :param list(int) slices: Returns data from a subset of slices
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
+        request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs, slices=slices)
         data = bytearray(request.to_protobuf())
         path = "/index/%s/query" % query.index.name
         response = self.__http_request("POST", path, data=data, client_response=Client.__RAW_RESPONSE)
@@ -498,11 +499,12 @@ class Cluster:
 
 class _QueryRequest:
 
-    def __init__(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
+    def __init__(self, query, columns=False, exclude_bits=False, exclude_attrs=False, slices=[]):
         self.query = query
         self.columns = columns
         self.exclude_bits = exclude_bits
         self.exclude_attrs = exclude_attrs
+        self.slices = slices
 
     def to_protobuf(self):
         qr = internal.QueryRequest()
@@ -510,6 +512,7 @@ class _QueryRequest:
         qr.ColumnAttrs = self.columns
         qr.ExcludeBits = self.exclude_bits
         qr.ExcludeAttrs = self.exclude_attrs
+        qr.Slices.extend(self.slices)
         return qr.SerializeToString()
 
 

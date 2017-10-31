@@ -289,6 +289,19 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
+    def test_slices(self):
+        slice_width = 1048576
+        client = self.get_client()
+        client.query(self.col_db.batch_query(
+            self.frame.setbit(1, 100),
+            self.frame.setbit(1, slice_width),
+            self.frame.setbit(1, slice_width*3),
+        ))
+
+        response = client.query(self.frame.bitmap(1), slices=[0,3])
+        self.assertEquals(2, len(response.result.bitmap.bits))
+        self.assertEquals(100, response.result.bitmap.bits[0])
+        self.assertEquals(slice_width*3, response.result.bitmap.bits[1])
 
     @classmethod
     def random_index_name(cls):
