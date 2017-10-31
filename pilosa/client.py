@@ -115,7 +115,7 @@ class Client(object):
         request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
         data = bytearray(request.to_protobuf())
         path = "/index/%s/query" % query.index.name
-        response = self.__http_request("POST", path, data, Client.__RAW_RESPONSE)
+        response = self.__http_request("POST", path, data=data, client_response=Client.__RAW_RESPONSE)
         query_response = QueryResponse._from_protobuf(response.data)
         if query_response.error_message:
             raise PilosaError(query_response.error_message)
@@ -247,6 +247,21 @@ class Client(object):
         for slice, bits in batch_bits(bit_reader, batch_size):
             import_bits(index_name, frame_name, slice, bits)
 
+    def http_request(self, method, path, data=None, headers=None):
+        """Sends an HTTP request to the Pilosa server
+
+        NOTE: This function is experimental and may be removed in later revisions.
+
+        :param method: HTTP method
+        :param path: Request path
+        :param data: Request body
+        :param headers: Request headers
+        :return HTTP response:
+
+        """
+        return self.__http_request(method, path, data=data, headers=headers,
+                                   client_response=Client.__RAW_RESPONSE)
+
     def _import_bits(self, index_name, frame_name, slice, bits):
         # sort by row_id then by column_id
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
@@ -275,7 +290,7 @@ class Client(object):
         data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
         self.__http_request("PATCH", path, data=data)
 
-    def __http_request(self, method, path, data=None, client_response=0):
+    def __http_request(self, method, path, data=None, headers=None, client_response=0):
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
@@ -284,7 +299,7 @@ class Client(object):
             try:
                 _LOGGER.debug("Request: %s %s %s", method, uri,
                               "[binary]" if client_response == Client.__RAW_RESPONSE else data)
-                response = self.__client.request(method, uri, body=data)
+                response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
                 self.cluster.remove_host(self.__current_host)
@@ -302,7 +317,7 @@ class Client(object):
         ex = self.__RECOGNIZED_ERRORS.get(content)
         if ex is not None:
             raise ex
-        raise PilosaError("Server error (%d): %s", response.status, content)
+        raise PilosaError("Server error (%d): %s" % (response.status, content))
 
     def __get_address(self):
         if self.__current_host is None:

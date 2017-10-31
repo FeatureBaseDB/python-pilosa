@@ -1,8 +1,6 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
-  - "3.3"
   - "3.4"
   - "3.5"
   - "3.6"
@@ -11,10 +9,14 @@ python:
 sudo: required
 group: deprecated-2017Q2
 before_install:
+  - openssl req -x509 -newkey rsa:4096 -keyout test.pilosa.local.key -out test.pilosa.local.crt -days 3650 -nodes -subj "/C=US/ST=Texas/L=Austin/O=Pilosa/OU=Com/CN=test.pilosa.local"
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-master-linux-amd64.tar.gz && tar xf pilosa-master-linux-amd64.tar.gz
-  - ./pilosa-master-linux-amd64/pilosa server &
+  - ./pilosa-master-linux-amd64/pilosa server -d http_data &
+  - ./pilosa-master-linux-amd64/pilosa server -b https://:20101 -d https_data --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key --cluster.type static &
 install: "pip install -r requirements.txt -r test-requirements.txt coveralls"
-script: make cover
+script:
+  - PILOSA_BIND="https://:20101" make test-all
+  - make cover
 after_success:
   coveralls
 

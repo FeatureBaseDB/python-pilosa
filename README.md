@@ -51,7 +51,7 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Requirements
 
-* Python 2.6 and higher or Python 3.3 and higher
+* Python 2.7 and higher or Python 3.4 and higher.
 
 ## Install
 
