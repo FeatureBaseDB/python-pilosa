@@ -192,14 +192,14 @@ class Client(object):
         status = self.status()
         nodes = status.get("Nodes")
         schema = Schema()
-        for indexInfo in nodes[0].get("Indexes", []):
-            meta = indexInfo["Meta"]
+        for index_info in nodes[0].get("Indexes", []):
+            meta = index_info["Meta"]
             options = {
                 "column_label": meta["ColumnLabel"],
                 "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
             }
-            index = schema.index(indexInfo["Name"], **options)
-            for frameInfo in indexInfo.get("Frames", []):
+            index = schema.index(index_info["Name"], **options)
+            for frameInfo in index_info.get("Frames", []):
                 meta = frameInfo["Meta"]
                 options = {
                     "row_label": meta["RowLabel"],
