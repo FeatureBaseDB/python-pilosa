@@ -196,19 +196,19 @@ class Client(object):
             meta = index_info["Meta"]
             options = {
                 "column_label": meta["ColumnLabel"],
-                "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+                "time_quantum": TimeQuantum(meta.get("TimeQuantum", TimeQuantum.NONE)),
             }
             index = schema.index(index_info["Name"], **options)
-            for frameInfo in index_info.get("Frames", []):
-                meta = frameInfo["Meta"]
+            for frame_info in index_info.get("Frames", []):
+                meta = frame_info["Meta"]
                 options = {
                     "row_label": meta["RowLabel"],
                     "cache_size": meta["CacheSize"],
                     "cache_type": CacheType(meta["CacheType"]),
                     "inverse_enabled": meta.get("InverseEnabled", False),
-                    "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+                    "time_quantum": TimeQuantum(meta.get("TimeQuantum", TimeQuantum.NONE)),
                 }
-                index.frame(frameInfo["Name"], **options)
+                index.frame(frame_info["Name"], **options)
 
         return schema
 
@@ -217,7 +217,7 @@ class Client(object):
 
         # find out local - remote schema
         diff_schema = schema._diff(server_schema)
-        # create the indexes and frames which doesn't exist on the server side
+        # create indexes and frames which doesn't exist on the server side
         for index_name, index in diff_schema._indexes.items():
             if index_name not in server_schema._indexes:
                 self.ensure_index(index)
@@ -359,13 +359,13 @@ class URI:
     """Represents a Pilosa URI
 
     A Pilosa URI consists of three parts:
-    
+
     * Scheme: Protocol of the URI. Default: ``http``
     * Host: Hostname or IP URI. Default: ``localhost``
     * Port: Port of the URI. Default ``10101``
-    
+
     All parts of the URI are optional. The following are equivalent:
-    
+
     * ``http://localhost:10101``
     * ``http://localhost``
     * ``http://:10101``
@@ -373,11 +373,11 @@ class URI:
     * ``localhost``
     * ``:10101``
 
-    :param str scheme: is the scheme of the Pilosa Server. Currently only ``http`` is supported     
-    :param str host: is the hostname or IP address of the Pilosa server
+    :param str scheme: is the scheme of the Pilosa Server, such as ``http`` or ``https``
+    :param str host: is the hostname or IP address of the Pilosa server. IPv6 addresses should be enclosed in brackets, e.g., ``[fe00::0]``.
     :param int port: is the port of the Pilosa server
     """
-    __PATTERN = re.compile("^(([+a-z]+)://)?([0-9a-z.-]+)?(:([0-9]+))?$")
+    __PATTERN = re.compile("^(([+a-z]+):\\/\\/)?([0-9a-z.-]+|\\[[:0-9a-fA-F]+\\])?(:([0-9]+))?$")
 
     def __init__(self, scheme="http", host="localhost", port=10101):
         self.scheme = scheme

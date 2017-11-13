@@ -151,7 +151,7 @@ class Schema:
                 # the index exists in the other schema; check the frames
                 result_index = index.copy(frames=False)
                 for frame_name, frame in index._frames.items():
-                    # the frame doesn't exist in the other scheme, copy it
+                    # if the frame doesn't exist in the other scheme, copy it
                     if frame_name not in result_index._frames:
                         result_index._frames[frame_name] = frame.copy()
                 # check whether we modified result index
@@ -271,7 +271,7 @@ class Index:
         :raise PilosaError: if the number of bitmaps is less than 1
         """
         if len(bitmaps) < 1:
-            raise PilosaError("Number of bitmap queries should be greater or equal to 1")
+            raise PilosaError("Number of bitmap queries should be greater than or equal to 1")
         return self._bitmap_op("Intersect", bitmaps)
 
     def difference(self, *bitmaps):
@@ -286,7 +286,7 @@ class Index:
         :raise PilosaError: if the number of bitmaps is less than 1
         """
         if len(bitmaps) < 1:
-            raise PilosaError("Number of bitmap queries should be greater or equal to 1")
+            raise PilosaError("Number of bitmap queries should be greater than or equal to 1")
         return self._bitmap_op("Difference", bitmaps)
 
     def xor(self, *bitmaps):
@@ -298,7 +298,7 @@ class Index:
         :raise PilosaError: if the number of bitmaps is less than 2
         """
         if len(bitmaps) < 2:
-            raise PilosaError("Number of bitmap queries should be greater or equal to 2")
+            raise PilosaError("Number of bitmap queries should be greater than or equal to 2")
         return self._bitmap_op("Xor", bitmaps)
 
     def count(self, bitmap):
