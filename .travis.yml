@@ -13,7 +13,7 @@ before_install:
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-master-linux-amd64.tar.gz && tar xf pilosa-master-linux-amd64.tar.gz
   - ./pilosa-master-linux-amd64/pilosa server -d http_data &
   - ./pilosa-master-linux-amd64/pilosa server -b https://:20101 -d https_data --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key --cluster.type static &
-install: "pip install -r requirements.txt -r test-requirements.txt coveralls"
+install: "pip install -r requirements/main.txt -r requirements/test.txt coveralls"
 script:
   - PILOSA_BIND="https://:20101" make test-all
   - make cover
