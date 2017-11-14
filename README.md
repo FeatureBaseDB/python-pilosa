@@ -14,7 +14,8 @@ Python client for Pilosa high performance distributed bitmap index.
 
 * **Next**:
     * Added TLS support. In order to activate it, prefix the server address with `https://`.
-
+    * IPv6 support.
+    
 * **v0.7.0** (2017-10-04):
     * Added support for creating range encoded frames.
     * Added `Xor` call.
@@ -174,6 +175,52 @@ The recommended way of creating query objects is, using dedicated methods attach
 query = repository.raw_query("Bitmap(frame='stargazer', row=5)")
 ```
 
+This client supports [Range encoded fields](https://www.pilosa.com/docs/latest/query-language/#range-bsi). Read [Range Encoded Bitmaps](https://www.pilosa.com/blog/range-encoded-bitmaps/) blog post for more information about the BSI implementation of range encoding in Pilosa.
+
+In order to use range encoded fields, a frame should be created with one or more integer fields. Each field should have their minimums and maximums set. Here's how you would do that using this library:
+```python
+index = schema.index("animals")
+frame = index.frame("traits", fields=[IntField.int("bar", min=-1, max=1)])
+client.syncSchema(schema)
+```
+
+If the frame with the necessary field already exists on the server, you don't need to create the field instance, `client.syncSchema(schema)` would load that to `schema`. You can then add some data:
+```python
+# Add the captivity values to the field.
+captivity = frame.field("captivity")
+data = [3, 392, 47, 956, 219, 14, 47, 504, 21, 0, 123, 318]
+query = index.batchQuery()
+for i, x in enumerate(data):
+    column = i + 1
+    query.add(captivity.set_value(column, x))
+client.query(query)
+```
+
+Let's write a range query:
+```python
+# Query for all animals with more than 100 specimens
+response = client.query(captivity.gt(100))
+print(response.result.bitmap.bits)
+
+# Query for the total number of animals in captivity
+response = client.query(captivity.sum())
+print(response.result.sum)
+```
+
+It's possible to pass a bitmap query to `sum`, so only columns where a row is set are filtered in:
+```python
+# Let's run a few setbit queries first
+client.query(index.batchQuery(
+    frame.setbit(42, 1),
+    frame.setbit(42, 6)
+))
+# Query for the total number of animals in captivity where row 42 is set
+response = client.query(captivity.sum(frame.bitmap(42)))
+print(response.result.sum)
+``` 
+
+See the *Field* functions further below for the list of functions that can be used with a `_RangeField`.
+
 Please check [Pilosa documentation](https://www.pilosa.com/docs) for PQL details. Here is a list of methods corresponding to PQL calls:
 
 Index:
@@ -196,8 +243,18 @@ Frame:
 * `range(self, row_id, start, end)`
 * `inverse_range(self, column_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
-* `set_field_value(self, column_id, field, value)`
-* `sum(self, bitmap, field)`
+* (**deprecated**) `sum(self, bitmap, field)`
+* (**deprecated**) `set_field_value(self, column_id, field, value)`
+
+Field:
+
+* `lt(self, n)`
+* `lte(self, n)`
+* `gt(self, n)`
+* `gte(self, n)`
+* `between(self, a, b)`
+* `sum(self, bitmap=None)`
+* `set_value(self, column_id, value)`
 
 ### Pilosa URI
 

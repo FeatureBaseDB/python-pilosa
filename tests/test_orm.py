@@ -378,6 +378,10 @@ class FrameTestCase(unittest.TestCase):
         self.assertEquals(
             "Sum(Bitmap(rowID=10, frame='sample-frame'), frame='sample-frame', field='foo')",
             q.serialize())
+        q = sampleFrame.field("foo").sum()
+        self.assertEquals(
+            "Sum(frame='sample-frame', field='foo')",
+            q.serialize())
 
     def test_get_options_string(self):
         frame = sampleIndex.frame("stargazer_id",
