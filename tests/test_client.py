@@ -103,8 +103,23 @@ class URITestCase(unittest.TestCase):
         self.assertEquals("https://big-data.pilosa.com:6888", uri._normalize())
 
     def test_invalid_address(self):
-        for address in ["foo:bar", "http://foo:", "http://foo:", "foo:", ":bar"]:
+        for address in ["foo:bar", "http://foo:", "http://foo:", "foo:", ":bar", "fd42:4201:f86b:7e09:216:3eff:fefa:ed80"]:
             self.assertRaises(PilosaURIError, URI.address, address)
+
+    def test_ipv6(self):
+        addresses = [
+            ("[::1]", "http", "[::1]", 10101),
+            ("[::1]:3333", "http", "[::1]", 3333),
+            ("[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]:3333", "http", "[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]", 3333),
+            ("https://[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]:3333", "https",
+             "[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]", 3333),
+        ]
+        for address, scheme, host, port in addresses:
+            uri = URI.address(address)
+            self.assertEquals(scheme, uri.scheme)
+            self.assertEquals(host, uri.host)
+            self.assertEquals(port, uri.port)
+
 
     def test_to_string(self):
         uri = URI()
