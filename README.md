@@ -12,7 +12,7 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **v0.8.1** (2017-11-16):
+* **v0.8.0** (2017-11-16):
     * Added TLS support. In order to activate it, prefix the server address with `https://`.
 
 * **v0.7.0** (2017-10-04):
