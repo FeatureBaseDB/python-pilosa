@@ -361,6 +361,24 @@ class FrameTestCase(unittest.TestCase):
             "Range(frame='sample-frame', foo >= 10)",
             q.serialize())
 
+    def test_field_equals(self):
+        q = sampleFrame.field("foo").equals(10)
+        self.assertEquals(
+            "Range(frame='sample-frame', foo == 10)",
+            q.serialize())
+
+    def test_field_not_equals(self):
+        q = sampleFrame.field("foo").not_equals(10)
+        self.assertEquals(
+            "Range(frame='sample-frame', foo != 10)",
+            q.serialize())
+
+    def test_field_not_null(self):
+        q = sampleFrame.field("foo").not_null()
+        self.assertEquals(
+            "Range(frame='sample-frame', foo != null)",
+            q.serialize())
+
     def test_field_between(self):
         q = sampleFrame.field("foo").between(10, 20)
         self.assertEquals(

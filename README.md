@@ -12,6 +12,10 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**
+    * Added `equals`, `not_equals` and `not_null` field operations.
+    * **Deprecation** Passing `time_quantum` to indexes. Use `time_quantum` of individual frames instead.
+
 * **v0.8.0** (2017-11-16):
     * Added TLS support. In order to activate it, prefix the server address with `https://`.
 
