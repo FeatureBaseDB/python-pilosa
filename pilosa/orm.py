@@ -128,12 +128,13 @@ class Schema:
 
         :param str name: index name
         :param str column_label: a valid column label. This field is deprecated and will be removed in a future release.
-        :param pilosa.TimeQuantum time_quantum: Sets the time quantum
+        :param pilosa.TimeQuantum time_quantum: Sets the time quantum. This field is deprecated and will be removed in a future release.
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
         * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
         * ``column_label` field is deprecated.
+        (( ``time_quantum`` field is deprecated.
         """
         index = self._indexes.get(name)
         if index is None:
@@ -666,6 +667,33 @@ class _RangeField:
         :rtype: PQLQuery
         """
         return self._binary_operation(">=", n)
+
+    def equals(self, n):
+        """Creates a Range query with equals (==) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation("==", n)
+
+    def not_equals(self, n):
+        """Creates a Range query with not equals (!=) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation("!=", n)
+
+    def not_null(self):
+        """Creates a Range query with not null (!= null) condition.
+
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        q = u"Range(frame='%s', %s != null)" % (self.frame_name, self.name)
+        return PQLQuery(q, self.index)
 
     def between(self, a, b):
         """Creates a Range query with between (><) condition.
