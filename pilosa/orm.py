@@ -36,7 +36,7 @@ import json
 from .exceptions import PilosaError, ValidationError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
-__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField")
+__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField", "RangeField", "Frame")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -133,8 +133,8 @@ class Schema:
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
         * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
-        * ``column_label` field is deprecated.
-        (( ``time_quantum`` field is deprecated.
+        * ``column_label`` field is deprecated.
+        * ``time_quantum`` field is deprecated.
         """
         index = self._indexes.get(name)
         if index is None:
@@ -547,12 +547,12 @@ class Frame:
 
         :param name: field name
         :return: _RangeField object
-        :rtype: _RangeField
+        :rtype: RangeField
         """
         field = self.range_fields.get(name)
         if not field:
             validate_label(name)
-            field = _RangeField(self, name)
+            field = RangeField(self, name)
             self.range_fields[name] = field
         return field
 
@@ -625,7 +625,7 @@ class IntField:
         })
 
 
-class _RangeField:
+class RangeField:
 
     def __init__(self, frame, name):
         self.frame_name = frame.name
