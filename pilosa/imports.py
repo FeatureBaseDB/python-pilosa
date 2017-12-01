@@ -36,6 +36,8 @@ from collections import namedtuple
 
 from pilosa.exceptions import PilosaError
 
+__all__ = ("Bit", "csv_bit_reader")
+
 Bit = namedtuple("Bit", "row_id column_id timestamp")
 
 
