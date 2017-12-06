@@ -12,6 +12,9 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **v0.8.2** (2017-12-06):
+    * This release fixes the PyPI page of this library. Otherwise, it's the same as v0.8.1. 
+
 * **v0.8.1** (2017-12-06):
     * Added `equals`, `not_equals` and `not_null` field operations.
     * **Deprecation** Passing `time_quantum` to indexes. Use `time_quantum` of individual frames instead.
