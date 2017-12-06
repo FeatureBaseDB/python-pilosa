@@ -12,7 +12,7 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **Next**
+* **v0.8.1** (2017-12-06):
     * Added `equals`, `not_equals` and `not_null` field operations.
     * **Deprecation** Passing `time_quantum` to indexes. Use `time_quantum` of individual frames instead.
 
