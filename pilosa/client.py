@@ -193,21 +193,10 @@ class Client(object):
         nodes = status.get("Nodes")
         schema = Schema()
         for index_info in nodes[0].get("Indexes", []):
-            meta = index_info["Meta"]
-            options = {
-                "column_label": meta["ColumnLabel"],
-                "time_quantum": TimeQuantum(meta.get("TimeQuantum", TimeQuantum.NONE)),
-            }
+            options = decode_index_meta_options(index_info)
             index = schema.index(index_info["Name"], **options)
             for frame_info in index_info.get("Frames", []):
-                meta = frame_info["Meta"]
-                options = {
-                    "row_label": meta["RowLabel"],
-                    "cache_size": meta["CacheSize"],
-                    "cache_type": CacheType(meta["CacheType"]),
-                    "inverse_enabled": meta.get("InverseEnabled", False),
-                    "time_quantum": TimeQuantum(meta.get("TimeQuantum", TimeQuantum.NONE)),
-                }
+                options = decode_frame_meta_options(frame_info)
                 index.frame(frame_info["Name"], **options)
 
         return schema
@@ -352,6 +341,25 @@ class Client(object):
     __RECOGNIZED_ERRORS = {
         "index already exists\n": IndexExistsError,
         "frame already exists\n": FrameExistsError,
+    }
+
+
+def decode_index_meta_options(index_info):
+    meta = index_info.get("Meta", {})
+    return {
+        "column_label": meta.get("ColumnLabel", "columnID"),
+        "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+    }
+
+
+def decode_frame_meta_options(frame_info):
+    meta = frame_info.get("Meta", {})
+    return {
+        "row_label": meta.get("RowLabel", "rowID"),
+        "cache_size": meta.get("CacheSize", 50000),
+        "cache_type": CacheType(meta.get("CacheType", "")),
+        "inverse_enabled": meta.get("InverseEnabled", False),
+        "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
     }
 
 
