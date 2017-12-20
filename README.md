@@ -1,6 +1,6 @@
 # Python Client for Pilosa
 
-<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.7.0-blue.svg"></a>
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.8.0-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 <a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
@@ -12,7 +12,14 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **Next**:
+* **v0.8.2** (2017-12-06):
+    * This release fixes the PyPI page of this library. Otherwise, it's the same as v0.8.1. 
+
+* **v0.8.1** (2017-12-06):
+    * Added `equals`, `not_equals` and `not_null` field operations.
+    * **Deprecation** Passing `time_quantum` to indexes. Use `time_quantum` of individual frames instead.
+
+* **v0.8.0** (2017-11-16):
     * Added TLS support. In order to activate it, prefix the server address with `https://`.
     * IPv6 support.
     

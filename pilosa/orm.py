@@ -36,7 +36,7 @@ import json
 from .exceptions import PilosaError, ValidationError
 from .validator import validate_index_name, validate_frame_name, validate_label
 
-__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField")
+__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField", "RangeField", "Frame")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -128,12 +128,13 @@ class Schema:
 
         :param str name: index name
         :param str column_label: a valid column label. This field is deprecated and will be removed in a future release.
-        :param pilosa.TimeQuantum time_quantum: Sets the time quantum
+        :param pilosa.TimeQuantum time_quantum: Sets the time quantum. This field is deprecated and will be removed in a future release.
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
         * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
-        * ``column_label` field is deprecated.
+        * ``column_label`` field is deprecated.
+        * ``time_quantum`` field is deprecated.
         """
         index = self._indexes.get(name)
         if index is None:
@@ -546,12 +547,12 @@ class Frame:
 
         :param name: field name
         :return: _RangeField object
-        :rtype: _RangeField
+        :rtype: RangeField
         """
         field = self.range_fields.get(name)
         if not field:
             validate_label(name)
-            field = _RangeField(self, name)
+            field = RangeField(self, name)
             self.range_fields[name] = field
         return field
 
@@ -624,7 +625,7 @@ class IntField:
         })
 
 
-class _RangeField:
+class RangeField:
 
     def __init__(self, frame, name):
         self.frame_name = frame.name
@@ -666,6 +667,33 @@ class _RangeField:
         :rtype: PQLQuery
         """
         return self._binary_operation(">=", n)
+
+    def equals(self, n):
+        """Creates a Range query with equals (==) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation("==", n)
+
+    def not_equals(self, n):
+        """Creates a Range query with not equals (!=) condition.
+
+        :param n: The value to compare
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._binary_operation("!=", n)
+
+    def not_null(self):
+        """Creates a Range query with not null (!= null) condition.
+
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        q = u"Range(frame='%s', %s != null)" % (self.frame_name, self.name)
+        return PQLQuery(q, self.index)
 
     def between(self, a, b):
         """Creates a Range query with between (><) condition.
