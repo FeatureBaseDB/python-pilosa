@@ -706,14 +706,15 @@ class RangeField:
         q = u"Range(frame='%s', %s >< [%d,%d])" % (self.frame_name, self.name, a, b)
         return PQLQuery(q, self.index)
 
-    def sum(self, bitmap):
+    def sum(self, bitmap=None):
         """Creates a Sum query.
 
         :param bitmap: The bitmap query to use.
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"Sum(%s, frame='%s', field='%s')" % (bitmap.serialize(), self.frame_name, self.name)
+        bitmap_str = "%s, " % bitmap.serialize() if bitmap else ""
+        q = u"Sum(%sframe='%s', field='%s')" % (bitmap_str, self.frame_name, self.name)
         return PQLQuery(q, self.index)
 
     def set_value(self, column_id, value):
