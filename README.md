@@ -464,6 +464,30 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 ```
 
+## SSL/TLS
+
+Make sure the Pilosa server runs on a TLS address. [How To Set Up a Secure Cluster](https://www.pilosa.com/docs/latest/tutorials/#how-to-set-up-a-secure-cluster) tutorial explains how to do that.
+
+In order to enable TLS support on the client side, scheme of the address should be `https` which should be explicitly specified, e.g.: `https://01.pilosa.local:10501`
+  
+If you are using a self signed certificate, just pass `tls_skip_verify=True` to the `pilosa.Client` constructor: 
+```python
+client = pilosa.Client("https://01.pilosa.local:10501", tls_skip_verify=True)
+```
+
+Otherwise, pass the path to server's TLS certificate in `tls_ca_certificate_path`:
+```python
+certificate_path = "/home/ubuntu/pilosa-tls-tutorial/pilosa.local.crt"
+client = pilosa.Client("https://01.pilosa.local:10501", tls_ca_certificate_path=certificate_path)
+```
+
+If the certificate was signed by an authority which is not recognized by your operating system, you may have to pass the certificate key too. In that case, pass a tuple containing paths of both the certificate and key in `tls_ca_certificate_path`:  
+```python
+certificate_path = "/home/ubuntu/pilosa-tls-tutorial/pilosa.local.crt"
+key_path= "/home/ubuntu/pilosa-tls-tutorial/pilosa.local.key"
+client = pilosa.Client("https://01.pilosa.local:10501", tls_ca_certificate_path=(certificate_path, key_path))
+```
+
 ## Contribution
 
 Please check our [Contributor's Guidelines](https://github.com/pilosa/pilosa/CONTRIBUTING.md).
