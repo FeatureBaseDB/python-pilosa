@@ -128,14 +128,8 @@ for result in response.results:
 `schema.index` method is used to create an index object. Note that this does not create an index on the server; the index object simply defines the schema.
 
 ```python
-schema = Schema()
+schema = pilosa.Schema()
 repository = schema.index("repository")
-```
-
-Indexes support changing the time quantum (*resolution*). You can pass these additional arguments to the `Index` constructor:
-
-```python
-repository = schema.index("repository", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
 ```
 
 Frames are created with a call to `index.frame` method:
@@ -158,7 +152,7 @@ Once you have indexes and frame objects created, you can create queries for them
 For instance, `Bitmap` queries work on rows; use a frame object to create those queries:
 
 ```python
-bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='stargazer', row=1)
+bitmap_query = stargazer.bitmap(1)  # corresponds to PQL: Bitmap(frame='stargazer', row=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
@@ -171,9 +165,8 @@ In order to increase throughput, you may want to batch queries sent to the Pilos
 
 ```python
 query = repository.batch_query(
-    stargazer.bitmap(1, 100),
-    repository.union(stargazer.bitmap(100, 200), stargazer.bitmap(5, 100))
-)
+    stargazer.bitmap(1),
+    repository.union(stargazer.bitmap(100), stargazer.bitmap(5)))
 ```
 
 The recommended way of creating query objects is, using dedicated methods attached to index and frame objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
@@ -187,8 +180,8 @@ This client supports [Range encoded fields](https://www.pilosa.com/docs/latest/q
 In order to use range encoded fields, a frame should be created with one or more integer fields. Each field should have their minimums and maximums set. Here's how you would do that using this library:
 ```python
 index = schema.index("animals")
-frame = index.frame("traits", fields=[IntField.int("bar", min=-1, max=1)])
-client.syncSchema(schema)
+frame = index.frame("traits", fields=[pilosa.IntField.int("captivity", min=0, max=956)])
+client.sync_schema(schema)
 ```
 
 If the frame with the necessary field already exists on the server, you don't need to create the field instance, `client.syncSchema(schema)` would load that to `schema`. You can then add some data:
@@ -196,7 +189,7 @@ If the frame with the necessary field already exists on the server, you don't ne
 # Add the captivity values to the field.
 captivity = frame.field("captivity")
 data = [3, 392, 47, 956, 219, 14, 47, 504, 21, 0, 123, 318]
-query = index.batchQuery()
+query = index.batch_query()
 for i, x in enumerate(data):
     column = i + 1
     query.add(captivity.set_value(column, x))
