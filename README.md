@@ -210,7 +210,7 @@ print(response.result.sum)
 It's possible to pass a bitmap query to `sum`, so only columns where a row is set are filtered in:
 ```python
 # Let's run a few setbit queries first
-client.query(index.batchQuery(
+client.query(index.batch_query(
     frame.setbit(42, 1),
     frame.setbit(42, 6)
 ))
@@ -282,7 +282,7 @@ uri1 = pilosa.URI()
 uri2 = pilosa.URI.address("db1.pilosa.com:20202")
 
 # create a URI with the given host and port
-URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202)
+uri3 = pilosa.URI(host="db1.pilosa.com", port=20202)
 ``` 
 
 ### Pilosa Client
@@ -322,7 +322,7 @@ client = pilosa.Client(cluster,
     socket_timeout=10000,  # if no response received in 10 seconds, close the connection
     pool_size_per_route=3,  # number of connections in the pool per host
     pool_size_total=50,  # total number of connections in the pool
-    rety_count=5,  # number of retries before failing the request
+    retry_count=5,  # number of retries before failing the request
 )
 ```
 
@@ -331,14 +331,11 @@ Once you create a client, you can create indexes, frames and start sending queri
 Here is how you would create a index and frame:
 
 ```python
-# materialize repository index instance initialized before
-client.create_index(repository)
-
-# materialize stargazer frame instance initialized before
-client.create_frame(stargazer)
+schema = client.schema()
+index = schema.index("repository")
+frame = index.frame("stargazer")
+client.sync_schema(schema)
 ```
-
-If the index or frame exists on the server, you will receive a `PilosaError`. You can use `ensure_index` and `ensure_frame` methods to ignore existing indexes and frames.
 
 You can send queries to a Pilosa server using the `query` method of client objects:
 
@@ -367,7 +364,6 @@ response = client.query(frame.bitmap(5))
 result = response.result
 if result:
     # act on the result
-}
 
 # iterate on all results
 for result in response.results:
@@ -394,13 +390,14 @@ for column in response.columns:
 * `count` attribute to retrieve the number of rows per the given row ID returned from `count` queries.
 
 ```python
-bitmap = response.bitmap
+result = response.result
+bitmap = result.bitmap
 bits = bitmap.bits
 attributes = bitmap.attributes
 
-count_items = response.count_items
+count_items = result.count_items
 
-count = response.count
+count = result.count
 ```
 
 ## Importing Data
@@ -439,11 +436,11 @@ text = u"""
     10,10485760,683793385        
 """
 reader = csv_bit_reader(StringIO(text))
-index = pilosa.Index("sample-index")
-frame = index.frame("sample-frame")
 client = pilosa.Client()
-client.ensure_index(index)
-client.ensure_frame(frame)
+schema = client.schema()
+index = schema.index("sample-index")
+frame = index.frame("sample-frame")
+client.sync_schema(schema)
 client.import_frame(frame, reader)
 ```
 
