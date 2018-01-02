@@ -113,9 +113,8 @@ class Client(object):
         :rtype: pilosa.Response
         """
         request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
-        data = bytearray(request.to_protobuf())
         path = "/index/%s/query" % query.index.name
-        response = self.__http_request("POST", path, data=data, client_response=Client.__RAW_RESPONSE)
+        response = self.__http_request("POST", path, data=request.to_protobuf(), client_response=Client.__RAW_RESPONSE)
         query_response = QueryResponse._from_protobuf(response.data)
         if query_response.error_message:
             raise PilosaError(query_response.error_message)
@@ -282,6 +281,8 @@ class Client(object):
     def __http_request(self, method, path, data=None, headers=None, client_response=0):
         if not self.__client:
             self.__connect()
+        if data:
+            data = bytearray(data)
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
