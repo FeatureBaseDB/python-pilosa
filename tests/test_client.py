@@ -229,9 +229,8 @@ class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
         qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True)
-        bin = qr.to_protobuf()
+        bin = qr.to_protobuf(False)  # do not return a bytearray
         self.assertTrue(bin is not None)
-
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
         self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
