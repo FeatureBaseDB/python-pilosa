@@ -34,6 +34,7 @@
 import json
 import logging
 import re
+import sys
 import threading
 
 import urllib3
@@ -49,6 +50,7 @@ __all__ = ("Client", "Cluster", "URI")
 
 _LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
+_IS_PY2 = sys.version_info.major == 2
 
 
 class Client(object):
@@ -517,7 +519,10 @@ class _QueryRequest:
         qr.ColumnAttrs = self.columns
         qr.ExcludeBits = self.exclude_bits
         qr.ExcludeAttrs = self.exclude_attrs
-        return bytearray(qr.SerializeToString())
+        if _IS_PY2:
+            return bytearray(qr.SerializeToString())
+        else:
+            return bytes(qr.SerializeToString())
 
 
 class _ImportRequest:
@@ -540,5 +545,7 @@ class _ImportRequest:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)
-        return bytearray(import_request.SerializeToString())
-
+        if _IS_PY2:
+            return bytearray(import_request.SerializeToString())
+        else:
+            return bytes(import_request.SerializeToString())
