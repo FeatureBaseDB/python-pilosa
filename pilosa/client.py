@@ -281,8 +281,6 @@ class Client(object):
     def __http_request(self, method, path, data=None, headers=None, client_response=0):
         if not self.__client:
             self.__connect()
-        if data:
-            data = bytearray(data)
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
@@ -519,7 +517,7 @@ class _QueryRequest:
         qr.ColumnAttrs = self.columns
         qr.ExcludeBits = self.exclude_bits
         qr.ExcludeAttrs = self.exclude_attrs
-        return qr.SerializeToString()
+        return bytearray(qr.SerializeToString())
 
 
 class _ImportRequest:
@@ -542,5 +540,5 @@ class _ImportRequest:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)
-        return import_request.SerializeToString()
+        return bytearray(import_request.SerializeToString())
 
