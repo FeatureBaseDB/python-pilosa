@@ -182,21 +182,18 @@ class Client(object):
         except FrameExistsError:
             pass
 
-    def status(self):
-        response = self.__http_request("GET", "/status",
+    def _read_schema(self):
+        response = self.__http_request("GET", "/schema",
                                        client_response=Client.__ERROR_CHECKED_RESPONSE)
-        return json.loads(response.data.decode('utf-8'))["status"]
+        return json.loads(response.data.decode('utf-8')).get("indexes", [])
 
     def schema(self):
-        status = self.status()
-        nodes = status.get("Nodes")
         schema = Schema()
-        for index_info in nodes[0].get("Indexes", []):
-            options = decode_index_meta_options(index_info)
-            index = schema.index(index_info["Name"], **options)
-            for frame_info in index_info.get("Frames", []):
+        for index_info in self._read_schema():
+            index = schema.index(index_info["name"])
+            for frame_info in index_info.get("frames") or []:
                 options = decode_frame_meta_options(frame_info)
-                index.frame(frame_info["Name"], **options)
+                index.frame(frame_info["name"], **options)
 
         return schema
 
@@ -255,6 +252,7 @@ class Client(object):
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         for node in nodes:
+            node = node["uri"]
             client_params={
                 "tls_skip_verify": self.tls_skip_verify,
                 "tls_ca_certificate_path": self.tls_ca_certificate_path,
@@ -345,22 +343,14 @@ class Client(object):
     }
 
 
-def decode_index_meta_options(index_info):
-    meta = index_info.get("Meta", {})
-    return {
-        "column_label": meta.get("ColumnLabel", "columnID"),
-        "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
-    }
-
-
 def decode_frame_meta_options(frame_info):
-    meta = frame_info.get("Meta", {})
+    meta = frame_info.get("options", {})
     return {
-        "row_label": meta.get("RowLabel", "rowID"),
-        "cache_size": meta.get("CacheSize", 50000),
-        "cache_type": CacheType(meta.get("CacheType", "")),
-        "inverse_enabled": meta.get("InverseEnabled", False),
-        "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
+        "row_label": meta.get("rowLabel", "rowID"),
+        "cache_size": meta.get("cacheSize", 50000),
+        "cache_type": CacheType(meta.get("cacheType", "")),
+        "inverse_enabled": meta.get("inverseEnabled", False),
+        "time_quantum": TimeQuantum(meta.get("timeQuantum", "")),
     }
 
 

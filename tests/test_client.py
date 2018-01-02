@@ -37,7 +37,7 @@ import unittest
 import pilosa.internal.public_pb2 as internal
 from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
-    decode_index_meta_options, decode_frame_meta_options
+    decode_frame_meta_options
 from pilosa.exceptions import PilosaURIError, PilosaError
 
 logger = logging.getLogger(__name__)
@@ -57,15 +57,6 @@ class ClientTestCase(unittest.TestCase):
         self.assertEquals(URI.address(":20000"), c.cluster.hosts[0][0])
         # create with invalid type
         self.assertRaises(PilosaError, Client, 15000)
-
-    def test_decode_index_meta_options(self):
-        index_info = {}
-        options = decode_index_meta_options(index_info)
-        target = {
-            "column_label": "columnID",
-            "time_quantum": TimeQuantum.NONE
-        }
-        self.assertEquals(target, options)
 
     def test_decode_frame_meta_options(self):
         frame_info = {}
