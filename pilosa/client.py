@@ -521,8 +521,7 @@ class _QueryRequest:
         qr.ExcludeAttrs = self.exclude_attrs
         if _IS_PY2:
             return bytearray(qr.SerializeToString())
-        else:
-            return bytes(qr.SerializeToString())
+        return qr.SerializeToString()
 
 
 class _ImportRequest:
@@ -547,5 +546,4 @@ class _ImportRequest:
             timestamps.append(bit.timestamp)
         if _IS_PY2:
             return bytearray(import_request.SerializeToString())
-        else:
-            return bytes(import_request.SerializeToString())
+        return import_request.SerializeToString()
