@@ -156,6 +156,17 @@ class URITestCase(unittest.TestCase):
         uri = URI.address("https://pilosa.com:1337")
         self.assertEquals("<URI https://pilosa.com:1337>", repr(uri))
 
+    def test_check_server_version(self):
+        # Mostly for coverage
+        client = Client()
+        # Falsy version
+        client._check_server_version("")
+        # Invalid version
+        client._check_server_version("v0")
+        client._check_server_version("v0.8.0-127-g2772daa")
+        client._check_server_version("v0.9.0-127-g2772daa")
+        client._check_server_version("v0.9.0")
+
     def compare(self, uri, scheme, host, port):
         self.assertEquals(scheme, uri.scheme)
         self.assertEquals(host, uri.host)

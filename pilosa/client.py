@@ -49,6 +49,7 @@ __all__ = ("Client", "Cluster", "URI")
 
 _LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
+_PILOSA_MIN_VERSION = ">=0.9.0"
 
 
 class Client(object):
@@ -264,7 +265,7 @@ class Client(object):
     def _fetch_fragment_nodes(self, index_name, slice):
         path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
         response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
-        content = response.data.decode('utf-8')
+        content = response.data.decode("utf-8")
         return json.loads(content)
 
     def _import_node(self, import_request):
@@ -275,6 +276,29 @@ class Client(object):
         path = "/index/%s/time-quantum" % index.name
         data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
         self.__http_request("PATCH", path, data=data)
+
+    def _server_version(self):
+        path = "/version"
+        response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
+        content = json.loads(response.data.decode("utf-8"))
+        return content.get("version", "")
+
+    def _check_server_version(self, version):
+        import semver
+        if not version:
+            _LOGGER.warning("Pilosa server version is not available")
+            return
+        if version.startswith("v"):
+            version = version[1:]
+        _LOGGER.info("Pilosa server version: %s", version)
+        try:
+            if not semver.match(version, _PILOSA_MIN_VERSION):
+                _LOGGER.warning("Pilosa server's version is %s, "
+                                "does not meet the minimum required for this version of the client: %s",
+                                version, _PILOSA_MIN_VERSION)
+        except ValueError:
+            _LOGGER.warning("Invalid Pilosa server version: %s or minimum server version: %s",
+                            version, _PILOSA_MIN_VERSION)
 
     def __http_request(self, method, path, data=None, headers=None, client_response=0):
         if not self.__client:
@@ -336,6 +360,8 @@ class Client(object):
 
         client = urllib3.PoolManager(**client_options)
         self.__client = client
+        self._check_server_version(self._server_version()
+)
 
     __RECOGNIZED_ERRORS = {
         "index already exists\n": IndexExistsError,

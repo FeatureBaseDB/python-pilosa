@@ -304,6 +304,9 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
+    def test_version(self):
+        version = self.get_client()._server_version()
+        self.assertTrue(version)
 
     @classmethod
     def random_index_name(cls):
