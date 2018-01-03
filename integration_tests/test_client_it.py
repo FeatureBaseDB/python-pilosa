@@ -217,6 +217,21 @@ class ClientIT(unittest.TestCase):
         self.assertEqual(3, len(response.results))
         self.assertEqual(target, [result.bitmap.bits[0] for result in response.results])
 
+    def test_csv_import2(self):
+        # Checks against encoding errors on Python 2.x
+        text = u"""
+            1,10,683793200
+            5,20,683793300
+            3,41,683793385        
+            10,10485760,683793385        
+        """
+        reader = csv_bit_reader(StringIO(text))
+        client = self.get_client()
+        schema = client.schema()
+        frame = self.db.frame("importframe")
+        client.sync_schema(schema)
+        client.import_frame(frame, reader)
+
     def test_schema(self):
         client = self.get_client()
         schema = client.schema()

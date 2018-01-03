@@ -34,6 +34,7 @@
 import json
 import logging
 import re
+import sys
 import threading
 
 import urllib3
@@ -49,6 +50,7 @@ __all__ = ("Client", "Cluster", "URI")
 
 _LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
+_IS_PY2 = sys.version_info.major == 2
 
 
 class Client(object):
@@ -113,9 +115,8 @@ class Client(object):
         :rtype: pilosa.Response
         """
         request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
-        data = bytearray(request.to_protobuf())
         path = "/index/%s/query" % query.index.name
-        response = self.__http_request("POST", path, data=data, client_response=Client.__RAW_RESPONSE)
+        response = self.__http_request("POST", path, data=request.to_protobuf(), client_response=Client.__RAW_RESPONSE)
         query_response = QueryResponse._from_protobuf(response.data)
         if query_response.error_message:
             raise PilosaError(query_response.error_message)
@@ -512,12 +513,14 @@ class _QueryRequest:
         self.exclude_bits = exclude_bits
         self.exclude_attrs = exclude_attrs
 
-    def to_protobuf(self):
+    def to_protobuf(self, return_bytearray=_IS_PY2):
         qr = internal.QueryRequest()
         qr.Query = self.query
         qr.ColumnAttrs = self.columns
         qr.ExcludeBits = self.exclude_bits
         qr.ExcludeAttrs = self.exclude_attrs
+        if return_bytearray:
+            return bytearray(qr.SerializeToString())
         return qr.SerializeToString()
 
 
@@ -529,7 +532,7 @@ class _ImportRequest:
         self.slice = slice
         self.bits = bits
 
-    def to_protobuf(self):
+    def to_protobuf(self, return_bytearray=_IS_PY2):
         import_request = internal.ImportRequest()
         import_request.Index = self.index_name
         import_request.Frame = self.frame_name
@@ -541,5 +544,6 @@ class _ImportRequest:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)
+        if return_bytearray:
+            return bytearray(import_request.SerializeToString())
         return import_request.SerializeToString()
-
