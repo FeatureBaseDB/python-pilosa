@@ -131,14 +131,8 @@ for result in response.results:
 `schema.index` method is used to create an index object. Note that this does not create an index on the server; the index object simply defines the schema.
 
 ```python
-schema = Schema()
+schema = pilosa.Schema()
 repository = schema.index("repository")
-```
-
-Indexes support changing the time quantum (*resolution*). You can pass these additional arguments to the `Index` constructor:
-
-```python
-repository = schema.index("repository", time_quantum=pilosa.TimeQuantum.YEAR_MONTH)
 ```
 
 Frames are created with a call to `index.frame` method:
@@ -161,7 +155,7 @@ Once you have indexes and frame objects created, you can create queries for them
 For instance, `Bitmap` queries work on rows; use a frame object to create those queries:
 
 ```python
-bitmap_query = stargazer.bitmap(1, 100)  # corresponds to PQL: Bitmap(frame='stargazer', row=1)
+bitmap_query = stargazer.bitmap(1)  # corresponds to PQL: Bitmap(frame='stargazer', row=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
@@ -174,9 +168,8 @@ In order to increase throughput, you may want to batch queries sent to the Pilos
 
 ```python
 query = repository.batch_query(
-    stargazer.bitmap(1, 100),
-    repository.union(stargazer.bitmap(100, 200), stargazer.bitmap(5, 100))
-)
+    stargazer.bitmap(1),
+    repository.union(stargazer.bitmap(100), stargazer.bitmap(5)))
 ```
 
 The recommended way of creating query objects is, using dedicated methods attached to index and frame objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
@@ -190,8 +183,8 @@ This client supports [Range encoded fields](https://www.pilosa.com/docs/latest/q
 In order to use range encoded fields, a frame should be created with one or more integer fields. Each field should have their minimums and maximums set. Here's how you would do that using this library:
 ```python
 index = schema.index("animals")
-frame = index.frame("traits", fields=[IntField.int("bar", min=-1, max=1)])
-client.syncSchema(schema)
+frame = index.frame("traits", fields=[pilosa.IntField.int("captivity", min=0, max=956)])
+client.sync_schema(schema)
 ```
 
 If the frame with the necessary field already exists on the server, you don't need to create the field instance, `client.syncSchema(schema)` would load that to `schema`. You can then add some data:
@@ -199,7 +192,7 @@ If the frame with the necessary field already exists on the server, you don't ne
 # Add the captivity values to the field.
 captivity = frame.field("captivity")
 data = [3, 392, 47, 956, 219, 14, 47, 504, 21, 0, 123, 318]
-query = index.batchQuery()
+query = index.batch_query()
 for i, x in enumerate(data):
     column = i + 1
     query.add(captivity.set_value(column, x))
@@ -220,7 +213,7 @@ print(response.result.sum)
 It's possible to pass a bitmap query to `sum`, so only columns where a row is set are filtered in:
 ```python
 # Let's run a few setbit queries first
-client.query(index.batchQuery(
+client.query(index.batch_query(
     frame.setbit(42, 1),
     frame.setbit(42, 6)
 ))
@@ -292,7 +285,7 @@ uri1 = pilosa.URI()
 uri2 = pilosa.URI.address("db1.pilosa.com:20202")
 
 # create a URI with the given host and port
-URI uri3 = pilosa.URI(host="db1.pilosa.com", port=20202)
+uri3 = pilosa.URI(host="db1.pilosa.com", port=20202)
 ``` 
 
 ### Pilosa Client
@@ -332,7 +325,7 @@ client = pilosa.Client(cluster,
     socket_timeout=10000,  # if no response received in 10 seconds, close the connection
     pool_size_per_route=3,  # number of connections in the pool per host
     pool_size_total=50,  # total number of connections in the pool
-    rety_count=5,  # number of retries before failing the request
+    retry_count=5,  # number of retries before failing the request
 )
 ```
 
@@ -341,14 +334,11 @@ Once you create a client, you can create indexes, frames and start sending queri
 Here is how you would create a index and frame:
 
 ```python
-# materialize repository index instance initialized before
-client.create_index(repository)
-
-# materialize stargazer frame instance initialized before
-client.create_frame(stargazer)
+schema = client.schema()
+index = schema.index("repository")
+frame = index.frame("stargazer")
+client.sync_schema(schema)
 ```
-
-If the index or frame exists on the server, you will receive a `PilosaError`. You can use `ensure_index` and `ensure_frame` methods to ignore existing indexes and frames.
 
 You can send queries to a Pilosa server using the `query` method of client objects:
 
@@ -377,7 +367,6 @@ response = client.query(frame.bitmap(5))
 result = response.result
 if result:
     # act on the result
-}
 
 # iterate on all results
 for result in response.results:
@@ -404,13 +393,14 @@ for column in response.columns:
 * `count` attribute to retrieve the number of rows per the given row ID returned from `count` queries.
 
 ```python
-bitmap = response.bitmap
+result = response.result
+bitmap = result.bitmap
 bits = bitmap.bits
 attributes = bitmap.attributes
 
-count_items = response.count_items
+count_items = result.count_items
 
-count = response.count
+count = result.count
 ```
 
 ## Importing Data
@@ -449,11 +439,11 @@ text = u"""
     10,10485760,683793385        
 """
 reader = csv_bit_reader(StringIO(text))
-index = pilosa.Index("sample-index")
-frame = index.frame("sample-frame")
 client = pilosa.Client()
-client.ensure_index(index)
-client.ensure_frame(frame)
+schema = client.schema()
+index = schema.index("sample-index")
+frame = index.frame("sample-frame")
+client.sync_schema(schema)
 client.import_frame(frame, reader)
 ```
 
