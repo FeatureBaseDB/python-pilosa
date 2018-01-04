@@ -34,6 +34,7 @@
 import json
 import logging
 import re
+import sys
 import threading
 
 import urllib3
@@ -50,6 +51,7 @@ __all__ = ("Client", "Cluster", "URI")
 _LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
 _PILOSA_MIN_VERSION = ">=0.9.0"
+_IS_PY2 = sys.version_info.major == 2
 
 
 class Client(object):
@@ -303,8 +305,6 @@ class Client(object):
     def __http_request(self, method, path, data=None, headers=None, client_response=0):
         if not self.__client:
             self.__connect()
-        if data:
-            data = bytearray(data)
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
@@ -529,12 +529,14 @@ class _QueryRequest:
         self.exclude_bits = exclude_bits
         self.exclude_attrs = exclude_attrs
 
-    def to_protobuf(self):
+    def to_protobuf(self, return_bytearray=_IS_PY2):
         qr = internal.QueryRequest()
         qr.Query = self.query
         qr.ColumnAttrs = self.columns
         qr.ExcludeBits = self.exclude_bits
         qr.ExcludeAttrs = self.exclude_attrs
+        if return_bytearray:
+            return bytearray(qr.SerializeToString())
         return qr.SerializeToString()
 
 
@@ -546,7 +548,7 @@ class _ImportRequest:
         self.slice = slice
         self.bits = bits
 
-    def to_protobuf(self):
+    def to_protobuf(self, return_bytearray=_IS_PY2):
         import_request = internal.ImportRequest()
         import_request.Index = self.index_name
         import_request.Frame = self.frame_name
@@ -558,5 +560,6 @@ class _ImportRequest:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)
+        if return_bytearray:
+            return bytearray(import_request.SerializeToString())
         return import_request.SerializeToString()
-
