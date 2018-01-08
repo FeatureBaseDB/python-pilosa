@@ -121,14 +121,12 @@ class Schema:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def index(self, name, column_label="columnID", time_quantum=TimeQuantum.NONE):
+    def index(self, name):
         """Returns an index object with the given name and options.
 
         If the index didn't exist in the schema, it is added to the schema.
 
         :param str name: index name
-        :param str column_label: a valid column label. This field is deprecated and will be removed in a future release.
-        :param pilosa.TimeQuantum time_quantum: Sets the time quantum. This field is deprecated and will be removed in a future release.
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
@@ -138,7 +136,7 @@ class Schema:
         """
         index = self._indexes.get(name)
         if index is None:
-            index = Index(name, column_label, time_quantum)
+            index = Index(name)
             self._indexes[name] = index
         return index
 
@@ -168,19 +166,14 @@ class Index:
     You cannot perform cross-index queries. Column-level attributes are global to the Index.
     
     :param str name: index name
-    :param str column_label: a valid column label
-    :param pilosa.TimeQuantum time_quantum: Sets the time quantum
 
     * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
     """
 
-    def __init__(self, name, column_label="columnID", time_quantum=TimeQuantum.NONE):
+    def __init__(self, name):
         validate_index_name(name)
-        validate_label(column_label)
         self.name = name
-        self.column_label = column_label
-        self.time_quantum = time_quantum
         self._frames = {}
 
     def __eq__(self, other):
@@ -195,22 +188,19 @@ class Index:
         return not self.__eq__(other)
 
     def _meta_eq(self, other):
-        return self.name == other.name and \
-               self.column_label == other.column_label and \
-               self.time_quantum == other.time_quantum
+        return self.name == other.name
 
     def copy(self, frames=True):
-        index = Index(self.name, column_label=self.column_label, time_quantum=self.time_quantum)
+        index = Index(self.name)
         if frames:
             index._frames = dict((name, frame.copy()) for name, frame in self._frames.items())
         return index
 
-    def frame(self, name, row_label="rowID", time_quantum=TimeQuantum.NONE,
+    def frame(self, name, time_quantum=TimeQuantum.NONE,
               inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0, fields=None):
         """Creates a frame object with the specified name and defaults.
         
         :param str name: frame name
-        :param str row_label: a valid row label. This field is deprecated and will be removed in a future release.
         :param pilosa.TimeQuantum time_quantum: Sets the time quantum for the frame. If a Frame has a time quantum, then Views are generated for each of the defined time segments.
         :param bool inverse_enabled:
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
@@ -218,12 +208,10 @@ class Index:
         :param list(IntField) fields: List of ``IntField`` objects. E.g.: ``[IntField.int("rate", 0, 100)]``
         :return: Pilosa frame
         :rtype: pilosa.Frame
-
-        * ``row_label`` field is deprecated.
         """
         frame = self._frames.get(name)
         if frame is None:
-            frame = Frame(self, name, row_label, time_quantum,
+            frame = Frame(self, name, time_quantum,
                           inverse_enabled, cache_type, cache_size, fields or [])
             self._frames[name] = frame
         return frame
@@ -331,8 +319,8 @@ class Index:
         :rtype: pilosa.PQLQuery        
         """
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(u"SetColumnAttrs(%s=%d, %s)" %
-                        (self.column_label, column_id, attrs_str), self)
+        return PQLQuery(u"SetColumnAttrs(columnID=%d, %s)" %
+                        (column_id, attrs_str), self)
 
     def _bitmap_op(self, name, bitmaps):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in bitmaps)), self)
@@ -350,18 +338,15 @@ class Frame:
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
     """
 
-    def __init__(self, index, name, row_label, time_quantum, inverse_enabled,
+    def __init__(self, index, name, time_quantum, inverse_enabled,
                  cache_type, cache_size, fields):
         validate_frame_name(name)
-        validate_label(row_label)
         self.index = index
         self.name = name
         self.time_quantum = time_quantum
         self.inverse_enabled = inverse_enabled
         self.cache_type = cache_type
         self.cache_size = cache_size
-        self.row_label = row_label
-        self.column_label = index.column_label
         self.fields = fields
         self.range_fields = {}
 
@@ -375,7 +360,6 @@ class Frame:
         # in order to avoid a call cycle
         return self.name == other.name and \
                self.index._meta_eq(other.index) and \
-               self.row_label == other.row_label and \
                self.time_quantum == other.time_quantum and \
                self.inverse_enabled == other.inverse_enabled and \
                self.cache_type == other.cache_type and \
@@ -386,7 +370,7 @@ class Frame:
         return not self.__eq__(other)
 
     def copy(self):
-        return Frame(self.index, self.name, self.row_label, self.time_quantum,
+        return Frame(self.index, self.name, self.time_quantum,
                      self.inverse_enabled, self.cache_type, self.cache_size, self.fields)
 
     def bitmap(self, row_id):
@@ -400,7 +384,7 @@ class Frame:
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         """
-        return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.row_label, row_id, self.name),
+        return PQLQuery(u"Bitmap(rowID=%d, frame='%s')" % (row_id, self.name),
                         self.index)
 
     def inverse_bitmap(self, column_id):
@@ -414,7 +398,7 @@ class Frame:
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         """
-        return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.column_label, column_id, self.name),
+        return PQLQuery(u"Bitmap(columnID=%d, frame='%s')" % (column_id, self.name),
                         self.index)
 
     def setbit(self, row_id, column_id, timestamp=None):
@@ -429,9 +413,8 @@ class Frame:
         :rtype: pilosa.PQLQuery
         """
         ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
-        return PQLQuery(u"SetBit(%s=%d, frame='%s', %s=%d%s)" % \
-                        (self.row_label, row_id, self.name, self.column_label, column_id, ts),
-                        self.index)
+        return PQLQuery(u"SetBit(rowID=%d, frame='%s', columnID=%d%s)" % \
+                        (row_id, self.name, column_id, ts), self.index)
 
     def clearbit(self, row_id, column_id):
         """Creates a ClearBit query.
@@ -443,9 +426,8 @@ class Frame:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        return PQLQuery(u"ClearBit(%s=%d, frame='%s', %s=%d)" % \
-                        (self.row_label, row_id, self.name, self.column_label, column_id),
-                        self.index)
+        return PQLQuery(u"ClearBit(rowID=%d, frame='%s', columnID=%d)" % \
+                        (row_id, self.name, column_id), self.index)
 
     def topn(self, n, bitmap=None, field="", *values):
         """Creates a TopN query.
@@ -499,7 +481,7 @@ class Frame:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range(self.row_label, row_id, start, end)
+        return self._range("rowID", row_id, start, end)
 
     def inverse_range(self, column_id, start, end):
         """Creates a Range query.
@@ -511,7 +493,7 @@ class Frame:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range(self.column_label, column_id, start, end)
+        return self._range("columnID", column_id, start, end)
 
     def _range(self, label, rowcol_id, start, end):
         start_str = start.strftime(_TIME_FORMAT)
@@ -538,9 +520,8 @@ class Frame:
         :rtype: pilosa.PQLQuery        
         """
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(u"SetRowAttrs(%s=%d, frame='%s', %s)" %
-                        (self.row_label, row_id, self.name, attrs_str),
-                        self.index)
+        return PQLQuery(u"SetRowAttrs(rowID=%d, frame='%s', %s)" %
+                        (row_id, self.name, attrs_str), self.index)
 
     def field(self, name):
         """Returns a _RangeField object with the given name.
@@ -557,7 +538,7 @@ class Frame:
         return field
 
     def _get_options_string(self):
-        data = {"rowLabel": self.row_label}
+        data = {}
         if self.inverse_enabled:
             data["inverseEnabled"] = True
         if self.time_quantum != TimeQuantum.NONE:
@@ -725,8 +706,8 @@ class RangeField:
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"SetFieldValue(frame='%s', %s=%d, %s=%d)" % \
-            (self.frame_name, self.index.column_label, column_id, self.name, value)
+        q = u"SetFieldValue(frame='%s', columnID=%d, %s=%d)" % \
+            (self.frame_name, column_id, self.name, value)
         return PQLQuery(q, self.index)
 
     def _binary_operation(self, op, n):

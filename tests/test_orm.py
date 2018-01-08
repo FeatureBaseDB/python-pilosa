@@ -40,8 +40,8 @@ from pilosa.orm import Schema
 schema = Schema()
 sampleIndex = schema.index("sample-db")
 sampleFrame = sampleIndex.frame("sample-frame")
-projectIndex = schema.index("project-db", column_label="user")
-collabFrame = projectIndex.frame("collaboration", row_label="project")
+projectIndex = schema.index("project-db")
+collabFrame = projectIndex.frame("collaboration")
 
 
 class SchemaTestCase(unittest.TestCase):
@@ -82,17 +82,11 @@ class IndexTestCase(unittest.TestCase):
     def test_create_index(self):
         index = schema.index("sample-index")
         self.assertEqual("sample-index", index.name)
-        self.assertEqual("columnID", index.column_label)
-        self.assertEqual(TimeQuantum.NONE, index.time_quantum)
         index2 = schema.index("sample-index")
         self.assertEqual(index, index2)
 
-        index = schema.index("sample-index2",
-                             column_label="col_id",
-                             time_quantum=TimeQuantum.YEAR_MONTH)
+        index = schema.index("sample-index2")
         self.assertEqual("sample-index2", index.name)
-        self.assertEqual("col_id", index.column_label)
-        self.assertEqual(TimeQuantum.YEAR_MONTH, index.time_quantum)
 
     def test_same_equals(self):
         self.assertEqual(projectIndex, projectIndex)
@@ -125,7 +119,7 @@ class IndexTestCase(unittest.TestCase):
 
         q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=2, frame='collaboration'))",
             q3.serialize())
 
     def test_intersect(self):
@@ -146,7 +140,7 @@ class IndexTestCase(unittest.TestCase):
 
         q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=2, frame='collaboration'))",
             q3.serialize())
 
     def test_difference(self):
@@ -167,7 +161,7 @@ class IndexTestCase(unittest.TestCase):
 
         q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=2, frame='collaboration'))",
             q3.serialize())
 
     def test_xor(self):
@@ -200,7 +194,7 @@ class IndexTestCase(unittest.TestCase):
         b = collabFrame.bitmap(42)
         q = projectIndex.count(b)
         self.assertEquals(
-            "Count(Bitmap(project=42, frame='collaboration'))",
+            "Count(Bitmap(rowID=42, frame='collaboration'))",
             q.serialize())
 
     def test_set_column_attributes(self):
@@ -210,7 +204,7 @@ class IndexTestCase(unittest.TestCase):
         }
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            "SetColumnAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetColumnAttrs(columnID=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_column_attributes_invalid_values(self):
@@ -228,7 +222,6 @@ class FrameTestCase(unittest.TestCase):
         frame = db.frame("sample-frame")
         self.assertEqual(db, frame.index)
         self.assertEqual("sample-frame", frame.name)
-        self.assertEqual("rowID", frame.row_label)
         self.assertEqual(TimeQuantum.NONE, frame.time_quantum)
 
     def test_same_equals(self):
@@ -246,14 +239,14 @@ class FrameTestCase(unittest.TestCase):
 
         qry2 = collabFrame.bitmap(10)
         self.assertEquals(
-            "Bitmap(project=10, frame='collaboration')",
+            "Bitmap(rowID=10, frame='collaboration')",
             qry2.serialize())
 
     def test_inverse_bitmap(self):
-        f1 = projectIndex.frame("f1-inversable", row_label="row_label", inverse_enabled=True)
+        f1 = projectIndex.frame("f1-inversable", inverse_enabled=True)
         qry = f1.inverse_bitmap(5)
         self.assertEquals(
-            "Bitmap(user=5, frame='f1-inversable')",
+            "Bitmap(columnID=5, frame='f1-inversable')",
             qry.serialize()
         )
 
@@ -265,7 +258,7 @@ class FrameTestCase(unittest.TestCase):
 
         qry2 = collabFrame.setbit(10, 20)
         self.assertEquals(
-            "SetBit(project=10, frame='collaboration', user=20)",
+            "SetBit(rowID=10, frame='collaboration', columnID=20)",
 
             qry2.serialize())
 
@@ -273,7 +266,7 @@ class FrameTestCase(unittest.TestCase):
         timestamp = datetime(2017, 4, 24, 12, 14)
         qry = collabFrame.setbit(10, 20, timestamp)
         self.assertEquals(
-            "SetBit(project=10, frame='collaboration', user=20, timestamp='2017-04-24T12:14')",
+            "SetBit(rowID=10, frame='collaboration', columnID=20, timestamp='2017-04-24T12:14')",
             qry.serialize()
         )
 
@@ -285,7 +278,7 @@ class FrameTestCase(unittest.TestCase):
 
         qry2 = collabFrame.clearbit(10, 20)
         self.assertEquals(
-            "ClearBit(project=10, frame='collaboration', user=20)",
+            "ClearBit(rowID=10, frame='collaboration', columnID=20)",
             qry2.serialize())
 
     def test_topn(self):
@@ -296,17 +289,17 @@ class FrameTestCase(unittest.TestCase):
 
         q2 = sampleFrame.topn(10, collabFrame.bitmap(3))
         self.assertEquals(
-            u"TopN(Bitmap(project=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
+            u"TopN(Bitmap(rowID=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
             q2.serialize())
 
         q3 = sampleFrame.topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', filters=[80,81])",
+            "TopN(Bitmap(rowID=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', filters=[80,81])",
             q3.serialize())
 
         q4 = sampleFrame.inverse_topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', filters=[80,81])",
+            "TopN(Bitmap(rowID=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', filters=[80,81])",
             q4.serialize())
 
     def test_range(self):
@@ -314,11 +307,11 @@ class FrameTestCase(unittest.TestCase):
         end = datetime(2000, 2, 2, 3, 4)
         q1 = collabFrame.range(10, start, end)
         self.assertEquals(
-            "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            "Range(rowID=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q1.serialize())
         q2 = collabFrame.inverse_range(10, start, end)
         self.assertEquals(
-            "Range(user=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            "Range(columnID=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q2.serialize())
 
     def test_set_row_attributes(self):
@@ -328,7 +321,7 @@ class FrameTestCase(unittest.TestCase):
         }
         q = collabFrame.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetRowAttrs(rowID=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_field(self):
@@ -408,7 +401,7 @@ class FrameTestCase(unittest.TestCase):
                                   cache_type=CacheType.RANKED,
                                   cache_size=1000,
                                   fields=[IntField.int("foo"), IntField.int("bar", min=-1, max=1)])
-        target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "fields": [{"max": 100, "min": 0, "name": "foo", "type": "int"}, {"max": 1, "min": -1, "name": "bar", "type": "int"}], "inverseEnabled": true, "rangeEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
+        target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "fields": [{"max": 100, "min": 0, "name": "foo", "type": "int"}, {"max": 1, "min": -1, "name": "bar", "type": "int"}], "inverseEnabled": true, "rangeEnabled": true, "timeQuantum": "DH"}}'
         self.assertEquals(target, frame._get_options_string())
 
 

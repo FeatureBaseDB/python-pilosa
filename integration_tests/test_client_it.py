@@ -57,22 +57,16 @@ class ClientIT(unittest.TestCase):
         client.create_frame(self.db.frame("count-test"))
         client.create_frame(self.db.frame("topn_test"))
 
-        self.col_db = Index(self.db.name + "-opts", column_label="user")
+        self.col_db = Index(self.db.name + "-opts")
         client.create_index(self.col_db)
 
-        self.frame = self.col_db.frame("collab", row_label="project")
+        self.frame = self.col_db.frame("collab")
         client.create_frame(self.frame)
 
     def tearDown(self):
         client = self.get_client()
         client.delete_index(self.db)
         client.delete_index(self.col_db)
-
-    def test_create_index_with_time_quantum(self):
-        db = Index("db-with-timequantum", time_quantum=TimeQuantum.YEAR)
-        client = self.get_client()
-        client.ensure_index(db)
-        client.delete_index(db)
 
     def test_create_frame_with_time_quantum(self):
         frame = self.db.frame("frame-with-timequantum", time_quantum=TimeQuantum.YEAR)

@@ -129,13 +129,8 @@ class Client(object):
         :param pilosa.Index index:
         :raises pilosa.IndexExistsError: if there already is a index with the given name
         """
-        data = json.dumps({
-            "options": {"columnLabel": index.column_label}
-        })
         path = "/index/%s" % index.name
-        self.__http_request("POST", path, data=data)
-        if index.time_quantum != TimeQuantum.NONE:
-            self.__patch_index_time_quantum(index)
+        self.__http_request("POST", path)
 
     def delete_index(self, index):
         """Deletes the given index on the server.
@@ -274,11 +269,6 @@ class Client(object):
         data = import_request.to_protobuf()
         self.__http_request("POST", "/import", data=data, client_response=Client.__RAW_RESPONSE)
 
-    def __patch_index_time_quantum(self, index):
-        path = "/index/%s/time-quantum" % index.name
-        data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
-        self.__http_request("PATCH", path, data=data)
-
     def _server_version(self):
         path = "/version"
         response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
@@ -372,7 +362,6 @@ class Client(object):
 def decode_frame_meta_options(frame_info):
     meta = frame_info.get("options", {})
     return {
-        "row_label": meta.get("rowLabel", "rowID"),
         "cache_size": meta.get("cacheSize", 50000),
         "cache_type": CacheType(meta.get("cacheType", "")),
         "inverse_enabled": meta.get("inverseEnabled", False),
