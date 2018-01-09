@@ -83,7 +83,7 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_skip_verify=False, tls_ca_certificate_path=""):
+                 tls_skip_verify=False, tls_ca_certificate_path="", skip_version_check=False):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -102,6 +102,7 @@ class Client(object):
         self.retry_count = retry_count
         self.tls_skip_verify = tls_skip_verify
         self.tls_ca_certificate_path = tls_ca_certificate_path
+        self.skip_version_check = skip_version_check
         self.__current_host = None
         self.__client = None
 
@@ -117,11 +118,11 @@ class Client(object):
         """
         request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
         path = "/index/%s/query" % query.index.name
-        response = self.__http_request("POST", path, data=request.to_protobuf(), client_response=Client.__RAW_RESPONSE)
-        query_response = QueryResponse._from_protobuf(response.data)
-        if query_response.error_message:
-            raise PilosaError(query_response.error_message)
-        return query_response
+        try:
+            response = self.__http_request("POST", path, data=request.to_protobuf())
+            return QueryResponse._from_protobuf(response.data)
+        except PilosaServerError as e:
+            raise PilosaError(e.content)
 
     def create_index(self, index):
         """Creates an index on the server using the given Index object.
@@ -130,7 +131,12 @@ class Client(object):
         :raises pilosa.IndexExistsError: if there already is a index with the given name
         """
         path = "/index/%s" % index.name
-        self.__http_request("POST", path)
+        try:
+            self.__http_request("POST", path)
+        except PilosaServerError as e:
+            if e.response.status == 409:
+                raise IndexExistsError
+            raise
 
     def delete_index(self, index):
         """Deletes the given index on the server.
@@ -149,7 +155,13 @@ class Client(object):
         """
         data = frame._get_options_string()
         path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
-        self.__http_request("POST", path, data=data)
+        try:
+            self.__http_request("POST", path, data=data)
+        except PilosaServerError as e:
+            if e.response.status == 409:
+                raise FrameExistsError
+            raise
+
 
     def delete_frame(self, frame):
         """Deletes the given frame on the server.
@@ -181,9 +193,8 @@ class Client(object):
             pass
 
     def _read_schema(self):
-        response = self.__http_request("GET", "/schema",
-                                       client_response=Client.__ERROR_CHECKED_RESPONSE)
-        return json.loads(response.data.decode('utf-8')).get("indexes", [])
+        response = self.__http_request("GET", "/schema")
+        return json.loads(response.data.decode('utf-8')).get("indexes") or []
 
     def schema(self):
         schema = Schema()
@@ -242,8 +253,7 @@ class Client(object):
         :return HTTP response:
 
         """
-        return self.__http_request(method, path, data=data, headers=headers,
-                                   client_response=Client.__RAW_RESPONSE)
+        return self.__http_request(method, path, data=data, headers=headers)
 
     def _import_bits(self, index_name, frame_name, slice, bits):
         # sort by row_id then by column_id
@@ -261,17 +271,17 @@ class Client(object):
 
     def _fetch_fragment_nodes(self, index_name, slice):
         path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
-        response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
+        response = self.__http_request("GET", path)
         content = response.data.decode("utf-8")
         return json.loads(content)
 
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
-        self.__http_request("POST", "/import", data=data, client_response=Client.__RAW_RESPONSE)
+        self.__http_request("POST", "/import", data=data)
 
     def _server_version(self):
         path = "/version"
-        response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
+        response = self.__http_request("GET", path)
         content = json.loads(response.data.decode("utf-8"))
         return content.get("version", "")
 
@@ -292,15 +302,14 @@ class Client(object):
             _LOGGER.warning("Invalid Pilosa server version: %s or minimum server version: %s",
                             version, _PILOSA_MIN_VERSION)
 
-    def __http_request(self, method, path, data=None, headers=None, client_response=0):
+    def __http_request(self, method, path, data=None, headers=None):
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
             try:
-                _LOGGER.debug("Request: %s %s %s", method, uri,
-                              "[binary]" if client_response == Client.__RAW_RESPONSE else data)
+                _LOGGER.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
@@ -310,16 +319,9 @@ class Client(object):
         else:
             raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
 
-        if client_response == Client.__RAW_RESPONSE:
-            return response
-
         if 200 <= response.status < 300:
-            return None if client_response == Client.__NO_RESPONSE else response
-        content = response.data.decode('utf-8')
-        ex = self.__RECOGNIZED_ERRORS.get(content)
-        if ex is not None:
-            raise ex
-        raise PilosaError("Server error (%d): %s" % (response.status, content))
+            return response
+        raise PilosaServerError(response)
 
     def __get_address(self):
         if self.__current_host is None:
@@ -350,13 +352,9 @@ class Client(object):
 
         client = urllib3.PoolManager(**client_options)
         self.__client = client
-        self._check_server_version(self._server_version()
+        if not self.skip_version_check:
+            self._check_server_version(self._server_version()
 )
-
-    __RECOGNIZED_ERRORS = {
-        "index already exists\n": IndexExistsError,
-        "frame already exists\n": FrameExistsError,
-    }
 
 
 def decode_frame_meta_options(frame_info):
@@ -552,3 +550,11 @@ class _ImportRequest:
         if return_bytearray:
             return bytearray(import_request.SerializeToString())
         return import_request.SerializeToString()
+
+
+class PilosaServerError(PilosaError):
+
+    def __init__(self, response):
+        self.response = response
+        self.content = response.data.decode('utf-8')
+        super(Exception, PilosaServerError).__init__(self, u"Server error (%d): %s" % (response.status, self.content))

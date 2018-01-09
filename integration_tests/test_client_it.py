@@ -30,15 +30,17 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 # DAMAGE.
 #
-
+import threading
 import unittest
+from wsgiref.simple_server import make_server
+from wsgiref.util import setup_testing_defaults
 
 try:
     from io import StringIO
 except ImportError:
     from StringIO import StringIO
 
-from pilosa.client import Client, URI, Cluster
+from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum, Schema, IntField
 from pilosa.imports import csv_bit_reader
@@ -49,44 +51,42 @@ class ClientIT(unittest.TestCase):
     counter = 0
 
     def setUp(self):
-        self.db = Index(self.random_index_name())
+        schema = Schema()
+        self.index = schema.index(self.random_index_name())
         client = self.get_client()
-        client.create_index(self.db)
-        client.create_frame(self.db.frame("another-frame"))
-        client.create_frame(self.db.frame("test"))
-        client.create_frame(self.db.frame("count-test"))
-        client.create_frame(self.db.frame("topn_test"))
+        self.index.frame("another-frame")
+        self.index.frame("test")
+        self.index.frame("count-test")
+        self.index.frame("topn_test")
 
-        self.col_db = Index(self.db.name + "-opts")
-        client.create_index(self.col_db)
-
-        self.frame = self.col_db.frame("collab")
-        client.create_frame(self.frame)
+        self.col_index = schema.index(self.index.name + "-opts")
+        self.frame = self.col_index.frame("collab")
+        client.sync_schema(schema)
 
     def tearDown(self):
         client = self.get_client()
-        client.delete_index(self.db)
-        client.delete_index(self.col_db)
+        client.delete_index(self.index)
+        client.delete_index(self.col_index)
 
     def test_create_frame_with_time_quantum(self):
-        frame = self.db.frame("frame-with-timequantum", time_quantum=TimeQuantum.YEAR)
+        frame = self.index.frame("frame-with-timequantum", time_quantum=TimeQuantum.YEAR)
         client = self.get_client()
         client.ensure_frame(frame)
 
     def test_query(self):
         client = self.get_client()
-        frame = self.db.frame("query-test")
+        frame = self.index.frame("query-test")
         client.ensure_frame(frame)
         response = client.query(frame.setbit(555, 10))
         self.assertTrue(response.result is not None)
 
     def test_query_with_columns(self):
         client = self.get_client()
-        frame = self.db.frame("query-test")
+        frame = self.index.frame("query-test")
         client.ensure_frame(frame)
         client.query(frame.setbit(100, 1000))
         column_attrs = {"name": "bombo"}
-        client.query(self.db.set_column_attrs(1000, column_attrs))
+        client.query(self.index.set_column_attrs(1000, column_attrs))
         response = client.query(frame.bitmap(100), columns=True)
         self.assertTrue(response is not None)
         self.assertEquals(1000, response.column.id)
@@ -101,19 +101,19 @@ class ClientIT(unittest.TestCase):
 
     def test_parse_error(self):
         client = self.get_client()
-        q = self.db.raw_query("SetBit(id=5, frame=\"test\", col_id:=10)")
+        q = self.index.raw_query("SetBit(id=5, frame=\"test\", col_id:=10)")
         self.assertRaises(PilosaError, client.query, q)
 
     def test_orm_count(self):
         client = self.get_client()
-        count_frame = self.db.frame("count-test")
+        count_frame = self.index.frame("count-test")
         client.ensure_frame(count_frame)
-        qry = self.db.batch_query(
+        qry = self.index.batch_query(
             count_frame.setbit(10, 20),
             count_frame.setbit(10, 21),
             count_frame.setbit(15, 25))
         client.query(qry)
-        response = client.query(self.db.count(count_frame.bitmap(10)))
+        response = client.query(self.index.count(count_frame.bitmap(10)))
         self.assertEquals(2, response.result.count)
 
     def test_new_orm(self):
@@ -127,7 +127,7 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(20, bitmap1.bits[0])
 
         column_attrs = {"name": "bombo"}
-        client.query(self.col_db.set_column_attrs(20, column_attrs))
+        client.query(self.col_index.set_column_attrs(20, column_attrs))
         response2 = client.query(self.frame.bitmap(10), columns=True)
         column = response2.column
         self.assertTrue(column is not None)
@@ -151,8 +151,8 @@ class ClientIT(unittest.TestCase):
 
     def test_topn(self):
         client = self.get_client()
-        frame = self.db.frame("topn_test")
-        client.query(self.db.batch_query(
+        frame = self.index.frame("topn_test")
+        client.query(self.index.batch_query(
             frame.setbit(10, 5),
             frame.setbit(10, 10),
             frame.setbit(10, 15),
@@ -169,15 +169,15 @@ class ClientIT(unittest.TestCase):
 
     def test_ensure_index_exists(self):
         client = self.get_client()
-        db = Index(self.db.name + "-ensure")
-        client.ensure_index(db)
-        client.create_frame(db.frame("frm"))
-        client.ensure_index(db)
-        client.delete_index(db)
+        index = Index(self.index.name + "-ensure")
+        client.ensure_index(index)
+        client.create_frame(index.frame("frm"))
+        client.ensure_index(index)
+        client.delete_index(index)
 
     def test_delete_frame(self):
         client = self.get_client()
-        frame = self.db.frame("to-delete")
+        frame = self.index.frame("to-delete")
         client.ensure_frame(frame)
         client.delete_frame(frame)
         # the following should succeed
@@ -187,7 +187,7 @@ class ClientIT(unittest.TestCase):
         client = self.get_client()
         index = Index("non-existing-database")
         frame = index.frame("frm")
-        self.assertRaises(PilosaError, client.create_frame, frame)
+        self.assertRaises(PilosaServerError, client.create_frame, frame)
 
     def test_csv_import(self):
         client = self.get_client()
@@ -198,10 +198,10 @@ class ClientIT(unittest.TestCase):
             7, 1
         """
         reader = csv_bit_reader(StringIO(text))
-        frame = self.db.frame("importframe")
+        frame = self.index.frame("importframe")
         client.ensure_frame(frame)
         client.import_frame(frame, reader)
-        bq = self.db.batch_query(
+        bq = self.index.batch_query(
             frame.bitmap(2),
             frame.bitmap(7),
             frame.bitmap(10),
@@ -222,7 +222,7 @@ class ClientIT(unittest.TestCase):
         reader = csv_bit_reader(StringIO(text))
         client = self.get_client()
         schema = client.schema()
-        frame = self.db.frame("importframe")
+        frame = schema.index(self.index.name).frame("importframe")
         client.sync_schema(schema)
         client.import_frame(frame, reader)
 
@@ -247,6 +247,15 @@ class ClientIT(unittest.TestCase):
             client.ensure_index(remote_index)
             client.ensure_frame(remote_frame)
             client.sync_schema(schema1)
+            # check that the schema was created
+            schema2 = client.schema()
+            self.assertTrue("remote-index-1" in schema2._indexes)
+            self.assertTrue("remote-frame-1" in schema2.index("remote-index-1")._frames)
+            self.assertTrue("diff-index1" in schema2._indexes)
+            self.assertTrue("frame1-1" in schema2.index("diff-index1")._frames)
+            self.assertTrue("frame1-2" in schema2.index("diff-index1")._frames)
+            self.assertTrue("diff-index2" in schema2._indexes)
+            self.assertTrue("frame2-1" in schema2.index("diff-index2")._frames)
         finally:
             try:
                 client.delete_index(remote_index)
@@ -262,9 +271,9 @@ class ClientIT(unittest.TestCase):
 
     def test_range_frame(self):
         client = self.get_client()
-        frame = self.col_db.frame("rangeframe", fields=[IntField.int("foo", 10, 20)])
+        frame = self.col_index.frame("rangeframe", fields=[IntField.int("foo", 10, 20)])
         client.ensure_frame(frame)
-        client.query(self.col_db.batch_query(
+        client.query(self.col_index.batch_query(
             frame.setbit(1, 10),
             frame.setbit(1, 100),
             frame.field("foo").set_value(10, 11),
@@ -280,7 +289,7 @@ class ClientIT(unittest.TestCase):
 
     def test_exclude_attrs_bits(self):
         client = self.get_client()
-        client.query(self.col_db.batch_query(
+        client.query(self.col_index.batch_query(
             self.frame.setbit(1, 100),
             self.frame.set_row_attrs(1, {"foo": "bar"})
         ))
@@ -302,10 +311,17 @@ class ClientIT(unittest.TestCase):
         version = self.get_client()._server_version()
         self.assertTrue(version)
 
+    def test_create_index_fail(self):
+        server = MockServer(404)
+        with server:
+            client = Client(server.uri, skip_version_check=True)
+            self.assertRaises(PilosaServerError, client.create_index, self.index)
+
+
     @classmethod
     def random_index_name(cls):
         cls.counter += 1
-        return "testdb-%d" % cls.counter
+        return "testidx-%d" % cls.counter
 
     @classmethod
     def get_client(cls):
@@ -314,3 +330,45 @@ class ClientIT(unittest.TestCase):
         if not server_address:
             server_address = "http://:10101"
         return Client(server_address, tls_skip_verify=True)
+
+
+class MockServer(threading.Thread):
+
+    def __init__(self, status=200, headers=None, content=""):
+        super(MockServer, self).__init__()
+        self.stop_event = threading.Event()
+        self.status = "%s STATUS" % status
+        self.headers = headers or []
+        self.content = content
+        self.thread = None
+        self.host = "localhost"
+        self.port = 15000
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._stop()
+
+    def _stop(self):
+        self.stop_event.set()
+
+    def _stopped(self):
+        return self.stop_event.is_set()
+
+    def _app(self):
+        def app(env, start_response):
+            setup_testing_defaults(env)
+            start_response(self.status, self.headers)
+            return self.content
+        return app
+
+    @property
+    def uri(self):
+        return URI(host=self.host, port=self.port)
+
+    def run(self):
+        server = make_server(self.host, self.port, self._app())
+        while not self._stopped():
+            server.handle_request()
+

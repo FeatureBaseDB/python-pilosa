@@ -131,8 +131,6 @@ class Schema:
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
         * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
-        * ``column_label`` field is deprecated.
-        * ``time_quantum`` field is deprecated.
         """
         index = self._indexes.get(name)
         if index is None:
