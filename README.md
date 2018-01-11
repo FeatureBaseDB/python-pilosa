@@ -478,6 +478,14 @@ key_path= "/home/ubuntu/pilosa-tls-tutorial/pilosa.local.key"
 client = pilosa.Client("https://01.pilosa.local:10501", tls_ca_certificate_path=(certificate_path, key_path))
 ```
 
+## Diagnostics
+
+This library sends client library version, Python version and OS platform name (e.g., linux amd64) to the Pilosa server in the HTTP user agent header. This information allow us to understand our community better. Below is a sample user agent header:
+```
+User-Agent: python-pilosa/0.8.0 python3.6.3 linux/x86_64
+```
+
+
 ## Contribution
 
 Please check our [Contributor's Guidelines](https://github.com/pilosa/pilosa/CONTRIBUTING.md).

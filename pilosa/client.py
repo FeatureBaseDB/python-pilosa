@@ -33,6 +33,7 @@
 
 import json
 import logging
+import platform
 import re
 import sys
 import threading
@@ -320,7 +321,7 @@ class Client(object):
         headers = {
             'Content-Type': 'application/x-protobuf',
             'Accept': 'application/x-protobuf',
-            'User-Agent': 'python-pilosa/' + VERSION,
+            'User-Agent': 'python-pilosa/%s %s %s/%s' % (VERSION, platform.python_version(), platform.system().lower(), platform.machine()),
         }
 
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
