@@ -480,9 +480,9 @@ client = pilosa.Client("https://01.pilosa.local:10501", tls_ca_certificate_path=
 
 ## Diagnostics
 
-This library sends client library version, Python version and OS platform name (e.g., linux amd64) to the Pilosa server in the HTTP user agent header. This information allow us to understand our community better. Below is a sample user agent header:
+This library sends client library version to the Pilosa server in the HTTP user agent header. This information allows us to understand our community better. Below is a sample user agent header:
 ```
-User-Agent: python-pilosa/0.8.0 python3.6.3 linux/x86_64
+User-Agent: python-pilosa/0.8.0
 ```
 
 
