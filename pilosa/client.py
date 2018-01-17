@@ -320,7 +320,7 @@ class Client(object):
         headers = {
             'Content-Type': 'application/x-protobuf',
             'Accept': 'application/x-protobuf',
-            'User-Agent': 'python-pilosa/' + VERSION,
+            'User-Agent': 'python-pilosa/%s' % VERSION,
         }
 
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
