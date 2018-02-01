@@ -40,6 +40,12 @@ __all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQ
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
+# Python 2-3 compatibility
+try:
+  _basestring = basestring
+except NameError:
+  _basestring = str
+
 
 class TimeQuantum:
     """Valid time quantum values for frames having support for that.
@@ -389,62 +395,82 @@ class Frame:
         return Frame(self.index, self.name, self.row_label, self.time_quantum,
                      self.inverse_enabled, self.cache_type, self.cache_size, self.fields)
 
-    def bitmap(self, row_id):
+    def bitmap(self, row_idkey):
         """Creates a Bitmap query.
         
         Bitmap retrieves the indices of all the set bits in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
         
         This variant of Bitmap query uses the row label.
         
-        :param int row_id:
+        :param int row_idkey:
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         """
-        return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.row_label, row_id, self.name),
+        fmt = id_key_format("Row ID/Key", row_idkey,
+                            u"Bitmap(%s=%s, frame='%s')",
+                            u"Bitmap(%s='%s', frame='%s')")
+        return PQLQuery(fmt % (self.row_label, row_idkey, self.name),
                         self.index)
 
-    def inverse_bitmap(self, column_id):
+    def inverse_bitmap(self, column_idkey):
         """Creates a Bitmap query.
 
         ``Bitmap`` retrieves the indices of all the set bits in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
 
         This variant of Bitmap query uses the column label.
 
-        :param int column_id:
+        :param int column_idkey:
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         """
-        return PQLQuery(u"Bitmap(%s=%d, frame='%s')" % (self.column_label, column_id, self.name),
+        fmt = id_key_format("Column ID/Key", column_idkey,
+                            u"Bitmap(%s=%s, frame='%s')",
+                            u"Bitmap(%s='%s', frame='%s')")
+        return PQLQuery(fmt % (self.column_label, column_idkey, self.name),
                         self.index)
 
-    def setbit(self, row_id, column_id, timestamp=None):
+    def setbit(self, row_idkey, column_idkey, timestamp=None):
         """Creates a SetBit query.
         
         ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given frame with the given column.
         
-        :param int row_id:
-        :param int column_id:
+        :param int row_idkey:
+        :param int column_idkey:
         :param pilosa.TimeStamp timestamp:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
+        if isinstance(row_idkey, int) and isinstance(column_idkey, int):
+            fmt = u"SetBit(%s=%s, frame='%s', %s=%s%s)"
+        elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
+            fmt = u"SetBit(%s='%s', frame='%s', %s='%s'%s)"
+            validate_label(row_idkey)
+            validate_label(column_idkey)
+        else:
+            raise ValidationError("Both Row and Column ID/Keys must be integers or strings")
         ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
-        return PQLQuery(u"SetBit(%s=%d, frame='%s', %s=%d%s)" % \
-                        (self.row_label, row_id, self.name, self.column_label, column_id, ts),
+        return PQLQuery(fmt % (self.row_label, row_idkey, self.name, self.column_label, column_idkey, ts),
                         self.index)
 
-    def clearbit(self, row_id, column_id):
+    def clearbit(self, row_idkey, column_idkey):
         """Creates a ClearBit query.
         
         ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given frame from the given column.
         
-        :param int row_id:
-        :param int column_id:
+        :param int row_idkey:
+        :param int column_idkey:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        return PQLQuery(u"ClearBit(%s=%d, frame='%s', %s=%d)" % \
-                        (self.row_label, row_id, self.name, self.column_label, column_id),
+        if isinstance(row_idkey, int) and isinstance(column_idkey, int):
+            fmt = u"ClearBit(%s=%s, frame='%s', %s=%s)"
+        elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
+            fmt = u"ClearBit(%s='%s', frame='%s', %s='%s')"
+            validate_label(row_idkey)
+            validate_label(column_idkey)
+        else:
+            raise ValidationError("Both Row and Column ID/Keys must be integers or strings")
+        return PQLQuery(fmt % (self.row_label, row_idkey, self.name, self.column_label, column_idkey),
                         self.index)
 
     def topn(self, n, bitmap=None, field="", *values):
@@ -488,18 +514,18 @@ class Frame:
         qry = u"TopN(%s)" % ", ".join(parts)
         return PQLQuery(qry, self.index)
 
-    def range(self, row_id, start, end):
+    def range(self, row_idkey, start, end):
         """Creates a Range query.
 
         Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
 
         * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
 
-        :param int row_id:
+        :param int row_idkey:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range(self.row_label, row_id, start, end)
+        return self._range(self.row_label, row_idkey, start, end)
 
     def inverse_range(self, column_id, start, end):
         """Creates a Range query.
@@ -513,14 +539,16 @@ class Frame:
         """
         return self._range(self.column_label, column_id, start, end)
 
-    def _range(self, label, rowcol_id, start, end):
+    def _range(self, label, row_idkey, start, end):
+        fmt = id_key_format("Row ID", row_idkey,
+                            u"Range(%s=%s, frame='%s', start='%s', end='%s')",
+                            u"Range(%s='%s', frame='%s', start='%s', end='%s')")
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        return PQLQuery(u"Range(%s=%d, frame='%s', start='%s', end='%s')" %
-                        (label, rowcol_id, self.name, start_str, end_str),
+        return PQLQuery(fmt % (label, row_idkey, self.name, start_str, end_str),
                         self.index)
 
-    def set_row_attrs(self, row_id, attrs):
+    def set_row_attrs(self, row_idkey, attrs):
         """Creates a SetRowAttrs query.
         
         ``SetRowAttrs`` associates arbitrary key/value pairs with a row in a frame.
@@ -532,14 +560,16 @@ class Frame:
         * bool
         * float
         
-        :param int row_id:
+        :param int row_idkey:
         :param dict attrs: row attributes
         :return: Pilosa query
         :rtype: pilosa.PQLQuery        
         """
+        fmt = id_key_format("Row ID", row_idkey,
+                            u"SetRowAttrs(%s=%s, frame='%s', %s)",
+                            u"SetRowAttrs(%s='%s', frame='%s', %s)")
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(u"SetRowAttrs(%s=%d, frame='%s', %s)" %
-                        (self.row_label, row_id, self.name, attrs_str),
+        return PQLQuery(fmt % (self.row_label, row_idkey, self.name, attrs_str),
                         self.index)
 
     def field(self, name):
@@ -732,3 +762,13 @@ class RangeField:
     def _binary_operation(self, op, n):
         q = u"Range(frame='%s', %s %s %d)" % (self.frame_name, self.name, op, n)
         return PQLQuery(q, self.index)
+
+
+def id_key_format(name, id_key, id_fmt, key_fmt):
+    if isinstance(id_key, int):
+        return id_fmt
+    elif isinstance(id_key, _basestring):
+        validate_label(id_key)
+        return key_fmt
+    else:
+        raise ValidationError("%s must be an integer or string" % name)

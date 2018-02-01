@@ -12,6 +12,10 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**:
+    * Pilosa Enterprise compatibility.
+    * `bitmap`, `inverse_bitmap`, `clearbit`, `range` and `set_row_attrs` methods accept string row/column keys
+
 * **v0.8.2** (2017-12-06):
     * This release fixes the PyPI page of this library. Otherwise, it's the same as v0.8.1. 
 
