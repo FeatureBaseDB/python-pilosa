@@ -262,14 +262,12 @@ class FrameTestCase(unittest.TestCase):
         qry = f1.inverse_bitmap(5)
         self.assertEquals(
             "Bitmap(user=5, frame='f1-inversable')",
-            qry.serialize()
-        )
+            qry.serialize())
 
         qry2 = f1.inverse_bitmap("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
             "Bitmap(user='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='f1-inversable')",
-            qry2.serialize()
-        )
+            qry2.serialize())
 
     def test_setbit(self):
         qry1 = sampleFrame.setbit(5, 10)
