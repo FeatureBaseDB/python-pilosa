@@ -16,7 +16,9 @@ Python client for Pilosa high performance distributed bitmap index.
     * Minimum required Pilosa server version is 9. Use an older version of the client for earlier releases of the Pilosa server.
     * **Removed** Row and column labels.
     * **Removed** Index options.
-    
+    * Pilosa Enterprise compatibility.
+    * `bitmap`, `inverse_bitmap`, `clearbit`, `range` and `set_row_attrs` methods accept string row/column keys
+
 * **v0.8.2** (2017-12-06):
     * This release fixes the PyPI page of this library. Otherwise, it's the same as v0.8.1. 
 
