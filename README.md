@@ -12,6 +12,11 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**:
+    * Minimum required Pilosa server version is 9. Use an older version of the client for earlier releases of the Pilosa server.
+    * **Removed** Row and column labels.
+    * **Removed** Index options.
+    
 * **v0.8.2** (2017-12-06):
     * This release fixes the PyPI page of this library. Otherwise, it's the same as v0.8.1. 
 
@@ -37,7 +42,7 @@ Python client for Pilosa high performance distributed bitmap index.
     * More logging.
     * Introduced schemas. No need to re-define already existing indexes and frames.
     * *make* commands are supported on Windows.
-    * * *Breaking Change*: Removed `time_quantum` query option.
+    * *Breaking Change* Removed `time_quantum` query option.
     * **Deprecation** `Index` constructor. Use `schema.index` instead.
     * **Deprecation** `client.create_index`, `client.create_frame`, `client.ensure_index`, `client.ensure_frame`. Use schemas and `client.sync_schema` instead.
     
