@@ -249,13 +249,25 @@ class FrameTestCase(unittest.TestCase):
             "Bitmap(project=10, frame='collaboration')",
             qry2.serialize())
 
+        qry3 = sampleFrame.bitmap("b7feb014-8ea7-49a8-9cd8-19709161ab63")
+        self.assertEquals(
+            "Bitmap(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame')",
+            qry3.serialize())
+
+    def test_bitmap_with_invalid_id_type(self):
+        self.assertRaises(ValidationError, sampleFrame.bitmap, {})
+
     def test_inverse_bitmap(self):
         f1 = projectIndex.frame("f1-inversable", row_label="row_label", inverse_enabled=True)
         qry = f1.inverse_bitmap(5)
         self.assertEquals(
             "Bitmap(user=5, frame='f1-inversable')",
-            qry.serialize()
-        )
+            qry.serialize())
+
+        qry2 = f1.inverse_bitmap("b7feb014-8ea7-49a8-9cd8-19709161ab63")
+        self.assertEquals(
+            "Bitmap(user='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='f1-inversable')",
+            qry2.serialize())
 
     def test_setbit(self):
         qry1 = sampleFrame.setbit(5, 10)
@@ -268,6 +280,16 @@ class FrameTestCase(unittest.TestCase):
             "SetBit(project=10, frame='collaboration', user=20)",
 
             qry2.serialize())
+
+        qry3 = sampleFrame.setbit("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        self.assertEquals(
+            "SetBit(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', columnID='some_id')",
+            qry3.serialize())
+
+    def test_setbit_with_invalid_id_type(self):
+        self.assertRaises(ValidationError, sampleFrame.setbit, {}, 1)
+        self.assertRaises(ValidationError, sampleFrame.setbit, 1, {})
+        self.assertRaises(ValidationError, sampleFrame.setbit, 1, "zero")
 
     def test_setbit_with_timestamp(self):
         timestamp = datetime(2017, 4, 24, 12, 14)
@@ -288,15 +310,25 @@ class FrameTestCase(unittest.TestCase):
             "ClearBit(project=10, frame='collaboration', user=20)",
             qry2.serialize())
 
+        qry3 = sampleFrame.clearbit("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        self.assertEquals(
+            "ClearBit(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', columnID='some_id')",
+            qry3.serialize())
+
+    def test_clearbit_with_invalid_id_type(self):
+        self.assertRaises(ValidationError, sampleFrame.clearbit, {}, 1)
+        self.assertRaises(ValidationError, sampleFrame.clearbit, 1, {})
+        self.assertRaises(ValidationError, sampleFrame.clearbit, 1, "zero")
+
     def test_topn(self):
         q1 = sampleFrame.topn(27)
         self.assertEquals(
-            u"TopN(frame='sample-frame', n=27, inverse=false)",
+            "TopN(frame='sample-frame', n=27, inverse=false)",
             q1.serialize())
 
         q2 = sampleFrame.topn(10, collabFrame.bitmap(3))
         self.assertEquals(
-            u"TopN(Bitmap(project=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
+            "TopN(Bitmap(project=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
             q2.serialize())
 
         q3 = sampleFrame.topn(12, collabFrame.bitmap(7), "category", 80, 81)
@@ -312,14 +344,21 @@ class FrameTestCase(unittest.TestCase):
     def test_range(self):
         start = datetime(1970, 1, 1, 0, 0)
         end = datetime(2000, 2, 2, 3, 4)
+
         q1 = collabFrame.range(10, start, end)
         self.assertEquals(
-            "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            u"Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q1.serialize())
+
         q2 = collabFrame.inverse_range(10, start, end)
         self.assertEquals(
-            "Range(user=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            u"Range(user=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q2.serialize())
+
+        q3 = sampleFrame.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
+        self.assertEquals(
+            u"Range(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            q3.serialize())
 
     def test_set_row_attributes(self):
         attrs_map = {
