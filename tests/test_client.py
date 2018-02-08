@@ -37,8 +37,9 @@ import unittest
 import pilosa.internal.public_pb2 as internal
 from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
-    decode_index_meta_options, decode_frame_meta_options
+    decode_frame_meta_options, _ImportRequest
 from pilosa.exceptions import PilosaURIError, PilosaError
+from pilosa.imports import Bit
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +59,10 @@ class ClientTestCase(unittest.TestCase):
         # create with invalid type
         self.assertRaises(PilosaError, Client, 15000)
 
-    def test_decode_index_meta_options(self):
-        index_info = {}
-        options = decode_index_meta_options(index_info)
-        target = {
-            "column_label": "columnID",
-            "time_quantum": TimeQuantum.NONE
-        }
-        self.assertEquals(target, options)
-
     def test_decode_frame_meta_options(self):
         frame_info = {}
         options = decode_frame_meta_options(frame_info)
         target = {
-            "row_label": "rowID",
             "cache_size": 50000,
             "cache_type": CacheType.DEFAULT,
             "inverse_enabled": False,
@@ -165,6 +156,17 @@ class URITestCase(unittest.TestCase):
         uri = URI.address("https://pilosa.com:1337")
         self.assertEquals("<URI https://pilosa.com:1337>", repr(uri))
 
+    def test_check_server_version(self):
+        # Mostly for coverage
+        client = Client()
+        # Falsy version
+        client._check_server_version("")
+        # Invalid version
+        client._check_server_version("v0")
+        client._check_server_version("v0.8.0-127-g2772daa")
+        client._check_server_version("v0.9.0-127-g2772daa")
+        client._check_server_version("v0.9.0")
+
     def compare(self, uri, scheme, host, port):
         self.assertEquals(scheme, uri.scheme)
         self.assertEquals(host, uri.host)
@@ -230,11 +232,26 @@ class QueryRequestTestCase(unittest.TestCase):
     def test_serialize(self):
         qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True)
         bin = qr.to_protobuf(False)  # do not return a bytearray
-        self.assertTrue(bin is not None)
+        self.assertIsNotNone(bin)
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
         self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.ColumnAttrs)
+
+
+class ImportRequestTestCase(unittest.TestCase):
+
+    def test_serialize(self):
+        ir = _ImportRequest("foo", "bar", 0, [Bit(row_id=1, column_id=2, timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Frame)
+        self.assertEquals([1], ir.RowIDs)
+        self.assertEquals([2], ir.ColumnIDs)
+        self.assertEquals([3], ir.Timestamps)
 
 if __name__ == '__main__':
     unittest.main()

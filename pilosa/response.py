@@ -38,19 +38,24 @@ from .internal import public_pb2 as internal
 __all__ = ("BitmapResult", "CountResultItem", "QueryResult", "ColumnItem", "QueryResponse")
 
 
+QUERYRESULT_NONE, QUERYRESULT_BITMAP, QUERYRESULT_PAIRS, \
+    QUERYRESULT_SUM_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL = range(6)
+
+
 class BitmapResult:
     """Represents a result from ``Bitmap``, ``Union``, ``Intersect``, ``Difference`` and ``Range`` PQL calls.
     
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
     """
 
-    def __init__(self, bits=None, attributes=None):
+    def __init__(self, bits=None, keys=None, attributes=None):
         self.bits = bits or []
+        self.keys = keys or []
         self.attributes = attributes or {}
 
     @classmethod
     def from_internal(cls, obj):
-        return cls(list(obj.Bits), _convert_protobuf_attrs_to_dict(obj.Attrs))
+        return cls(list(obj.Bits), obj.Keys, _convert_protobuf_attrs_to_dict(obj.Attrs))
 
 
 class CountResultItem:
@@ -59,8 +64,9 @@ class CountResultItem:
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
     """
 
-    def __init__(self, id, count):
+    def __init__(self, id, key, count):
         self.id = id
+        self.key = key
         self.count = count
 
 
@@ -70,22 +76,39 @@ class QueryResult:
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
     """
 
-    def __init__(self, bitmap=None, count_items=None, count=0, sum=0):
+    def __init__(self, bitmap=None, count_items=None, count=0, sum=0, changed=False):
         self.bitmap = bitmap or BitmapResult()
         self.count_items = count_items or []
         self.count = count
         self.sum = sum
+        self.changed = changed
 
     @classmethod
     def from_internal(cls, obj):
+        bitmap = None
         count_items = []
-        for pair in obj.Pairs:
-            count_items.append(CountResultItem(pair.Key, pair.Count))
-        count = obj.N if obj.N > 0 else obj.SumCount.Count
-        return cls(BitmapResult.from_internal(obj.Bitmap),
-                   count_items,
-                   count,
-                   obj.SumCount.Sum)
+        count = 0
+        sum = 0
+        changed = False
+
+        if obj.Type == QUERYRESULT_BITMAP:
+            bitmap = BitmapResult.from_internal(obj.Bitmap)
+        elif obj.Type == QUERYRESULT_PAIRS:
+            for pair in obj.Pairs:
+                count_items.append(CountResultItem(pair.ID, pair.Key, pair.Count))
+        elif obj.Type == QUERYRESULT_INT:
+            count = obj.N
+        elif obj.Type == QUERYRESULT_BOOL:
+            changed = obj.Changed
+        elif obj.Type == QUERYRESULT_SUM_COUNT:
+            count = obj.SumCount.Count
+            sum = obj.SumCount.Sum
+        elif obj.Type == QUERYRESULT_NONE:
+            pass
+        else:
+            raise PilosaError("Unknown type: %s" % obj.Type)
+
+        return cls(bitmap, count_items, count, sum, changed)
 
 
 class ColumnItem:
