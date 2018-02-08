@@ -204,7 +204,7 @@ class IndexTestCase(unittest.TestCase):
         }
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            "SetColumnAttrs(columnID=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u"SetColumnAttrs(columnID=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_column_attributes_invalid_values(self):

@@ -305,7 +305,7 @@ class Index:
         """
         return PQLQuery(u"Count(%s)" % bitmap.serialize(), self)
 
-    def set_column_attrs(self, column_id, attrs):
+    def set_column_attrs(self, column_idkey, attrs):
         """Creates a SetColumnAttrs query.
         
         ``SetColumnAttrs`` associates arbitrary key/value pairs with a column in an index.
@@ -317,14 +317,16 @@ class Index:
         * bool
         * float
         
-        :param int column_id:
+        :param int column_idkey:
         :param dict attrs: column attributes
         :return: Pilosa query
         :rtype: pilosa.PQLQuery        
         """
+        fmt = id_key_format("Column ID", column_idkey,
+                            u"SetColumnAttrs(columnID=%s, %s)",
+                            u"SetColumnAttrs(columnID='%s, %s)")
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(u"SetColumnAttrs(columnID=%d, %s)" %
-                        (column_id, attrs_str), self)
+        return PQLQuery(fmt % (column_idkey, attrs_str), self)
 
     def _bitmap_op(self, name, bitmaps):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in bitmaps)), self)
