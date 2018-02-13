@@ -82,7 +82,7 @@ class ValidatorTestCase(unittest.TestCase):
     ]
 
     INVALID_KEYS = [
-        '"', "'", "slice\\dice" "valid?no", "yüce", "*xyz", "with space", "<script>",
+        '"', "'", "slice\\dice", "valid?no", "yüce", "*xyz", "with space", "<script>",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
 
