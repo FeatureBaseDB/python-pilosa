@@ -34,7 +34,7 @@
 import json
 
 from .exceptions import PilosaError, ValidationError
-from .validator import validate_index_name, validate_frame_name, validate_label
+from .validator import validate_index_name, validate_frame_name, validate_label, validate_key
 
 __all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField", "RangeField", "Frame")
 
@@ -426,8 +426,8 @@ class Frame:
             fmt = u"SetBit(rowID=%s, frame='%s', columnID=%s%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
             fmt = u"SetBit(rowID='%s', frame='%s', columnID='%s'%s)"
-            validate_label(row_idkey)
-            validate_label(column_idkey)
+            validate_key(row_idkey)
+            validate_key(column_idkey)
         else:
             raise ValidationError("Both Row and Column ID/Keys must be integers or strings")
         ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
@@ -447,8 +447,8 @@ class Frame:
             fmt = u"ClearBit(rowID=%s, frame='%s', columnID=%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
             fmt = u"ClearBit(rowID='%s', frame='%s', columnID='%s')"
-            validate_label(row_idkey)
-            validate_label(column_idkey)
+            validate_key(row_idkey)
+            validate_key(column_idkey)
         else:
             raise ValidationError("Both Row and Column ID/Keys must be integers or strings")
         return PQLQuery(fmt % (row_idkey, self.name, column_idkey), self.index)
@@ -747,7 +747,7 @@ def id_key_format(name, id_key, id_fmt, key_fmt):
     if isinstance(id_key, int):
         return id_fmt
     elif isinstance(id_key, _basestring):
-        validate_label(id_key)
+        validate_key(id_key)
         return key_fmt
     else:
         raise ValidationError("%s must be an integer or string" % name)
