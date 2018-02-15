@@ -260,20 +260,24 @@ class Client(object):
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         for node in nodes:
-            node = node["uri"]
             client_params={
                 "tls_skip_verify": self.tls_skip_verify,
                 "tls_ca_certificate_path": self.tls_ca_certificate_path,
             }
-            address = "%s://%s" % (node["scheme"], node["host"])
-            client = Client(URI.address(address), **client_params)
+            client = Client(URI.address(node.url), **client_params)
             client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
 
     def _fetch_fragment_nodes(self, index_name, slice):
         path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
         response = self.__http_request("GET", path)
         content = response.data.decode("utf-8")
-        return json.loads(content)
+        node_dicts = json.loads(content)
+        nodes = []
+        for node_dict in node_dicts:
+            # NOTE: Legacy Pilosa < 0.9 doesn't have uri field
+            node_dict = node_dict["uri"] if "uri" in node_dict else node_dict
+            nodes.append(_Node(node_dict["scheme"], node_dict["host"]))
+        return nodes
 
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
@@ -558,3 +562,16 @@ class PilosaServerError(PilosaError):
         self.response = response
         self.content = response.data.decode('utf-8')
         super(Exception, PilosaServerError).__init__(self, u"Server error (%d): %s" % (response.status, self.content))
+
+
+class _Node(object):
+
+    __slots__ = "scheme", "host"
+
+    def __init__(self, scheme, host):
+        self.scheme = scheme
+        self.host = host
+
+    @property
+    def url(self):
+        return "%s://%s" % (self.scheme, self.host)

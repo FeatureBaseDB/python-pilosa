@@ -222,7 +222,7 @@ class ClientIT(unittest.TestCase):
         reader = csv_bit_reader(StringIO(text))
         client = self.get_client()
         schema = client.schema()
-        frame = schema.index(self.index.name).frame("importframe")
+        frame = schema.index(self.index.name).frame("importframe", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
         client.sync_schema(schema)
         client.import_frame(frame, reader)
 
