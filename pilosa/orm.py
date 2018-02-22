@@ -42,7 +42,8 @@ __all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery",
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 # Python 2-3 compatibility
-_basestring = __builtins__.get("basestring", str)
+# PyPy doesn't have __builtins__.get
+_basestring = globals()["__builtins__"].__dict__.get("basestring", str)
 
 
 class TimeQuantum:
