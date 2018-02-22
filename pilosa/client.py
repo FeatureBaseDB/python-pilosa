@@ -279,11 +279,17 @@ class Client(object):
         # sort by row_id then by column_id
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
+        # copy client params
+        client_params = {}
+        for k,v in self.__dict__.items():
+            # don't copy protected, private params
+            if k.startswith("_"):
+                continue
+            # don't copy these
+            if k in ["cluster", "logger"]:
+                continue
+            client_params[k] = v
         for node in nodes:
-            client_params={
-                "tls_skip_verify": self.tls_skip_verify,
-                "tls_ca_certificate_path": self.tls_ca_certificate_path,
-            }
             client = Client(URI.address(node.url), **client_params)
             client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
 
@@ -296,7 +302,7 @@ class Client(object):
         for node_dict in node_dicts:
             # NOTE: Legacy Pilosa < 0.9 doesn't have uri field
             node_dict = node_dict["uri"] if "uri" in node_dict else node_dict
-            nodes.append(_Node(node_dict["scheme"], node_dict["host"]))
+            nodes.append(_Node(node_dict["scheme"], node_dict["host"], node_dict.get("port", "")))
         return nodes
 
     def _import_node(self, import_request):
@@ -598,12 +604,16 @@ class PilosaServerError(PilosaError):
 
 class _Node(object):
 
-    __slots__ = "scheme", "host"
+    __slots__ = "scheme", "host", "port"
 
-    def __init__(self, scheme, host):
+    def __init__(self, scheme, host, port):
         self.scheme = scheme
         self.host = host
+        self.port = port
+
 
     @property
     def url(self):
+        if self.port:
+            return "%s://%s:%s" % (self.scheme, self.host, self.port)
         return "%s://%s" % (self.scheme, self.host)
