@@ -37,7 +37,7 @@ import unittest
 import pilosa.internal.public_pb2 as internal
 from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
-    decode_frame_meta_options, _ImportRequest
+    decode_frame_meta_options, _ImportRequest, _Node
 from pilosa.exceptions import PilosaURIError, PilosaError
 from pilosa.imports import Bit
 
@@ -252,6 +252,16 @@ class ImportRequestTestCase(unittest.TestCase):
         self.assertEquals([1], ir.RowIDs)
         self.assertEquals([2], ir.ColumnIDs)
         self.assertEquals([3], ir.Timestamps)
+
+
+class NodeTestCase(unittest.TestCase):
+
+    def test_node_url(self):
+        n1 = _Node("https", "foo.com", "")
+        self.assertEquals("https://foo.com", n1.url)
+        n2 = _Node("https", "foo.com", 9999)
+        self.assertEquals("https://foo.com:9999", n2.url)
+
 
 if __name__ == '__main__':
     unittest.main()

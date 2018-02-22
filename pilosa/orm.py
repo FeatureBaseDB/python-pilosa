@@ -36,15 +36,13 @@ import json
 from .exceptions import PilosaError, ValidationError
 from .validator import validate_index_name, validate_frame_name, validate_label, validate_key
 
-__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery", "PQLBatchQuery", "IntField", "RangeField", "Frame")
+__all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery",
+           "PQLBatchQuery", "IntField", "RangeField", "Frame")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 # Python 2-3 compatibility
-try:
-  _basestring = basestring
-except NameError:
-  _basestring = str
+_basestring = __builtins__.get("basestring", str)
 
 
 class TimeQuantum:
