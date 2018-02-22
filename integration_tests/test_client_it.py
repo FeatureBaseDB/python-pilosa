@@ -42,7 +42,7 @@ except ImportError:
 
 from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Index, TimeQuantum, Schema, IntField
+from pilosa.orm import Index, TimeQuantum, Schema, IntField, CacheType
 from pilosa.imports import csv_bit_reader
 
 
@@ -72,6 +72,11 @@ class ClientIT(unittest.TestCase):
         frame = self.index.frame("frame-with-timequantum", time_quantum=TimeQuantum.YEAR)
         client = self.get_client()
         client.ensure_frame(frame)
+        schema = client.schema()
+        # Check the frame time quantum
+        index = schema._indexes[self.index.name]
+        frame = index._frames["frame-with-timequantum"]
+        self.assertEquals(TimeQuantum.YEAR.value, frame.time_quantum.value)
 
     def test_query(self):
         client = self.get_client()
@@ -231,6 +236,18 @@ class ClientIT(unittest.TestCase):
         schema = client.schema()
         self.assertGreaterEqual(len(schema._indexes), 1)
         self.assertGreaterEqual(len(list(schema._indexes.values())[0]._frames), 1)
+        frame = self.index.frame("schema-test-frame",
+                                 cache_type=CacheType.LRU,
+                                 cache_size=9999,
+                                 inverse_enabled=True,
+                                 time_quantum=TimeQuantum.YEAR_MONTH_DAY)
+        client.ensure_frame(frame)
+        schema = client.schema()
+        f = schema._indexes[self.index.name]._frames["schema-test-frame"]
+        self.assertEquals(CacheType.LRU, f.cache_type)
+        self.assertEquals(9999, f.cache_size)
+        self.assertEquals(True, f.inverse_enabled)
+        self.assertEquals(TimeQuantum.YEAR_MONTH_DAY, f.time_quantum)
 
     def test_sync(self):
         client = self.get_client()

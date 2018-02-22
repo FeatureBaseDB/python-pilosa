@@ -48,7 +48,6 @@ from .version import VERSION
 
 __all__ = ("Client", "Cluster", "URI")
 
-_LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
 _PILOSA_MIN_VERSION = ">=0.9.0"
 _IS_PY2 = sys.version_info.major == 2
@@ -83,7 +82,8 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_skip_verify=False, tls_ca_certificate_path="", skip_version_check=False):
+                 tls_skip_verify=False, tls_ca_certificate_path="", skip_version_check=False,
+                 legacy_mode=False):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -103,8 +103,10 @@ class Client(object):
         self.tls_skip_verify = tls_skip_verify
         self.tls_ca_certificate_path = tls_ca_certificate_path
         self.skip_version_check = skip_version_check
+        self.legacy_mode = legacy_mode
         self.__current_host = None
         self.__client = None
+        self.logger = logging.getLogger("pilosa")
 
     def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
         """Runs the given query against the server with the given options.
@@ -196,7 +198,25 @@ class Client(object):
         response = self.__http_request("GET", "/schema")
         return json.loads(response.data.decode('utf-8')).get("indexes") or []
 
+    def _read_schema_legacy(self):
+        response = self.__http_request("GET", "/status")
+        return json.loads(response.data.decode('utf-8'))["status"]
+
+    def _schema_legacy(self):
+        status = self._read_schema_legacy()
+        nodes = status.get("Nodes")
+        schema = Schema()
+        for index_info in nodes[0].get("Indexes", []):
+            index = schema.index(index_info["Name"])
+            for frame_info in index_info.get("Frames", []):
+                options = decode_frame_meta_options_legacy(frame_info)
+                index.frame(frame_info["Name"], **options)
+
+        return schema
+
     def schema(self):
+        if self.legacy_mode:
+            return self._schema_legacy()
         schema = Schema()
         for index_info in self._read_schema():
             index = schema.index(index_info["name"])
@@ -292,19 +312,22 @@ class Client(object):
     def _check_server_version(self, version):
         import semver
         if not version:
-            _LOGGER.warning("Pilosa server version is not available")
-            return
+            self.logger.warning("Pilosa server version is not available")
+            return False
         if version.startswith("v"):
             version = version[1:]
-        _LOGGER.info("Pilosa server version: %s", version)
+        self.logger.info("Pilosa server version: %s", version)
         try:
             if not semver.match(version, _PILOSA_MIN_VERSION):
-                _LOGGER.warning("Pilosa server's version is %s, "
+                self.logger.warning("Pilosa server's version is %s, "
                                 "does not meet the minimum required for this version of the client: %s",
                                 version, _PILOSA_MIN_VERSION)
+                return False
+            return True
         except ValueError:
-            _LOGGER.warning("Invalid Pilosa server version: %s or minimum server version: %s",
+            self.logger.warning("Invalid Pilosa server version: %s or minimum server version: %s",
                             version, _PILOSA_MIN_VERSION)
+            return False
 
     def __http_request(self, method, path, data=None, headers=None):
         if not self.__client:
@@ -313,12 +336,12 @@ class Client(object):
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
             try:
-                _LOGGER.debug("Request: %s %s %s", method, uri)
+                self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
                 self.cluster.remove_host(self.__current_host)
-                _LOGGER.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
+                self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
                 self.__current_host = None
         else:
             raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
@@ -330,7 +353,7 @@ class Client(object):
     def __get_address(self):
         if self.__current_host is None:
             self.__current_host = self.cluster.get_host()
-            _LOGGER.debug("Current host set: %s", self.__current_host)
+            self.logger.debug("Current host set: %s", self.__current_host)
         return self.__current_host._normalize()
 
     def __connect(self):
@@ -357,8 +380,8 @@ class Client(object):
         client = urllib3.PoolManager(**client_options)
         self.__client = client
         if not self.skip_version_check:
-            self._check_server_version(self._server_version()
-)
+            ok = self._check_server_version(self._server_version())
+            self.legacy_mode = not ok
 
 
 def decode_frame_meta_options(frame_info):
@@ -368,6 +391,15 @@ def decode_frame_meta_options(frame_info):
         "cache_type": CacheType(meta.get("cacheType", "")),
         "inverse_enabled": meta.get("inverseEnabled", False),
         "time_quantum": TimeQuantum(meta.get("timeQuantum", "")),
+    }
+
+def decode_frame_meta_options_legacy(frame_info):
+    meta = frame_info.get("Meta", {})
+    return {
+        "cache_size": meta.get("CacheSize", 50000),
+        "cache_type": CacheType(meta.get("CacheType", "")),
+        "inverse_enabled": meta.get("InverseEnabled", False),
+        "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
     }
 
 
