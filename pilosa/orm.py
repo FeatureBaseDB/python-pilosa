@@ -43,7 +43,7 @@ _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 # Python 2-3 compatibility
 # PyPy doesn't have __builtins__.get
-_basestring = globals()["__builtins__"].__dict__.get("basestring", str)
+_basestring = globals()["__builtins__"].basestring if hasattr(globals()["__builtins__"], "basestring") else str
 
 
 class TimeQuantum:
