@@ -346,6 +346,9 @@ class ClientIT(unittest.TestCase):
         server_address = os.environ.get("PILOSA_BIND", "")
         if not server_address:
             server_address = "http://:10101"
+        if os.environ.get("LEGACY_MODE_OFF", "") == "true":
+            return Client(server_address, tls_skip_verify=True, skip_version_check=True, legacy_mode=False)
+
         return Client(server_address, tls_skip_verify=True)
 
 
