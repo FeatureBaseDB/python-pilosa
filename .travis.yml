@@ -20,7 +20,7 @@ script:
   - ./pilosa-cluster-resize-linux-amd64/pilosa server --metric.diagnostics=false -b http://:30101 -d cluster_resize_data --cluster.disabled &
   - sleep 5
   - PILOSA_BIND="http://:30101" LEGACY_MODE_OFF=true make test-all
-  - pkill pilosa
+#  - pkill pilosa
 #  - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
 #  - make cover
 after_success:
