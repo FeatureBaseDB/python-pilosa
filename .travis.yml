@@ -13,8 +13,6 @@ before_install:
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-master-linux-amd64.tar.gz && tar xf pilosa-master-linux-amd64.tar.gz
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-cluster-resize-linux-amd64.tar.gz && tar xf pilosa-cluster-resize-linux-amd64.tar.gz
 install: "pip install -r requirements/main.txt -r requirements/test.txt coveralls"
-before_script:
-  - sudo ulimit -c unlimited
 script:
 #  - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -b https://:20101 -d https_data --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key --cluster.type static &
 #  - PILOSA_BIND="https://:20101" make test-all
