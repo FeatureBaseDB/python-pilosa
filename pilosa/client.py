@@ -48,8 +48,8 @@ from .version import VERSION
 
 __all__ = ("Client", "Cluster", "URI")
 
-_LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
+_PILOSA_MIN_VERSION = ">=0.9.0"
 _IS_PY2 = sys.version_info.major == 2
 
 
@@ -82,7 +82,8 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_skip_verify=False, tls_ca_certificate_path=""):
+                 tls_skip_verify=False, tls_ca_certificate_path="", skip_version_check=False,
+                 legacy_mode=False):
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -101,8 +102,11 @@ class Client(object):
         self.retry_count = retry_count
         self.tls_skip_verify = tls_skip_verify
         self.tls_ca_certificate_path = tls_ca_certificate_path
+        self.skip_version_check = skip_version_check
+        self.legacy_mode = legacy_mode
         self.__current_host = None
         self.__client = None
+        self.logger = logging.getLogger("pilosa")
 
     def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
         """Runs the given query against the server with the given options.
@@ -116,11 +120,11 @@ class Client(object):
         """
         request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
         path = "/index/%s/query" % query.index.name
-        response = self.__http_request("POST", path, data=request.to_protobuf(), client_response=Client.__RAW_RESPONSE)
-        query_response = QueryResponse._from_protobuf(response.data)
-        if query_response.error_message:
-            raise PilosaError(query_response.error_message)
-        return query_response
+        try:
+            response = self.__http_request("POST", path, data=request.to_protobuf())
+            return QueryResponse._from_protobuf(response.data)
+        except PilosaServerError as e:
+            raise PilosaError(e.content)
 
     def create_index(self, index):
         """Creates an index on the server using the given Index object.
@@ -128,13 +132,13 @@ class Client(object):
         :param pilosa.Index index:
         :raises pilosa.IndexExistsError: if there already is a index with the given name
         """
-        data = json.dumps({
-            "options": {"columnLabel": index.column_label}
-        })
         path = "/index/%s" % index.name
-        self.__http_request("POST", path, data=data)
-        if index.time_quantum != TimeQuantum.NONE:
-            self.__patch_index_time_quantum(index)
+        try:
+            self.__http_request("POST", path)
+        except PilosaServerError as e:
+            if e.response.status == 409:
+                raise IndexExistsError
+            raise
 
     def delete_index(self, index):
         """Deletes the given index on the server.
@@ -153,7 +157,13 @@ class Client(object):
         """
         data = frame._get_options_string()
         path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
-        self.__http_request("POST", path, data=data)
+        try:
+            self.__http_request("POST", path, data=data)
+        except PilosaServerError as e:
+            if e.response.status == 409:
+                raise FrameExistsError
+            raise
+
 
     def delete_frame(self, frame):
         """Deletes the given frame on the server.
@@ -184,21 +194,35 @@ class Client(object):
         except FrameExistsError:
             pass
 
-    def status(self):
-        response = self.__http_request("GET", "/status",
-                                       client_response=Client.__ERROR_CHECKED_RESPONSE)
+    def _read_schema(self):
+        response = self.__http_request("GET", "/schema")
+        return json.loads(response.data.decode('utf-8')).get("indexes") or []
+
+    def _read_schema_legacy(self):
+        response = self.__http_request("GET", "/status")
         return json.loads(response.data.decode('utf-8'))["status"]
 
-    def schema(self):
-        status = self.status()
+    def _schema_legacy(self):
+        status = self._read_schema_legacy()
         nodes = status.get("Nodes")
         schema = Schema()
         for index_info in nodes[0].get("Indexes", []):
-            options = decode_index_meta_options(index_info)
-            index = schema.index(index_info["Name"], **options)
+            index = schema.index(index_info["Name"])
             for frame_info in index_info.get("Frames", []):
-                options = decode_frame_meta_options(frame_info)
+                options = decode_frame_meta_options_legacy(frame_info)
                 index.frame(frame_info["Name"], **options)
+
+        return schema
+
+    def schema(self):
+        if self.legacy_mode:
+            return self._schema_legacy()
+        schema = Schema()
+        for index_info in self._read_schema():
+            index = schema.index(index_info["name"])
+            for frame_info in index_info.get("frames") or []:
+                options = decode_frame_meta_options(frame_info)
+                index.frame(frame_info["name"], **options)
 
         return schema
 
@@ -249,70 +273,93 @@ class Client(object):
         :return HTTP response:
 
         """
-        return self.__http_request(method, path, data=data, headers=headers,
-                                   client_response=Client.__RAW_RESPONSE)
+        return self.__http_request(method, path, data=data, headers=headers)
 
     def _import_bits(self, index_name, frame_name, slice, bits):
         # sort by row_id then by column_id
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
+        # copy client params
+        client_params = {}
+        for k,v in self.__dict__.items():
+            # don't copy protected, private params
+            if k.startswith("_"):
+                continue
+            # don't copy these
+            if k in ["cluster", "logger"]:
+                continue
+            client_params[k] = v
         for node in nodes:
-            client_params={
-                "tls_skip_verify": self.tls_skip_verify,
-                "tls_ca_certificate_path": self.tls_ca_certificate_path,
-            }
-            address = "%s://%s" % (node["scheme"], node["host"])
-            client = Client(URI.address(address), **client_params)
+            client = Client(URI.address(node.url), **client_params)
             client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
 
     def _fetch_fragment_nodes(self, index_name, slice):
         path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
-        response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
-        content = response.data.decode('utf-8')
-        return json.loads(content)
+        response = self.__http_request("GET", path)
+        content = response.data.decode("utf-8")
+        node_dicts = json.loads(content)
+        nodes = []
+        for node_dict in node_dicts:
+            # NOTE: Legacy Pilosa < 0.9 doesn't have uri field
+            node_dict = node_dict["uri"] if "uri" in node_dict else node_dict
+            nodes.append(_Node(node_dict["scheme"], node_dict["host"], node_dict.get("port", "")))
+        return nodes
 
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
-        self.__http_request("POST", "/import", data=data, client_response=Client.__RAW_RESPONSE)
+        self.__http_request("POST", "/import", data=data)
 
-    def __patch_index_time_quantum(self, index):
-        path = "/index/%s/time-quantum" % index.name
-        data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
-        self.__http_request("PATCH", path, data=data)
+    def _server_version(self):
+        path = "/version"
+        response = self.__http_request("GET", path)
+        content = json.loads(response.data.decode("utf-8"))
+        return content.get("version", "")
 
-    def __http_request(self, method, path, data=None, headers=None, client_response=0):
+    def _check_server_version(self, version):
+        import semver
+        if not version:
+            self.logger.warning("Pilosa server version is not available")
+            return False
+        if version.startswith("v"):
+            version = version[1:]
+        self.logger.info("Pilosa server version: %s", version)
+        try:
+            if not semver.match(version, _PILOSA_MIN_VERSION):
+                self.logger.warning("Pilosa server's version is %s, "
+                                "does not meet the minimum required for this version of the client: %s",
+                                version, _PILOSA_MIN_VERSION)
+                return False
+            return True
+        except ValueError:
+            self.logger.warning("Invalid Pilosa server version: %s or minimum server version: %s",
+                            version, _PILOSA_MIN_VERSION)
+            return False
+
+    def __http_request(self, method, path, data=None, headers=None):
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
             try:
-                _LOGGER.debug("Request: %s %s %s", method, uri,
-                              "[binary]" if client_response == Client.__RAW_RESPONSE else data)
+                self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
                 self.cluster.remove_host(self.__current_host)
-                _LOGGER.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
+                self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
                 self.__current_host = None
         else:
             raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
 
-        if client_response == Client.__RAW_RESPONSE:
-            return response
-
         if 200 <= response.status < 300:
-            return None if client_response == Client.__NO_RESPONSE else response
-        content = response.data.decode('utf-8')
-        ex = self.__RECOGNIZED_ERRORS.get(content)
-        if ex is not None:
-            raise ex
-        raise PilosaError("Server error (%d): %s" % (response.status, content))
+            return response
+        raise PilosaServerError(response)
 
     def __get_address(self):
         if self.__current_host is None:
             self.__current_host = self.cluster.get_host()
-            _LOGGER.debug("Current host set: %s", self.__current_host)
+            self.logger.debug("Current host set: %s", self.__current_host)
         return self.__current_host._normalize()
 
     def __connect(self):
@@ -338,25 +385,23 @@ class Client(object):
 
         client = urllib3.PoolManager(**client_options)
         self.__client = client
-
-    __RECOGNIZED_ERRORS = {
-        "index already exists\n": IndexExistsError,
-        "frame already exists\n": FrameExistsError,
-    }
-
-
-def decode_index_meta_options(index_info):
-    meta = index_info.get("Meta", {})
-    return {
-        "column_label": meta.get("ColumnLabel", "columnID"),
-        "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
-    }
+        if not self.skip_version_check:
+            ok = self._check_server_version(self._server_version())
+            self.legacy_mode = not ok
 
 
 def decode_frame_meta_options(frame_info):
+    meta = frame_info.get("options", {})
+    return {
+        "cache_size": meta.get("cacheSize", 50000),
+        "cache_type": CacheType(meta.get("cacheType", "")),
+        "inverse_enabled": meta.get("inverseEnabled", False),
+        "time_quantum": TimeQuantum(meta.get("timeQuantum", "")),
+    }
+
+def decode_frame_meta_options_legacy(frame_info):
     meta = frame_info.get("Meta", {})
     return {
-        "row_label": meta.get("RowLabel", "rowID"),
         "cache_size": meta.get("CacheSize", 50000),
         "cache_type": CacheType(meta.get("CacheType", "")),
         "inverse_enabled": meta.get("InverseEnabled", False),
@@ -487,6 +532,7 @@ class Cluster:
         :return: next host
         :rtype: pilosa.URI         
         """
+        print("HOSTS", self.hosts)
         for host, ok in self.hosts:
             if not ok:
                 continue
@@ -547,3 +593,28 @@ class _ImportRequest:
         if return_bytearray:
             return bytearray(import_request.SerializeToString())
         return import_request.SerializeToString()
+
+
+class PilosaServerError(PilosaError):
+
+    def __init__(self, response):
+        self.response = response
+        self.content = response.data.decode('utf-8')
+        super(Exception, PilosaServerError).__init__(self, u"Server error (%d): %s" % (response.status, self.content))
+
+
+class _Node(object):
+
+    __slots__ = "scheme", "host", "port"
+
+    def __init__(self, scheme, host, port):
+        self.scheme = scheme
+        self.host = host
+        self.port = port
+
+
+    @property
+    def url(self):
+        if self.port:
+            return "%s://%s:%s" % (self.scheme, self.host, self.port)
+        return "%s://%s" % (self.scheme, self.host)
