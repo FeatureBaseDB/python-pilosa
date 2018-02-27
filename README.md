@@ -13,11 +13,10 @@ Python client for Pilosa high performance distributed bitmap index.
 ## Change Log
 
 * **Next**:
-    * Minimum required Pilosa server version is 9. Use an older version of the client for earlier releases of the Pilosa server.
-    * Pilosa Enterprise compatibility.
-    * `bitmap`, `inverse_bitmap`, `clearbit`, `range` and `set_row_attrs` methods accept string row/column keys.
     * Compatible with Pilosa 0.9.x.
     * Checks the server version for Pilosa 0.8.x compatibility. You can pass `skip_version_check=True` to `Client` to disable that.  
+    * Pilosa Enterprise compatibility.
+    * `bitmap`, `inverse_bitmap`, `clearbit`, `range` and `set_row_attrs` methods accept string row/column keys.
     * **Removed** Row and column labels.
     * **Removed** Index options.
     
