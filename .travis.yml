@@ -18,6 +18,7 @@ script:
 #  - pkill pilosa
   - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
   - sleep 5
-  - make cover
+  - make test-all
+#  - make cover
 #after_success:
 #  coveralls
