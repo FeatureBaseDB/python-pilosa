@@ -14,12 +14,12 @@ before_install:
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-cluster-resize-linux-amd64.tar.gz && tar xf pilosa-cluster-resize-linux-amd64.tar.gz
 install: "pip install -r requirements/main.txt -r requirements/test.txt coveralls"
 script:
-  - ./pilosa-cluster-resize-linux-amd64/pilosa server --metric.diagnostics=false -b https://:30101 -d cluster_resize_data --cluster.disabled --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key &
-  - sleep 5
-  - PILOSA_BIND="https://:30101" LEGACY_MODE_OFF=true make test-all
-  - pkill pilosa
-  - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
-  - sleep 5
-  - make cover
+#  - ./pilosa-cluster-resize-linux-amd64/pilosa server --metric.diagnostics=false -b https://:30101 -d cluster_resize_data --cluster.disabled --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key &
+#  - sleep 5
+#  - PILOSA_BIND="https://:30101" LEGACY_MODE_OFF=true make test-all
+#  - pkill pilosa
+#  - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
+#  - sleep 5
+#  - make cover
 after_success:
   coveralls
