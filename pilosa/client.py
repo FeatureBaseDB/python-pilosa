@@ -532,6 +532,7 @@ class Cluster:
         :return: next host
         :rtype: pilosa.URI         
         """
+        print("HOSTS", self.hosts)
         for host, ok in self.hosts:
             if not ok:
                 continue
