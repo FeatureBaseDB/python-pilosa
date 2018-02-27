@@ -15,7 +15,7 @@ before_install:
 install:
   - pip install -r requirements/main.txt -r requirements/test.txt coveralls
 script:
-  - PILOSA_BIND="https://:30101" LEGACY_MODE_OFF=true make test-all
+#  - PILOSA_BIND="https://:30101" LEGACY_MODE_OFF=true make test-all
   - make cover
 after_success:
   coveralls

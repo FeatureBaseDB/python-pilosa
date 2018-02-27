@@ -31,6 +31,7 @@
 # DAMAGE.
 #
 import threading
+import time
 import unittest
 from wsgiref.simple_server import make_server
 from wsgiref.util import setup_testing_defaults
@@ -330,6 +331,7 @@ class ClientIT(unittest.TestCase):
 
     def test_create_index_fail(self):
         server = MockServer(404)
+        time.sleep(5)
         with server:
             client = Client(server.uri, skip_version_check=True)
             self.assertRaises(PilosaServerError, client.create_index, self.index)
@@ -363,6 +365,7 @@ class MockServer(threading.Thread):
         self.thread = None
         self.host = "localhost"
         self.port = 15000
+        self.daemon = True
 
     def __enter__(self):
         self.start()
