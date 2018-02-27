@@ -42,9 +42,11 @@ __all__ = ("valid_index_name", "validate_index_name", "valid_frame_name",
 __INDEX_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 __FRAME_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 __LABEL = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
+__KEY = re.compile(r"^[A-Za-z0-9_{}+/=.~%:-]*$")
 __MAX_INDEX_NAME = 64
 __MAX_FRAME_NAME = 64
 __MAX_LABEL = 64
+__MAX_KEY = 64
 
 
 def valid_index_name(index_name):
@@ -64,6 +66,12 @@ def valid_frame_name(frame_name):
     return bool(__FRAME_NAME.match(frame_name))
 
 
+def valid_key(key):
+    if len(key) > __MAX_KEY:
+        return False
+    return bool(__KEY.match(key))
+
+
 def validate_frame_name(frame_name):
     if not valid_frame_name(frame_name):
         raise ValidationError("Invalid frame name: %s" % frame_name)
@@ -78,3 +86,8 @@ def valid_label(label):
 def validate_label(label):
     if not valid_label(label):
         raise ValidationError("Invalid label: %s" % label)
+
+
+def validate_key(key):
+    if not valid_key(key):
+        raise ValidationError("Invalid key: %s" % key)
