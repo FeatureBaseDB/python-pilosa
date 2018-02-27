@@ -363,6 +363,7 @@ class MockServer(threading.Thread):
         self.thread = None
         self.host = "localhost"
         self.port = 15000
+        self.daemon = True
 
     def __enter__(self):
         self.start()

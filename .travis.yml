@@ -12,14 +12,11 @@ before_install:
   - openssl req -x509 -newkey rsa:4096 -keyout test.pilosa.local.key -out test.pilosa.local.crt -days 3650 -nodes -subj "/C=US/ST=Texas/L=Austin/O=Pilosa/OU=Com/CN=test.pilosa.local"
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-master-linux-amd64.tar.gz && tar xf pilosa-master-linux-amd64.tar.gz
   - wget https://s3.amazonaws.com/build.pilosa.com/pilosa-cluster-resize-linux-amd64.tar.gz && tar xf pilosa-cluster-resize-linux-amd64.tar.gz
+  - ./pilosa-cluster-resize-linux-amd64/pilosa server --metric.diagnostics=false -b https://:30101 -d cluster_resize_data --cluster.disabled --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key &
+  - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
 install: "pip install -r requirements/main.txt -r requirements/test.txt coveralls"
 script:
-  - ./pilosa-cluster-resize-linux-amd64/pilosa server --metric.diagnostics=false -b https://:30101 -d cluster_resize_data --cluster.disabled --tls.skip-verify --tls.certificate test.pilosa.local.crt --tls.key test.pilosa.local.key &
-  - sleep 5
   - PILOSA_BIND="https://:30101" LEGACY_MODE_OFF=true make test-all
-  - pkill pilosa
-  - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
-  - sleep 5
   - make cover
 after_success:
   coveralls
