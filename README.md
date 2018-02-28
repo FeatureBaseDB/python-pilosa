@@ -1,6 +1,7 @@
 # Python Client for Pilosa
 
 <a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.8.0-blue.svg"></a>
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-v0.9.0-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 <a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
@@ -12,7 +13,7 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
-* **Next**:
+* **v0.8.3** (2017-12-28):
     * Compatible with Pilosa 0.9.x.
     * Checks the server version for Pilosa 0.8.x compatibility. You can pass `skip_version_check=True` to `Client` to disable that.  
     * Pilosa Enterprise compatibility.
