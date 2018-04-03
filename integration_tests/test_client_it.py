@@ -324,14 +324,10 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
-    def test_version(self):
-        version = self.get_client()._server_version()
-        self.assertTrue(version)
-
     def test_create_index_fail(self):
         server = MockServer(404)
         with server:
-            client = Client(server.uri, skip_version_check=True)
+            client = Client(server.uri)
             self.assertRaises(PilosaServerError, client.create_index, self.index)
 
 
@@ -346,9 +342,6 @@ class ClientIT(unittest.TestCase):
         server_address = os.environ.get("PILOSA_BIND", "")
         if not server_address:
             server_address = "http://:10101"
-        if os.environ.get("LEGACY_MODE_OFF", "") == "true":
-            return Client(server_address, tls_skip_verify=True, skip_version_check=True, legacy_mode=False)
-
         return Client(server_address, tls_skip_verify=True)
 
 
