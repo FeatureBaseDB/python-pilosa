@@ -321,9 +321,9 @@ class Index:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery        
         """
-        fmt = id_key_format("Column ID", column_idkey,
-                            u"SetColumnAttrs(columnID=%s, %s)",
-                            u"SetColumnAttrs(columnID='%s, %s)")
+        fmt = id_key_format("Column", column_idkey,
+                            u"SetColumnAttrs(col=%s, %s)",
+                            u"SetColumnAttrs(col='%s, %s)")
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(fmt % (column_idkey, attrs_str), self)
 
@@ -390,8 +390,8 @@ class Frame:
         :rtype: pilosa.PQLBitmapQuery
         """
         fmt = id_key_format("Row ID/Key", row_idkey,
-                            u"Bitmap(rowID=%s, frame='%s')",
-                            u"Bitmap(rowID='%s', frame='%s')")
+                            u"Bitmap(row=%s, frame='%s')",
+                            u"Bitmap(row='%s', frame='%s')")
         return PQLQuery(fmt % (row_idkey, self.name), self.index)
 
     def inverse_bitmap(self, column_idkey):
@@ -405,9 +405,9 @@ class Frame:
         :return: Pilosa bitmap query
         :rtype: pilosa.PQLBitmapQuery
         """
-        fmt = id_key_format("Column ID/Key", column_idkey,
-                            u"Bitmap(columnID=%s, frame='%s')",
-                            u"Bitmap(columnID='%s', frame='%s')")
+        fmt = id_key_format("Column", column_idkey,
+                            u"Bitmap(col=%s, frame='%s')",
+                            u"Bitmap(col='%s', frame='%s')")
         return PQLQuery(fmt % (column_idkey, self.name), self.index)
 
     def setbit(self, row_idkey, column_idkey, timestamp=None):
@@ -422,13 +422,13 @@ class Frame:
         :rtype: pilosa.PQLQuery
         """
         if isinstance(row_idkey, int) and isinstance(column_idkey, int):
-            fmt = u"SetBit(rowID=%s, frame='%s', columnID=%s%s)"
+            fmt = u"SetBit(row=%s, frame='%s', col=%s%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"SetBit(rowID='%s', frame='%s', columnID='%s'%s)"
+            fmt = u"SetBit(row='%s', frame='%s', col='%s'%s)"
             validate_key(row_idkey)
             validate_key(column_idkey)
         else:
-            raise ValidationError("Both Row and Column ID/Keys must be integers or strings")
+            raise ValidationError("Both Row and Columns must be integers or strings")
         ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
         return PQLQuery(fmt % (row_idkey, self.name, column_idkey, ts), self.index)
 
@@ -443,13 +443,13 @@ class Frame:
         :rtype: pilosa.PQLQuery
         """
         if isinstance(row_idkey, int) and isinstance(column_idkey, int):
-            fmt = u"ClearBit(rowID=%s, frame='%s', columnID=%s)"
+            fmt = u"ClearBit(row=%s, frame='%s', col=%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"ClearBit(rowID='%s', frame='%s', columnID='%s')"
+            fmt = u"ClearBit(row='%s', frame='%s', col='%s')"
             validate_key(row_idkey)
             validate_key(column_idkey)
         else:
-            raise ValidationError("Both Row and Column ID/Keys must be integers or strings")
+            raise ValidationError("Both Row and Columns must be integers or strings")
         return PQLQuery(fmt % (row_idkey, self.name, column_idkey), self.index)
 
     def topn(self, n, bitmap=None, field="", *values):
@@ -504,7 +504,7 @@ class Frame:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range("rowID", row_idkey, start, end)
+        return self._range("row", row_idkey, start, end)
 
     def inverse_range(self, column_id, start, end):
         """Creates a Range query.
@@ -516,10 +516,10 @@ class Frame:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range("columnID", column_id, start, end)
+        return self._range("col", column_id, start, end)
 
     def _range(self, label, row_idkey, start, end):
-        fmt = id_key_format("Row ID", row_idkey,
+        fmt = id_key_format("Row", row_idkey,
                             u"Range(%s=%s, frame='%s', start='%s', end='%s')",
                             u"Range(%s='%s', frame='%s', start='%s', end='%s')")
         start_str = start.strftime(_TIME_FORMAT)
@@ -544,9 +544,9 @@ class Frame:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery        
         """
-        fmt = id_key_format("Row ID", row_idkey,
-                            u"SetRowAttrs(rowID=%s, frame='%s', %s)",
-                            u"SetRowAttrs(rowID='%s', frame='%s', %s)")
+        fmt = id_key_format("Row", row_idkey,
+                            u"SetRowAttrs(row=%s, frame='%s', %s)",
+                            u"SetRowAttrs(row='%s', frame='%s', %s)")
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(fmt % (row_idkey, self.name, attrs_str), self.index)
 
@@ -733,7 +733,7 @@ class RangeField:
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"SetFieldValue(frame='%s', columnID=%d, %s=%d)" % \
+        q = u"SetFieldValue(frame='%s', col=%d, %s=%d)" % \
             (self.frame_name, column_id, self.name, value)
         return PQLQuery(q, self.index)
 
