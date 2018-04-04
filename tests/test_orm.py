@@ -109,17 +109,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.union(b1, b2)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Union(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'))",
             q1.serialize())
 
         q2 = sampleIndex.union(b1, b2, b3)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
+            "Union(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'), Bitmap(row=42, frame='sample-frame'))",
             q2.serialize())
 
         q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=2, frame='collaboration'))",
+            "Union(Bitmap(row=10, frame='sample-frame'), Bitmap(row=2, frame='collaboration'))",
             q3.serialize())
 
     def test_intersect(self):
@@ -130,17 +130,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.intersect(b1, b2)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Intersect(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'))",
             q1.serialize())
 
         q2 = sampleIndex.intersect(b1, b2, b3)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
+            "Intersect(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'), Bitmap(row=42, frame='sample-frame'))",
             q2.serialize())
 
         q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=2, frame='collaboration'))",
+            "Intersect(Bitmap(row=10, frame='sample-frame'), Bitmap(row=2, frame='collaboration'))",
             q3.serialize())
 
     def test_difference(self):
@@ -151,17 +151,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.difference(b1, b2)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Difference(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'))",
             q1.serialize())
 
         q2 = sampleIndex.difference(b1, b2, b3)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
+            "Difference(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'), Bitmap(row=42, frame='sample-frame'))",
             q2.serialize())
 
         q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=2, frame='collaboration'))",
+            "Difference(Bitmap(row=10, frame='sample-frame'), Bitmap(row=2, frame='collaboration'))",
             q3.serialize())
 
     def test_xor(self):
@@ -170,7 +170,7 @@ class IndexTestCase(unittest.TestCase):
         q1 = sampleIndex.xor(b1, b2)
 
         self.assertEquals(
-            "Xor(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Xor(Bitmap(row=10, frame='sample-frame'), Bitmap(row=20, frame='sample-frame'))",
             q1.serialize())
 
     def test_union0(self):
@@ -179,7 +179,7 @@ class IndexTestCase(unittest.TestCase):
 
     def test_union1(self):
         q = sampleIndex.union(sampleFrame.bitmap(10))
-        self.assertEquals("Union(Bitmap(rowID=10, frame='sample-frame'))", q.serialize())
+        self.assertEquals("Union(Bitmap(row=10, frame='sample-frame'))", q.serialize())
 
     def test_intersect_invalid_bitmap_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.intersect)
@@ -194,7 +194,7 @@ class IndexTestCase(unittest.TestCase):
         b = collabFrame.bitmap(42)
         q = projectIndex.count(b)
         self.assertEquals(
-            "Count(Bitmap(rowID=42, frame='collaboration'))",
+            "Count(Bitmap(row=42, frame='collaboration'))",
             q.serialize())
 
     def test_set_column_attributes(self):
@@ -204,7 +204,7 @@ class IndexTestCase(unittest.TestCase):
         }
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            u"SetColumnAttrs(columnID=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u"SetColumnAttrs(col=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_column_attributes_invalid_values(self):
@@ -234,17 +234,17 @@ class FrameTestCase(unittest.TestCase):
     def test_bitmap(self):
         qry1 = sampleFrame.bitmap(5)
         self.assertEquals(
-            "Bitmap(rowID=5, frame='sample-frame')",
+            "Bitmap(row=5, frame='sample-frame')",
             qry1.serialize())
 
         qry2 = collabFrame.bitmap(10)
         self.assertEquals(
-            "Bitmap(rowID=10, frame='collaboration')",
+            "Bitmap(row=10, frame='collaboration')",
             qry2.serialize())
 
         qry3 = sampleFrame.bitmap("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
-            "Bitmap(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame')",
+            "Bitmap(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame')",
             qry3.serialize())
 
     def test_bitmap_with_invalid_id_type(self):
@@ -254,28 +254,28 @@ class FrameTestCase(unittest.TestCase):
         f1 = projectIndex.frame("f1-inversable", inverse_enabled=True)
         qry = f1.inverse_bitmap(5)
         self.assertEquals(
-            "Bitmap(columnID=5, frame='f1-inversable')",
+            "Bitmap(col=5, frame='f1-inversable')",
             qry.serialize())
         qry2 = f1.inverse_bitmap("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
-            "Bitmap(columnID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='f1-inversable')",
+            "Bitmap(col='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='f1-inversable')",
             qry2.serialize())
 
     def test_setbit(self):
         qry1 = sampleFrame.setbit(5, 10)
         self.assertEquals(
-            "SetBit(rowID=5, frame='sample-frame', columnID=10)",
+            "SetBit(row=5, frame='sample-frame', col=10)",
             qry1.serialize())
 
         qry2 = collabFrame.setbit(10, 20)
         self.assertEquals(
-            "SetBit(rowID=10, frame='collaboration', columnID=20)",
+            "SetBit(row=10, frame='collaboration', col=20)",
 
             qry2.serialize())
 
         qry3 = sampleFrame.setbit("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
-            "SetBit(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', columnID='some_id')",
+            "SetBit(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', col='some_id')",
             qry3.serialize())
 
     def test_setbit_with_invalid_id_type(self):
@@ -287,24 +287,24 @@ class FrameTestCase(unittest.TestCase):
         timestamp = datetime(2017, 4, 24, 12, 14)
         qry = collabFrame.setbit(10, 20, timestamp)
         self.assertEquals(
-            "SetBit(rowID=10, frame='collaboration', columnID=20, timestamp='2017-04-24T12:14')",
+            "SetBit(row=10, frame='collaboration', col=20, timestamp='2017-04-24T12:14')",
             qry.serialize()
         )
 
     def test_clearbit(self):
         qry1 = sampleFrame.clearbit(5, 10)
         self.assertEquals(
-            "ClearBit(rowID=5, frame='sample-frame', columnID=10)",
+            "ClearBit(row=5, frame='sample-frame', col=10)",
             qry1.serialize())
 
         qry2 = collabFrame.clearbit(10, 20)
         self.assertEquals(
-            "ClearBit(rowID=10, frame='collaboration', columnID=20)",
+            "ClearBit(row=10, frame='collaboration', col=20)",
             qry2.serialize())
 
         qry3 = sampleFrame.clearbit("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
-            "ClearBit(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', columnID='some_id')",
+            "ClearBit(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', col='some_id')",
             qry3.serialize())
 
     def test_clearbit_with_invalid_id_type(self):
@@ -320,17 +320,17 @@ class FrameTestCase(unittest.TestCase):
 
         q2 = sampleFrame.topn(10, collabFrame.bitmap(3))
         self.assertEquals(
-            u"TopN(Bitmap(rowID=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
+            u"TopN(Bitmap(row=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
             q2.serialize())
 
         q3 = sampleFrame.topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(rowID=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', filters=[80,81])",
+            "TopN(Bitmap(row=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', filters=[80,81])",
             q3.serialize())
 
         q4 = sampleFrame.inverse_topn(12, collabFrame.bitmap(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(rowID=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', filters=[80,81])",
+            "TopN(Bitmap(row=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', filters=[80,81])",
             q4.serialize())
 
     def test_range(self):
@@ -339,17 +339,17 @@ class FrameTestCase(unittest.TestCase):
 
         q1 = collabFrame.range(10, start, end)
         self.assertEquals(
-            "Range(rowID=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            "Range(row=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q1.serialize())
 
         q2 = collabFrame.inverse_range(10, start, end)
         self.assertEquals(
-            "Range(columnID=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            "Range(col=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q2.serialize())
 
         q3 = sampleFrame.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
         self.assertEquals(
-            u"Range(rowID='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            u"Range(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', frame='sample-frame', start='1970-01-01T00:00', end='2000-02-02T03:04')",
             q3.serialize())
 
     def test_set_row_attributes(self):
@@ -359,7 +359,7 @@ class FrameTestCase(unittest.TestCase):
         }
         q = collabFrame.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            "SetRowAttrs(rowID=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            "SetRowAttrs(row=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_field(self):
@@ -419,13 +419,13 @@ class FrameTestCase(unittest.TestCase):
     def test_field_set_value(self):
         q = sampleFrame.field("foo").set_value(10, 20)
         self.assertEquals(
-            "SetFieldValue(frame='sample-frame', columnID=10, foo=20)",
+            "SetFieldValue(frame='sample-frame', col=10, foo=20)",
             q.serialize())
 
     def test_field_sum(self):
         q = sampleFrame.field("foo").sum(sampleFrame.bitmap(10))
         self.assertEquals(
-            "Sum(Bitmap(rowID=10, frame='sample-frame'), frame='sample-frame', field='foo')",
+            "Sum(Bitmap(row=10, frame='sample-frame'), frame='sample-frame', field='foo')",
             q.serialize())
         q = sampleFrame.field("foo").sum()
         self.assertEquals(
