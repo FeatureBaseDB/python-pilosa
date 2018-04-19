@@ -12,6 +12,10 @@ Python client for Pilosa high performance distributed bitmap index.
 
 ## Change Log
 
+* **Next**
+    * **Deprecation** `inverse_enabled` frame option, `Frame.inverse_bitmap`, `Frame.inverse_topn`, `Frame.inverse_range` methods. Inverse frames will be removed on Pilosa 1.0.
+
+
 * **v0.8.3** (2017-12-28):
     * Compatible with Pilosa master, **not compatible with Pilosa 0.8.x releases**.  
     * Checks the server version. You can pass `skip_version_check=True` to `Client` to disable that.  
