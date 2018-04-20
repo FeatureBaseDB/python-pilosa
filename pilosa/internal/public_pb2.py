@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='public.proto',
   package='internal',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"C\n\x06\x42itmap\x12\x0c\n\x04\x42its\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x03 \x03(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\".\n\x04Pair\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"&\n\x08SumCount\x12\x0b\n\x03Sum\x18\x01 \x01(\x03\x12\r\n\x05\x43ount\x18\x02 \x01(\x03\"9\n\x03\x42it\x12\r\n\x05RowID\x18\x01 \x01(\x04\x12\x10\n\x08\x43olumnID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\"G\n\rColumnAttrSet\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"}\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Slices\x18\x02 \x03(\x04\x12\x13\n\x0b\x43olumnAttrs\x18\x03 \x01(\x08\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\x12\x14\n\x0c\x45xcludeAttrs\x18\x06 \x01(\x08\x12\x13\n\x0b\x45xcludeBits\x18\x07 \x01(\x08\"u\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12/\n\x0e\x43olumnAttrSets\x18\x03 \x03(\x0b\x32\x17.internal.ColumnAttrSet\"\x9e\x01\n\x0bQueryResult\x12\x0c\n\x04Type\x18\x06 \x01(\r\x12 \n\x06\x42itmap\x18\x01 \x01(\x0b\x32\x10.internal.Bitmap\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12$\n\x08SumCount\x18\x05 \x01(\x0b\x32\x12.internal.SumCount\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\"\x98\x01\n\rImportRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x0e\n\x06RowIDs\x18\x04 \x03(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x0f\n\x07RowKeys\x18\x07 \x03(\t\x12\x12\n\nColumnKeys\x18\x08 \x03(\t\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\"\x87\x01\n\x12ImportValueRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\r\n\x05\x46ield\x18\x04 \x01(\t\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x12\n\nColumnKeys\x18\x07 \x03(\t\x12\x0e\n\x06Values\x18\x06 \x03(\x03\x62\x06proto3')
+  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"C\n\x06\x42itmap\x12\x0c\n\x04\x42its\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x03 \x03(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\".\n\x04Pair\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"&\n\x08ValCount\x12\x0b\n\x03Val\x18\x01 \x01(\x03\x12\r\n\x05\x43ount\x18\x02 \x01(\x03\"9\n\x03\x42it\x12\r\n\x05RowID\x18\x01 \x01(\x04\x12\x10\n\x08\x43olumnID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\"G\n\rColumnAttrSet\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"}\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Slices\x18\x02 \x03(\x04\x12\x13\n\x0b\x43olumnAttrs\x18\x03 \x01(\x08\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\x12\x14\n\x0c\x45xcludeAttrs\x18\x06 \x01(\x08\x12\x13\n\x0b\x45xcludeBits\x18\x07 \x01(\x08\"u\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12/\n\x0e\x43olumnAttrSets\x18\x03 \x03(\x0b\x32\x17.internal.ColumnAttrSet\"\x9e\x01\n\x0bQueryResult\x12\x0c\n\x04Type\x18\x06 \x01(\r\x12 \n\x06\x42itmap\x18\x01 \x01(\x0b\x32\x10.internal.Bitmap\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12$\n\x08ValCount\x18\x05 \x01(\x0b\x32\x12.internal.ValCount\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\"\x98\x01\n\rImportRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x0e\n\x06RowIDs\x18\x04 \x03(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x0f\n\x07RowKeys\x18\x07 \x03(\t\x12\x12\n\nColumnKeys\x18\x08 \x03(\t\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\"\x87\x01\n\x12ImportValueRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\r\n\x05\x46ield\x18\x04 \x01(\t\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x12\n\nColumnKeys\x18\x07 \x03(\t\x12\x0e\n\x06Values\x18\x06 \x03(\x03\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -116,22 +116,22 @@ _PAIR = _descriptor.Descriptor(
 )
 
 
-_SUMCOUNT = _descriptor.Descriptor(
-  name='SumCount',
-  full_name='internal.SumCount',
+_VALCOUNT = _descriptor.Descriptor(
+  name='ValCount',
+  full_name='internal.ValCount',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Sum', full_name='internal.SumCount.Sum', index=0,
+      name='Val', full_name='internal.ValCount.Val', index=0,
       number=1, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Count', full_name='internal.SumCount.Count', index=1,
+      name='Count', full_name='internal.ValCount.Count', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -488,7 +488,7 @@ _QUERYRESULT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='SumCount', full_name='internal.QueryResult.SumCount', index=4,
+      name='ValCount', full_name='internal.QueryResult.ValCount', index=4,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -677,10 +677,10 @@ _QUERYRESPONSE.fields_by_name['Results'].message_type = _QUERYRESULT
 _QUERYRESPONSE.fields_by_name['ColumnAttrSets'].message_type = _COLUMNATTRSET
 _QUERYRESULT.fields_by_name['Bitmap'].message_type = _BITMAP
 _QUERYRESULT.fields_by_name['Pairs'].message_type = _PAIR
-_QUERYRESULT.fields_by_name['SumCount'].message_type = _SUMCOUNT
+_QUERYRESULT.fields_by_name['ValCount'].message_type = _VALCOUNT
 DESCRIPTOR.message_types_by_name['Bitmap'] = _BITMAP
 DESCRIPTOR.message_types_by_name['Pair'] = _PAIR
-DESCRIPTOR.message_types_by_name['SumCount'] = _SUMCOUNT
+DESCRIPTOR.message_types_by_name['ValCount'] = _VALCOUNT
 DESCRIPTOR.message_types_by_name['Bit'] = _BIT
 DESCRIPTOR.message_types_by_name['ColumnAttrSet'] = _COLUMNATTRSET
 DESCRIPTOR.message_types_by_name['Attr'] = _ATTR
@@ -705,12 +705,12 @@ Pair = _reflection.GeneratedProtocolMessageType('Pair', (_message.Message,), dic
   ))
 _sym_db.RegisterMessage(Pair)
 
-SumCount = _reflection.GeneratedProtocolMessageType('SumCount', (_message.Message,), dict(
-  DESCRIPTOR = _SUMCOUNT,
+ValCount = _reflection.GeneratedProtocolMessageType('ValCount', (_message.Message,), dict(
+  DESCRIPTOR = _VALCOUNT,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:internal.SumCount)
+  # @@protoc_insertion_point(class_scope:internal.ValCount)
   ))
-_sym_db.RegisterMessage(SumCount)
+_sym_db.RegisterMessage(ValCount)
 
 Bit = _reflection.GeneratedProtocolMessageType('Bit', (_message.Message,), dict(
   DESCRIPTOR = _BIT,

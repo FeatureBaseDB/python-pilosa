@@ -39,7 +39,7 @@ __all__ = ("BitmapResult", "CountResultItem", "QueryResult", "ColumnItem", "Quer
 
 
 QUERYRESULT_NONE, QUERYRESULT_BITMAP, QUERYRESULT_PAIRS, \
-    QUERYRESULT_SUM_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL = range(6)
+    QUERYRESULT_VAL_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL = range(6)
 
 
 class BitmapResult:
@@ -76,11 +76,11 @@ class QueryResult:
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
     """
 
-    def __init__(self, bitmap=None, count_items=None, count=0, sum=0, changed=False):
+    def __init__(self, bitmap=None, count_items=None, count=0, value=0, changed=False):
         self.bitmap = bitmap or BitmapResult()
         self.count_items = count_items or []
         self.count = count
-        self.sum = sum
+        self.value = value
         self.changed = changed
 
     @classmethod
@@ -88,7 +88,7 @@ class QueryResult:
         bitmap = None
         count_items = []
         count = 0
-        sum = 0
+        value = 0
         changed = False
 
         if obj.Type == QUERYRESULT_BITMAP:
@@ -100,15 +100,15 @@ class QueryResult:
             count = obj.N
         elif obj.Type == QUERYRESULT_BOOL:
             changed = obj.Changed
-        elif obj.Type == QUERYRESULT_SUM_COUNT:
-            count = obj.SumCount.Count
-            sum = obj.SumCount.Sum
+        elif obj.Type == QUERYRESULT_VAL_COUNT:
+            count = obj.ValCount.Count
+            value = obj.ValCount.Val
         elif obj.Type == QUERYRESULT_NONE:
             pass
         else:
             raise PilosaError("Unknown type: %s" % obj.Type)
 
-        return cls(bitmap, count_items, count, sum, changed)
+        return cls(bitmap, count_items, count, value, changed)
 
 
 class ColumnItem:
