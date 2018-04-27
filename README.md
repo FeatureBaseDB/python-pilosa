@@ -3,7 +3,7 @@
 <a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-master-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
-<a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://travis-ci.com/pilosa/python-pilosa.svg?token=Peb4jvQ3kLbjUEhpU5aR&branch=master"></a>
+<a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://api.travis-ci.org/pilosa/python-pilosa.svg?branch=master"></a>
 <a href="https://coveralls.io/github/pilosa/python-pilosa?branch=master"><img src="https://coveralls.io/repos/github/pilosa/python-pilosa/badge.svg?branch=master"></a>
 
 <img src="https://www.pilosa.com/img/ce.svg" style="float: right" align="right" height="301">
