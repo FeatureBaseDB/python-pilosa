@@ -721,9 +721,25 @@ class RangeField:
         :return: a PQL query
         :rtype: PQLQuery
         """
-        bitmap_str = "%s, " % bitmap.serialize() if bitmap else ""
-        q = u"Sum(%sframe='%s', field='%s')" % (bitmap_str, self.frame_name, self.name)
-        return PQLQuery(q, self.index)
+        return self._value_query("Sum", bitmap)
+
+    def min(self, bitmap=None):
+        """Creates a Min query.
+
+        :param bitmap: The bitmap query to use.
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._value_query("Min", bitmap)
+
+    def max(self, bitmap=None):
+        """Creates a Max query.
+
+        :param bitmap: The bitmap query to use.
+        :return: a PQL query
+        :rtype: PQLQuery
+        """
+        return self._value_query("Max", bitmap)
 
     def set_value(self, column_id, value):
         """Creates a SetFieldValue query.
@@ -740,6 +756,12 @@ class RangeField:
     def _binary_operation(self, op, n):
         q = u"Range(frame='%s', %s %s %d)" % (self.frame_name, self.name, op, n)
         return PQLQuery(q, self.index)
+
+    def _value_query(self, op, bitmap):
+        bitmap_str = "%s, " % bitmap.serialize() if bitmap else ""
+        q = u"%s(%sframe='%s', field='%s')" % (op, bitmap_str, self.frame_name, self.name)
+        return PQLQuery(q, self.index)
+
 
 
 def id_key_format(name, id_key, id_fmt, key_fmt):

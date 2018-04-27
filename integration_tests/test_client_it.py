@@ -290,17 +290,26 @@ class ClientIT(unittest.TestCase):
         client = self.get_client()
         frame = self.col_index.frame("rangeframe", fields=[IntField.int("foo", 10, 20)])
         client.ensure_frame(frame)
+        foo = frame.field("foo")
         client.query(self.col_index.batch_query(
             frame.setbit(1, 10),
             frame.setbit(1, 100),
-            frame.field("foo").set_value(10, 11),
-            frame.field("foo").set_value(100, 15),
+            foo.set_value(10, 11),
+            foo.set_value(100, 15),
         ))
-        response = client.query(frame.field("foo").sum(frame.bitmap(1)))
-        self.assertEquals(26, response.result.sum)
+        response = client.query(foo.sum(frame.bitmap(1)))
+        self.assertEquals(26, response.result.value)
         self.assertEquals(2, response.result.count)
 
-        response = client.query(frame.field("foo").lt(15))
+        response = client.query(foo.min(frame.bitmap(1)))
+        self.assertEquals(11, response.result.value)
+        self.assertEquals(1, response.result.count)
+
+        response = client.query(foo.max(frame.bitmap(1)))
+        self.assertEquals(15, response.result.value)
+        self.assertEquals(1, response.result.count)
+
+        response = client.query(foo.lt(15))
         self.assertEquals(1, len(response.results))
         self.assertEquals(10, response.result.bitmap.bits[0])
 
