@@ -1,6 +1,7 @@
 ## Change Log
 
-* **Next**
+* **v0.9.0** (2018-05-08)
+    * Compatible with Pilosa 0.9.
     * Added `RangeField.min` and `RangeField.max` methods.
     * **Deprecation** `inverse_enabled` frame option, `Frame.inverse_bitmap`, `Frame.inverse_topn`, `Frame.inverse_range` methods. Inverse frames will be removed on Pilosa 1.0.
 
