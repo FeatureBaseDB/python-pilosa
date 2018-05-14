@@ -37,7 +37,7 @@ reader = csv_bit_reader(StringIO(text))
 client = pilosa.Client()
 schema = client.schema()
 index = schema.index("sample-index")
-frame = index.frame("sample-frame")
+frame = index.frame("sample-frame", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY_HOUR)
 client.sync_schema(schema)
 client.import_frame(frame, reader)
 ```
