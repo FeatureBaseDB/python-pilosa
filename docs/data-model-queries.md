@@ -20,8 +20,7 @@ stargazer = repository.frame("stargazer")
 Similar to index objects, you can pass custom options to the `index.frame` method:
 
 ```python
-stargazer = repository.frame("stargazer",
-    inverse_enabled=True, time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
+stargazer = repository.frame("stargazer", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
 ```
 
 ## Queries
@@ -114,14 +113,14 @@ Index:
 Frame:
 
 * `bitmap(self, row_id)`
-* `inverse_bitmap(self, column_id)`
 * `setbit(self, row_id, column_id, timestamp=None)`
 * `clearbit(self, row_id, column_id)`
 * `topn(self, n, bitmap=None, field="", *values)`
-* `inverse_topn(self, n, bitmap=None, field="", *values)`
 * `range(self, row_id, start, end)`
-* `inverse_range(self, column_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
+* (**deprecated**) `inverse_bitmap(self, column_id)`
+* (**deprecated**) `inverse_topn(self, n, bitmap=None, field="", *values)`
+* (**deprecated**) `inverse_range(self, column_id, start, end)`
 * (**deprecated**) `sum(self, bitmap, field)`
 * (**deprecated**) `set_field_value(self, column_id, field, value)`
 
