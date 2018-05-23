@@ -38,12 +38,8 @@ from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 
-try:
-    import pypandoc
-    long_description = pypandoc.convert_file("README.md", "rst")
-except ImportError:
-    # long_description is required only during the release to PyPI
-    long_description = u''
+with open("README.md") as f:
+    long_description = f.read()
 
 exec(open(path.join(here, 'pilosa/version.py'), 'r').read())
 
@@ -52,6 +48,7 @@ setup(
     version=_get_version_setup(),
     description='Python client library for Pilosa',
     long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://github.com/pilosa/python-pilosa',
     author='Pilosa Engineering',
     author_email='dev@pilosa.com',
