@@ -36,7 +36,7 @@
 import unittest
 
 from pilosa.exceptions import ValidationError
-from pilosa.validator import validate_frame_name, validate_index_name, validate_label, validate_key
+from pilosa.validator import validate_field_name, validate_index_name, validate_label, validate_key
 
 
 class ValidatorTestCase(unittest.TestCase):
@@ -100,15 +100,15 @@ class ValidatorTestCase(unittest.TestCase):
 
     def test_validate_valid_frame_name(self):
         for name in self.VALID_FRAME_NAMES:
-            validate_frame_name(name)
+            validate_field_name(name)
 
     def test_invalid_frame_name_fails(self):
         for name in self.INVALID_FRAME_NAMES:
             try:
-                validate_frame_name(name)
+                validate_field_name(name)
             except ValidationError:
                 continue
-            self.fail("Frame name validation should have failed for: " + name)
+            self.fail("Field name validation should have failed for: " + name)
 
     def test_validate_valid_label(self):
         for label in self.VALID_LABELS:

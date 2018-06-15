@@ -34,10 +34,10 @@
 import json
 
 from .exceptions import PilosaError, ValidationError
-from .validator import validate_index_name, validate_frame_name, validate_label, validate_key
+from .validator import validate_index_name, validate_field_name, validate_label, validate_key
 
 __all__ = ("TimeQuantum", "CacheType", "Schema", "Index", "PQLQuery",
-           "PQLBatchQuery", "IntField", "RangeField", "Frame")
+           "PQLBatchQuery", "Field")
 
 _TIME_FORMAT = "%Y-%m-%dT%H:%M"
 
@@ -47,7 +47,7 @@ _basestring = globals()["__builtins__"].basestring if hasattr(globals()["__built
 
 
 class TimeQuantum:
-    """Valid time quantum values for frames having support for that.
+    """Valid time quantum values for fields having support for that.
     
     * See: `Data Model <https://www.pilosa.com/docs/data-model/>`_
     """
@@ -150,14 +150,14 @@ class Schema:
                 # if the index doesn't exist in the other schema, simply copy it
                 result._indexes[index_name] = index.copy()
             else:
-                # the index exists in the other schema; check the frames
-                result_index = index.copy(frames=False)
-                for frame_name, frame in index._frames.items():
-                    # if the frame doesn't exist in the other scheme, copy it
-                    if frame_name not in result_index._frames:
-                        result_index._frames[frame_name] = frame.copy()
+                # the index exists in the other schema; check the fields
+                result_index = index.copy(fields=False)
+                for field_name, field in index._fields.items():
+                    # if the field doesn't exist in the other scheme, copy it
+                    if field_name not in result_index._fields:
+                        result_index._fields[field_name] = field.copy()
                 # check whether we modified result index
-                if len(result_index._frames) > 0:
+                if len(result_index._fields) > 0:
                     result._indexes[index_name] = result_index
 
         return result
@@ -177,7 +177,7 @@ class Index:
     def __init__(self, name):
         validate_index_name(name)
         self.name = name
-        self._frames = {}
+        self._fields = {}
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -185,7 +185,7 @@ class Index:
         if not isinstance(other, self.__class__):
             return False
         return self._meta_eq(other) and \
-               self._frames == other._frames
+               self._fields == other._fields
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -193,31 +193,32 @@ class Index:
     def _meta_eq(self, other):
         return self.name == other.name
 
-    def copy(self, frames=True):
+    def copy(self, fields=True):
         index = Index(self.name)
-        if frames:
-            index._frames = dict((name, frame.copy()) for name, frame in self._frames.items())
+        if fields:
+            index._fields = dict((name, field.copy()) for name, field in self._fields.items())
         return index
 
-    def frame(self, name, time_quantum=TimeQuantum.NONE,
-              inverse_enabled=False, cache_type=CacheType.DEFAULT, cache_size=0, fields=None):
-        """Creates a frame object with the specified name and defaults.
+    def field(self, name, time_quantum=TimeQuantum.NONE,
+              cache_type=CacheType.DEFAULT, cache_size=0,
+              int_min=0, int_max=0):
+        """Creates a field object with the specified name and defaults.
         
-        :param str name: frame name
-        :param pilosa.TimeQuantum time_quantum: Sets the time quantum for the frame. If a Frame has a time quantum, then Views are generated for each of the defined time segments.
-        :param bool inverse_enabled:
+        :param str name: field name
+        :param pilosa.TimeQuantum time_quantum: Sets the time quantum for the field. If a Field has a time quantum, then Views are generated for each of the defined time segments.
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
         :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
-        :param list(IntField) fields: List of ``IntField`` objects. E.g.: ``[IntField.int("rate", 0, 100)]``
-        :return: Pilosa frame
-        :rtype: pilosa.Frame
+        :param int int_min: Minimum for the integer field
+        :param int int_max: Maximum for the integer field
+        :return: Pilosa field
+        :rtype: pilosa.Field
         """
-        frame = self._frames.get(name)
-        if frame is None:
-            frame = Frame(self, name, time_quantum,
-                          inverse_enabled, cache_type, cache_size, fields or [])
-            self._frames[name] = frame
-        return frame
+        field = self._fields.get(name)
+        if field is None:
+            field = Field(self, name, time_quantum,
+                          cache_type, cache_size, int_min, int_max)
+            self._fields[name] = field
+        return field
 
     def raw_query(self, query):
         """Creates a raw query.
@@ -331,29 +332,31 @@ class Index:
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in bitmaps)), self)
 
 
-class Frame:
-    """Frames are used to segment and define different functional characteristics within your entire index.
+class Field:
+    """Fields are used to segment and define different functional characteristics within your entire index.
     
-    You can think of a Frame as a table-like data partition within your Index.
-    Row-level attributes are namespaced at the Frame level.
+    You can think of a Field as a table-like data partition within your Index.
+    Row-level attributes are namespaced at the Field level.
     
-    Do not create a Frame object directly. Instead, use ``pilosa.Index.frame`` method.
+    Do not create a Field object directly. Instead, use ``pilosa.Index.field`` method.
         
     * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
     """
 
-    def __init__(self, index, name, time_quantum, inverse_enabled,
-                 cache_type, cache_size, fields):
-        validate_frame_name(name)
+    def __init__(self, index, name, time_quantum,
+                 cache_type, cache_size, int_min, int_max):
+        validate_field_name(name)
+        if int_max < int_min:
+            raise ValidationError("Max should be greater than min for int fields")
+
         self.index = index
         self.name = name
         self.time_quantum = time_quantum
-        self.inverse_enabled = inverse_enabled
         self.cache_type = cache_type
         self.cache_size = cache_size
-        self.fields = fields
-        self.range_fields = {}
+        self.int_min = int_min
+        self.int_max = int_max
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -361,22 +364,20 @@ class Frame:
         if not isinstance(other, self.__class__):
             return False
 
-        # Note that we skip comparing the frames of the indexes by using index._meta_eq
+        # Note that we skip comparing the fields of the indexes by using index._meta_eq
         # in order to avoid a call cycle
         return self.name == other.name and \
                self.index._meta_eq(other.index) and \
                self.time_quantum == other.time_quantum and \
-               self.inverse_enabled == other.inverse_enabled and \
                self.cache_type == other.cache_type and \
-               self.cache_size == other.cache_size and \
-               self.fields == other.fields
+               self.cache_size == other.cache_size
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def copy(self):
-        return Frame(self.index, self.name, self.time_quantum,
-                     self.inverse_enabled, self.cache_type, self.cache_size, self.fields)
+        return Field(self.index, self.name, self.time_quantum,
+                     self.cache_type, self.cache_size, self.int_min, self.int_max)
 
     def bitmap(self, row_idkey):
         """Creates a Bitmap query.
@@ -390,30 +391,14 @@ class Frame:
         :rtype: pilosa.PQLBitmapQuery
         """
         fmt = id_key_format("Row ID/Key", row_idkey,
-                            u"Bitmap(row=%s, frame='%s')",
-                            u"Bitmap(row='%s', frame='%s')")
+                            u"Bitmap(row=%s, field='%s')",
+                            u"Bitmap(row='%s', field='%s')")
         return PQLQuery(fmt % (row_idkey, self.name), self.index)
-
-    def inverse_bitmap(self, column_idkey):
-        """Creates a Bitmap query.
-
-        ``Bitmap`` retrieves the indices of all the set bits in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
-
-        This variant of Bitmap query uses the column label.
-
-        :param int column_idkey:
-        :return: Pilosa bitmap query
-        :rtype: pilosa.PQLBitmapQuery
-        """
-        fmt = id_key_format("Column", column_idkey,
-                            u"Bitmap(col=%s, frame='%s')",
-                            u"Bitmap(col='%s', frame='%s')")
-        return PQLQuery(fmt % (column_idkey, self.name), self.index)
 
     def setbit(self, row_idkey, column_idkey, timestamp=None):
         """Creates a SetBit query.
         
-        ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given frame with the given column.
+        ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given field with the given column.
         
         :param int row_idkey:
         :param int column_idkey:
@@ -422,9 +407,9 @@ class Frame:
         :rtype: pilosa.PQLQuery
         """
         if isinstance(row_idkey, int) and isinstance(column_idkey, int):
-            fmt = u"SetBit(row=%s, frame='%s', col=%s%s)"
+            fmt = u"SetBit(row=%s, field='%s', col=%s%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"SetBit(row='%s', frame='%s', col='%s'%s)"
+            fmt = u"SetBit(row='%s', field='%s', col='%s'%s)"
             validate_key(row_idkey)
             validate_key(column_idkey)
         else:
@@ -435,7 +420,7 @@ class Frame:
     def clearbit(self, row_idkey, column_idkey):
         """Creates a ClearBit query.
         
-        ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given frame from the given column.
+        ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given field from the given column.
         
         :param int row_idkey:
         :param int column_idkey:
@@ -443,9 +428,9 @@ class Frame:
         :rtype: pilosa.PQLQuery
         """
         if isinstance(row_idkey, int) and isinstance(column_idkey, int):
-            fmt = u"ClearBit(row=%s, frame='%s', col=%s)"
+            fmt = u"ClearBit(row=%s, field='%s', col=%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"ClearBit(row='%s', frame='%s', col='%s')"
+            fmt = u"ClearBit(row='%s', field='%s', col='%s')"
             validate_key(row_idkey)
             validate_key(column_idkey)
         else:
@@ -455,7 +440,7 @@ class Frame:
     def topn(self, n, bitmap=None, field="", *values):
         """Creates a TopN query.
 
-        ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the frame.
+        ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the field.
 
         * see: `TopN Query <https://www.pilosa.com/docs/query-language/#topn>`_
 
@@ -464,26 +449,7 @@ class Frame:
         :param field str field: field name
         :param object values: filter values to be matched against the field
         """
-        return self._topn(n, bitmap, field, False, *values)
-
-    def inverse_topn(self, n, bitmap=None, field="", *values):
-        """Creates a TopN query.
-
-        ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the frame.
-
-        This version sets `inverse=true`.
-
-        * see: `TopN Query <https://www.pilosa.com/docs/query-language/#topn>`_
-
-        :param int n: number of items to return
-        :param pilosa.PQLBitmapQuery bitmap: a PQL Bitmap query
-        :param field str field: field name
-        :param object values: filter values to be matched against the field
-        """
-        return self._topn(n, bitmap, field, True, *values)
-
-    def _topn(self, n, bitmap=None, field="", inverse=False, *values):
-        parts = ["frame='%s'" % self.name, "n=%d" % n, "inverse=%s" % ('true' if inverse else 'false')]
+        parts = ["field='%s'" % self.name, "n=%d" % n]
         if bitmap:
             parts.insert(0, bitmap.serialize())
         if field:
@@ -504,33 +470,18 @@ class Frame:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        return self._range("row", row_idkey, start, end)
-
-    def inverse_range(self, column_id, start, end):
-        """Creates a Range query.
-
-        Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
-
-
-        :param int column_id:
-        :param datetime.datetime start: start timestamp
-        :param datetime.datetime end: end timestamp
-        """
-        return self._range("col", column_id, start, end)
-
-    def _range(self, label, row_idkey, start, end):
         fmt = id_key_format("Row", row_idkey,
-                            u"Range(%s=%s, frame='%s', start='%s', end='%s')",
-                            u"Range(%s='%s', frame='%s', start='%s', end='%s')")
+                            u"Range(row=%s, field='%s', start='%s', end='%s')",
+                            u"Range(row='%s', field='%s', start='%s', end='%s')")
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        return PQLQuery(fmt % (label, row_idkey, self.name, start_str, end_str),
+        return PQLQuery(fmt % (row_idkey, self.name, start_str, end_str),
                         self.index)
 
     def set_row_attrs(self, row_idkey, attrs):
         """Creates a SetRowAttrs query.
         
-        ``SetRowAttrs`` associates arbitrary key/value pairs with a row in a frame.
+        ``SetRowAttrs`` associates arbitrary key/value pairs with a row in a field.
         
         Following object types are accepted:
         
@@ -545,100 +496,10 @@ class Frame:
         :rtype: pilosa.PQLQuery        
         """
         fmt = id_key_format("Row", row_idkey,
-                            u"SetRowAttrs(row=%s, frame='%s', %s)",
-                            u"SetRowAttrs(row='%s', frame='%s', %s)")
+                            u"SetRowAttrs(row=%s, field='%s', %s)",
+                            u"SetRowAttrs(row='%s', field='%s', %s)")
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(fmt % (row_idkey, self.name, attrs_str), self.index)
-
-    def field(self, name):
-        """Returns a _RangeField object with the given name.
-
-        :param name: field name
-        :return: _RangeField object
-        :rtype: RangeField
-        """
-        field = self.range_fields.get(name)
-        if not field:
-            validate_label(name)
-            field = RangeField(self, name)
-            self.range_fields[name] = field
-        return field
-
-    def _get_options_string(self):
-        data = {}
-        if self.inverse_enabled:
-            data["inverseEnabled"] = True
-        if self.time_quantum != TimeQuantum.NONE:
-            data["timeQuantum"] = str(self.time_quantum)
-        if self.cache_type != CacheType.DEFAULT:
-            data["cacheType"] = str(self.cache_type)
-        if self.cache_size > 0:
-            data["cacheSize"] = self.cache_size
-        if self.fields:
-            data["rangeEnabled"] = True
-            data["fields"] = [f.attrs for f in self.fields]
-        return json.dumps({"options": data}, sort_keys=True)
-
-
-class PQLQuery:
-
-    def __init__(self, pql, index):
-        self.pql = pql
-        self.index = index
-
-    def serialize(self):
-        return self.pql
-
-
-def _create_attributes_str(attrs):
-    kvs = []
-    try:
-        for k, v in attrs.items():
-            # TODO: make key use its own validator
-            validate_label(k)
-            kvs.append("%s=%s" % (k, json.dumps(v)))
-        return ", ".join(sorted(kvs))
-    except TypeError:
-        raise PilosaError("Error while converting values")
-
-
-class PQLBatchQuery:
-
-    def __init__(self, index):
-        self.index = index
-        self.queries = []
-
-    def add(self, *queries):
-        self.queries.extend(queries)
-
-    def serialize(self):
-        return u''.join(q.serialize() for q in self.queries)
-
-
-class IntField:
-
-    def __init__(self, attrs):
-        self.attrs = attrs
-
-    @classmethod
-    def int(cls, name, min=0, max=100):
-        validate_label(name)
-        if max <= min:
-            raise ValidationError("Max should be greater than min for int fields")
-        return cls({
-            "name": name,
-            "type": "int",
-            "min": min,
-            "max": max
-        })
-
-
-class RangeField:
-
-    def __init__(self, frame, name):
-        self.frame_name = frame.name
-        self.name = name
-        self.index = frame.index
 
     def lt(self, n):
         """Creates a Range query with less than (<) condition.
@@ -700,7 +561,7 @@ class RangeField:
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"Range(frame='%s', %s != null)" % (self.frame_name, self.name)
+        q = u"Range(%s != null)" % self.name
         return PQLQuery(q, self.index)
 
     def between(self, a, b):
@@ -711,7 +572,7 @@ class RangeField:
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"Range(frame='%s', %s >< [%d,%d])" % (self.frame_name, self.name, a, b)
+        q = u"Range(%s >< [%d,%d])" % (self.name, a, b)
         return PQLQuery(q, self.index)
 
     def sum(self, bitmap=None):
@@ -742,26 +603,76 @@ class RangeField:
         return self._value_query("Max", bitmap)
 
     def set_value(self, column_id, value):
-        """Creates a SetFieldValue query.
+        """Creates a SetValue query.
 
         :param column_id: column ID
         :param value: the value to assign to the field
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"SetFieldValue(frame='%s', col=%d, %s=%d)" % \
-            (self.frame_name, column_id, self.name, value)
+        q = u"SetValue(col=%d, %s=%d)" % (column_id, self.name, value)
         return PQLQuery(q, self.index)
 
     def _binary_operation(self, op, n):
-        q = u"Range(frame='%s', %s %s %d)" % (self.frame_name, self.name, op, n)
+        q = u"Range(%s %s %d)" % (self.name, op, n)
         return PQLQuery(q, self.index)
 
     def _value_query(self, op, bitmap):
         bitmap_str = "%s, " % bitmap.serialize() if bitmap else ""
-        q = u"%s(%sframe='%s', field='%s')" % (op, bitmap_str, self.frame_name, self.name)
+        q = u"%s(%sfield='%s')" % (op, bitmap_str, self.name)
         return PQLQuery(q, self.index)
 
+    def _get_options_string(self):
+        data = {}
+        if self.time_quantum != TimeQuantum.NONE:
+            data["type"] = "time"
+            data["timeQuantum"] = str(self.time_quantum)
+        elif self.int_min != 0 or self.int_max != 0:
+            data["type"] = "int"
+            data["min"] = self.int_min
+            data["max"] = self.int_max
+        else:
+            data["type"] = "set"
+            if self.cache_type != CacheType.DEFAULT:
+                data["cacheType"] = str(self.cache_type)
+            if self.cache_size > 0:
+                data["cacheSize"] = self.cache_size
+        return json.dumps({"options": data}, sort_keys=True)
+
+
+class PQLQuery:
+
+    def __init__(self, pql, index):
+        self.pql = pql
+        self.index = index
+
+    def serialize(self):
+        return self.pql
+
+
+def _create_attributes_str(attrs):
+    kvs = []
+    try:
+        for k, v in attrs.items():
+            # TODO: make key use its own validator
+            validate_label(k)
+            kvs.append("%s=%s" % (k, json.dumps(v)))
+        return ", ".join(sorted(kvs))
+    except TypeError:
+        raise PilosaError("Error while converting values")
+
+
+class PQLBatchQuery:
+
+    def __init__(self, index):
+        self.index = index
+        self.queries = []
+
+    def add(self, *queries):
+        self.queries.extend(queries)
+
+    def serialize(self):
+        return u''.join(q.serialize() for q in self.queries)
 
 
 def id_key_format(name, id_key, id_fmt, key_fmt):

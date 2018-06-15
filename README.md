@@ -44,10 +44,10 @@ schema = client.schema()
 # Create an Index object
 myindex = schema.index("myindex")
 
-# Create a Frame object
-myframe = myindex.frame("myframe")
+# Create a Field object
+myframe = myindex.field("myframe")
 
-# make sure the index and frame exists on the server
+# make sure the index and field exists on the server
 client.sync_schema(schema)
 
 # Send a SetBit query. PilosaError is thrown if execution of the query fails.

@@ -72,25 +72,25 @@ client = pilosa.Client(cluster,
 
 Once you create a client, you can create indexes, frames and start sending queries.
 
-Here is how you would create a index and frame:
+Here is how you would create a index and field:
 
 ```python
 schema = client.schema()
 index = schema.index("repository")
-frame = index.frame("stargazer")
+field = index.field("stargazer")
 client.sync_schema(schema)
 ```
 
 You can send queries to a Pilosa server using the `query` method of client objects:
 
 ```python
-response = client.query(frame.bitmap(5))
+response = client.query(field.bitmap(5))
 ```
 
 `query` method accepts optional `columns` argument:
 
 ```python
-response = client.query(frame.bitmap(5),
+response = client.query(field.bitmap(5),
     columns=True  # return column data in the response
 )
 ```
@@ -102,7 +102,7 @@ When a query is sent to a Pilosa server, the server either fulfills the query or
 A `QueryResponse` object may contain zero or more results of `QueryResult` type. You can access all results using the `results` property of `QueryResponse` (which returns a list of `QueryResult` objects) or you can use the `result` property (which returns either the first result or `None` if there are no results):
 
 ```python
-response = client.query(frame.bitmap(5))
+response = client.query(field.bitmap(5))
 
 # check that there's a result and act on it
 result = response.result

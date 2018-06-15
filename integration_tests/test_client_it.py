@@ -42,7 +42,7 @@ except ImportError:
 
 from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
-from pilosa.orm import Index, TimeQuantum, Schema, IntField, CacheType
+from pilosa.orm import Index, TimeQuantum, Schema, CacheType
 from pilosa.imports import csv_bit_reader
 
 
@@ -54,13 +54,13 @@ class ClientIT(unittest.TestCase):
         schema = Schema()
         self.index = schema.index(self.random_index_name())
         client = self.get_client()
-        self.index.frame("another-frame")
-        self.index.frame("test")
-        self.index.frame("count-test")
-        self.index.frame("topn_test")
+        self.index.field("another-field")
+        self.index.field("test")
+        self.index.field("count-test")
+        self.index.field("topn_test")
 
         self.col_index = schema.index(self.index.name + "-opts")
-        self.frame = self.col_index.frame("collab")
+        self.field = self.col_index.field("collab")
         client.sync_schema(schema)
 
     def tearDown(self):
@@ -68,63 +68,63 @@ class ClientIT(unittest.TestCase):
         client.delete_index(self.index)
         client.delete_index(self.col_index)
 
-    def test_create_frame_with_time_quantum(self):
-        frame = self.index.frame("frame-with-timequantum", time_quantum=TimeQuantum.YEAR)
+    def test_create_field_with_time_quantum(self):
+        field = self.index.field("field-with-timequantum", time_quantum=TimeQuantum.YEAR)
         client = self.get_client()
-        client.ensure_frame(frame)
+        client.ensure_field(field)
         schema = client.schema()
-        # Check the frame time quantum
+        # Check the field time quantum
         index = schema._indexes[self.index.name]
-        frame = index._frames["frame-with-timequantum"]
-        self.assertEquals(TimeQuantum.YEAR.value, frame.time_quantum.value)
+        field = index._fields["field-with-timequantum"]
+        self.assertEquals(TimeQuantum.YEAR.value, field.time_quantum.value)
 
     def test_query(self):
         client = self.get_client()
-        frame = self.index.frame("query-test")
-        client.ensure_frame(frame)
-        response = client.query(frame.setbit(555, 10))
+        field = self.index.field("query-test")
+        client.ensure_field(field)
+        response = client.query(field.setbit(555, 10))
         self.assertTrue(response.result is not None)
 
     def test_query_with_columns(self):
         client = self.get_client()
-        frame = self.index.frame("query-test")
-        client.ensure_frame(frame)
-        client.query(frame.setbit(100, 1000))
+        field = self.index.field("query-test")
+        client.ensure_field(field)
+        client.query(field.setbit(100, 1000))
         column_attrs = {"name": "bombo"}
         client.query(self.index.set_column_attrs(1000, column_attrs))
-        response = client.query(frame.bitmap(100), columns=True)
+        response = client.query(field.bitmap(100), columns=True)
         self.assertTrue(response is not None)
         self.assertEquals(1000, response.column.id)
         self.assertEquals({"name": "bombo"}, response.column.attributes)
 
-        response = client.query(frame.bitmap(300))
+        response = client.query(field.bitmap(300))
         self.assertTrue(response.column is None)
 
     def test_failed_connection(self):
         client = Client("http://non-existent-sub.pilosa.com:22222")
-        self.assertRaises(PilosaError, client.query, self.frame.setbit(15, 10))
+        self.assertRaises(PilosaError, client.query, self.field.setbit(15, 10))
 
     def test_parse_error(self):
         client = self.get_client()
-        q = self.index.raw_query("SetBit(id=5, frame=\"test\", col_id:=10)")
+        q = self.index.raw_query("SetBit(id=5, field=\"test\", col_id:=10)")
         self.assertRaises(PilosaError, client.query, q)
 
     def test_orm_count(self):
         client = self.get_client()
-        count_frame = self.index.frame("count-test")
-        client.ensure_frame(count_frame)
+        count_field = self.index.field("count-test")
+        client.ensure_field(count_field)
         qry = self.index.batch_query(
-            count_frame.setbit(10, 20),
-            count_frame.setbit(10, 21),
-            count_frame.setbit(15, 25))
+            count_field.setbit(10, 20),
+            count_field.setbit(10, 21),
+            count_field.setbit(15, 25))
         client.query(qry)
-        response = client.query(self.index.count(count_frame.bitmap(10)))
+        response = client.query(self.index.count(count_field.bitmap(10)))
         self.assertEquals(2, response.result.count)
 
     def test_new_orm(self):
         client = self.get_client()
-        client.query(self.frame.setbit(10, 20))
-        response1 = client.query(self.frame.bitmap(10))
+        client.query(self.field.setbit(10, 20))
+        response1 = client.query(self.field.bitmap(10))
         self.assertEquals(0, len(response1.columns))
         bitmap1 = response1.result.bitmap
         self.assertEquals(0, len(bitmap1.attributes))
@@ -133,7 +133,7 @@ class ClientIT(unittest.TestCase):
 
         column_attrs = {"name": "bombo"}
         client.query(self.col_index.set_column_attrs(20, column_attrs))
-        response2 = client.query(self.frame.bitmap(10), columns=True)
+        response2 = client.query(self.field.bitmap(10), columns=True)
         column = response2.column
         self.assertTrue(column is not None)
         self.assertEquals(20, column.id)
@@ -144,8 +144,8 @@ class ClientIT(unittest.TestCase):
             "height": 1.81,
             "name": "Mr. Pi"
         }
-        client.query(self.frame.set_row_attrs(10, bitmap_attrs))
-        response3 = client.query(self.frame.bitmap(10))
+        client.query(self.field.set_row_attrs(10, bitmap_attrs))
+        response3 = client.query(self.field.bitmap(10))
         bitmap = response3.result.bitmap
         self.assertEquals(1, len(bitmap.bits))
         self.assertEquals(4, len(bitmap.attributes))
@@ -156,16 +156,16 @@ class ClientIT(unittest.TestCase):
 
     def test_topn(self):
         client = self.get_client()
-        frame = self.index.frame("topn_test")
+        field = self.index.field("topn_test")
         client.query(self.index.batch_query(
-            frame.setbit(10, 5),
-            frame.setbit(10, 10),
-            frame.setbit(10, 15),
-            frame.setbit(20, 5),
-            frame.setbit(30, 5)))
+            field.setbit(10, 5),
+            field.setbit(10, 10),
+            field.setbit(10, 15),
+            field.setbit(20, 5),
+            field.setbit(30, 5)))
         # XXX: The following is required to make this test pass. See: https://github.com/pilosa/pilosa/issues/625
         client.http_request("POST", "/recalculate-caches")
-        response4 = client.query(frame.topn(2))
+        response4 = client.query(field.topn(2))
         items = response4.result.count_items
         self.assertEquals(2, len(items))
         item = items[0]
@@ -176,23 +176,23 @@ class ClientIT(unittest.TestCase):
         client = self.get_client()
         index = Index(self.index.name + "-ensure")
         client.ensure_index(index)
-        client.create_frame(index.frame("frm"))
+        client.create_field(index.field("frm"))
         client.ensure_index(index)
         client.delete_index(index)
 
-    def test_delete_frame(self):
+    def test_delete_field(self):
         client = self.get_client()
-        frame = self.index.frame("to-delete")
-        client.ensure_frame(frame)
-        client.delete_frame(frame)
+        field = self.index.field("to-delete")
+        client.ensure_field(field)
+        client.delete_field(field)
         # the following should succeed
-        client.create_frame(frame)
+        client.create_field(field)
 
-    def test_frame_for_nonexisting_index(self):
+    def test_field_for_nonexisting_index(self):
         client = self.get_client()
         index = Index("non-existing-database")
-        frame = index.frame("frm")
-        self.assertRaises(PilosaServerError, client.create_frame, frame)
+        field = index.field("frm")
+        self.assertRaises(PilosaServerError, client.create_field, field)
 
     def test_csv_import(self):
         client = self.get_client()
@@ -203,13 +203,13 @@ class ClientIT(unittest.TestCase):
             7, 1
         """
         reader = csv_bit_reader(StringIO(text))
-        frame = self.index.frame("importframe")
-        client.ensure_frame(frame)
-        client.import_frame(frame, reader)
+        field = self.index.field("importfield")
+        client.ensure_field(field)
+        client.import_field(field, reader)
         bq = self.index.batch_query(
-            frame.bitmap(2),
-            frame.bitmap(7),
-            frame.bitmap(10),
+            field.bitmap(2),
+            field.bitmap(7),
+            field.bitmap(10),
         )
         response = client.query(bq)
         target = [3, 1, 5]
@@ -227,52 +227,48 @@ class ClientIT(unittest.TestCase):
         reader = csv_bit_reader(StringIO(text))
         client = self.get_client()
         schema = client.schema()
-        frame = schema.index(self.index.name).frame("importframe", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
+        field = schema.index(self.index.name).field("importfield", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
         client.sync_schema(schema)
-        client.import_frame(frame, reader)
+        client.import_field(field, reader)
 
     def test_schema(self):
         client = self.get_client()
         schema = client.schema()
         self.assertGreaterEqual(len(schema._indexes), 1)
-        self.assertGreaterEqual(len(list(schema._indexes.values())[0]._frames), 1)
-        frame = self.index.frame("schema-test-frame",
+        self.assertGreaterEqual(len(list(schema._indexes.values())[0]._fields), 1)
+        field = self.index.field("schema-test-field",
                                  cache_type=CacheType.LRU,
-                                 cache_size=9999,
-                                 inverse_enabled=True,
-                                 time_quantum=TimeQuantum.YEAR_MONTH_DAY)
-        client.ensure_frame(frame)
+                                 cache_size=9999)
+        client.ensure_field(field)
         schema = client.schema()
-        f = schema._indexes[self.index.name]._frames["schema-test-frame"]
+        f = schema._indexes[self.index.name]._fields["schema-test-field"]
         self.assertEquals(CacheType.LRU, f.cache_type)
         self.assertEquals(9999, f.cache_size)
-        self.assertEquals(True, f.inverse_enabled)
-        self.assertEquals(TimeQuantum.YEAR_MONTH_DAY, f.time_quantum)
 
     def test_sync(self):
         client = self.get_client()
         remote_index = Index("remote-index-1")
-        remote_frame = remote_index.frame("remote-frame-1")
+        remote_field = remote_index.field("remote-field-1")
         schema1 = Schema()
         index11 = schema1.index("diff-index1")
-        index11.frame("frame1-1")
-        index11.frame("frame1-2")
+        index11.field("field1-1")
+        index11.field("field1-2")
         index12 = schema1.index("diff-index2")
-        index12.frame("frame2-1")
+        index12.field("field2-1")
         schema1.index(remote_index.name)
         try:
             client.ensure_index(remote_index)
-            client.ensure_frame(remote_frame)
+            client.ensure_field(remote_field)
             client.sync_schema(schema1)
             # check that the schema was created
             schema2 = client.schema()
             self.assertTrue("remote-index-1" in schema2._indexes)
-            self.assertTrue("remote-frame-1" in schema2.index("remote-index-1")._frames)
+            self.assertTrue("remote-field-1" in schema2.index("remote-index-1")._fields)
             self.assertTrue("diff-index1" in schema2._indexes)
-            self.assertTrue("frame1-1" in schema2.index("diff-index1")._frames)
-            self.assertTrue("frame1-2" in schema2.index("diff-index1")._frames)
+            self.assertTrue("field1-1" in schema2.index("diff-index1")._fields)
+            self.assertTrue("field1-2" in schema2.index("diff-index1")._fields)
             self.assertTrue("diff-index2" in schema2._indexes)
-            self.assertTrue("frame2-1" in schema2.index("diff-index2")._frames)
+            self.assertTrue("field2-1" in schema2.index("diff-index2")._fields)
         finally:
             try:
                 client.delete_index(remote_index)
@@ -284,49 +280,47 @@ class ClientIT(unittest.TestCase):
     def test_failover_fail(self):
         uris = [URI.address("nonexistent%s" % i) for i in range(20)]
         client = Client(Cluster(*uris))
-        self.assertRaises(PilosaError, client.query, self.frame.bitmap(5))
+        self.assertRaises(PilosaError, client.query, self.field.bitmap(5))
 
-    def test_range_frame(self):
+    def test_range_field(self):
         client = self.get_client()
-        frame = self.col_index.frame("rangeframe", fields=[IntField.int("foo", 10, 20)])
-        client.ensure_frame(frame)
-        foo = frame.field("foo")
+        field = self.col_index.field("rangefield", int_min=10, int_max=20)
+        client.ensure_field(field)
         client.query(self.col_index.batch_query(
-            frame.setbit(1, 10),
-            frame.setbit(1, 100),
-            foo.set_value(10, 11),
-            foo.set_value(100, 15),
+            field.setbit(1, 10),
+            field.setbit(1, 100),
+            field.set_value(10, 11),
         ))
-        response = client.query(foo.sum(frame.bitmap(1)))
-        self.assertEquals(26, response.result.value)
-        self.assertEquals(2, response.result.count)
-
-        response = client.query(foo.min(frame.bitmap(1)))
+        response = client.query(field.sum(field.bitmap(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
-        response = client.query(foo.max(frame.bitmap(1)))
-        self.assertEquals(15, response.result.value)
+        response = client.query(field.min(field.bitmap(1)))
+        self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
-        response = client.query(foo.lt(15))
+        response = client.query(field.max(field.bitmap(1)))
+        self.assertEquals(11, response.result.value)
+        self.assertEquals(1, response.result.count)
+
+        response = client.query(field.lt(15))
         self.assertEquals(1, len(response.results))
         self.assertEquals(10, response.result.bitmap.bits[0])
 
     def test_exclude_attrs_bits(self):
         client = self.get_client()
         client.query(self.col_index.batch_query(
-            self.frame.setbit(1, 100),
-            self.frame.set_row_attrs(1, {"foo": "bar"})
+            self.field.setbit(1, 100),
+            self.field.set_row_attrs(1, {"foo": "bar"})
         ))
 
         # test exclude bits.
-        response = client.query(self.frame.bitmap(1), exclude_bits=True)
+        response = client.query(self.field.bitmap(1), exclude_bits=True)
         self.assertEquals(0, len(response.result.bitmap.bits))
         self.assertEquals(1, len(response.result.bitmap.attributes))
 
         # test exclude attributes.
-        response = client.query(self.frame.bitmap(1), exclude_attrs=True)
+        response = client.query(self.field.bitmap(1), exclude_attrs=True)
         self.assertEquals(1, len(response.result.bitmap.bits))
         self.assertEquals(0, len(response.result.bitmap.attributes))
 

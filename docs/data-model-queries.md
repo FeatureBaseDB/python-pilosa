@@ -2,7 +2,7 @@
 
 ## Indexes and Frames
 
-*Index* and *frame*s are the main data models of Pilosa. You can check the [Pilosa documentation](https://www.pilosa.com/docs) for more detail about the data model.
+*Index* and *field*s are the main data models of Pilosa. You can check the [Pilosa documentation](https://www.pilosa.com/docs) for more detail about the data model.
 
 `schema.index` method is used to create an index object. Note that this does not create an index on the server; the index object simply defines the schema.
 
@@ -11,26 +11,26 @@ schema = pilosa.Schema()
 repository = schema.index("repository")
 ```
 
-Frames are created with a call to `index.frame` method:
+Frames are created with a call to `index.field` method:
 
 ```python
-stargazer = repository.frame("stargazer")
+stargazer = repository.field("stargazer")
 ```
 
-Similar to index objects, you can pass custom options to the `index.frame` method:
+Similar to index objects, you can pass custom options to the `index.field` method:
 
 ```python
-stargazer = repository.frame("stargazer", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
+stargazer = repository.field("stargazer", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
 ```
 
 ## Queries
 
-Once you have indexes and frame objects created, you can create queries for them. Some of the queries work on the columns; corresponding methods are attached to the index. Other queries work on rows, with related methods attached to frames.
+Once you have indexes and field objects created, you can create queries for them. Some of the queries work on the columns; corresponding methods are attached to the index. Other queries work on rows, with related methods attached to frames.
 
-For instance, `Bitmap` queries work on rows; use a frame object to create those queries:
+For instance, `Bitmap` queries work on rows; use a field object to create those queries:
 
 ```python
-bitmap_query = stargazer.bitmap(1)  # corresponds to PQL: Bitmap(frame='stargazer', row=1)
+bitmap_query = stargazer.bitmap(1)  # corresponds to PQL: Bitmap(field='stargazer', row=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
@@ -47,25 +47,25 @@ query = repository.batch_query(
     repository.union(stargazer.bitmap(100), stargazer.bitmap(5)))
 ```
 
-The recommended way of creating query objects is, using dedicated methods attached to index and frame objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
+The recommended way of creating query objects is, using dedicated methods attached to index and field objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
 
 ```python
-query = repository.raw_query("Bitmap(frame='stargazer', row=5)")
+query = repository.raw_query("Bitmap(field='stargazer', row=5)")
 ```
 
 This client supports [Range encoded fields](https://www.pilosa.com/docs/latest/query-language/#range-bsi). Read [Range Encoded Bitmaps](https://www.pilosa.com/blog/range-encoded-bitmaps/) blog post for more information about the BSI implementation of range encoding in Pilosa.
 
-In order to use range encoded fields, a frame should be created with one or more integer fields. Each field should have their minimums and maximums set. Here's how you would do that using this library:
+In order to use range encoded fields, a field should be created with one or more integer fields. Each field should have their minimums and maximums set. Here's how you would do that using this library:
 ```python
 index = schema.index("animals")
-frame = index.frame("traits", fields=[pilosa.IntField.int("captivity", min=0, max=956)])
+field = index.field("traits", fields=[pilosa.IntField.int("captivity", min=0, max=956)])
 client.sync_schema(schema)
 ```
 
-If the frame with the necessary field already exists on the server, you don't need to create the field instance, `client.syncSchema(schema)` would load that to `schema`. You can then add some data:
+If the field with the necessary field already exists on the server, you don't need to create the field instance, `client.syncSchema(schema)` would load that to `schema`. You can then add some data:
 ```python
 # Add the captivity values to the field.
-captivity = frame.field("captivity")
+captivity = field.field("captivity")
 data = [3, 392, 47, 956, 219, 14, 47, 504, 21, 0, 123, 318]
 query = index.batch_query()
 for i, x in enumerate(data):
@@ -89,11 +89,11 @@ It's possible to pass a bitmap query to `sum`, so only columns where a row is se
 ```python
 # Let's run a few setbit queries first
 client.query(index.batch_query(
-    frame.setbit(42, 1),
-    frame.setbit(42, 6)
+    field.setbit(42, 1),
+    field.setbit(42, 6)
 ))
 # Query for the total number of animals in captivity where row 42 is set
-response = client.query(captivity.sum(frame.bitmap(42)))
+response = client.query(captivity.sum(field.bitmap(42)))
 print(response.result.value)
 ```
 
@@ -110,7 +110,7 @@ Index:
 * `set_column_attrs(self, column_id, attrs)`
 * `xor(self, *bitmaps)`
 
-Frame:
+Field:
 
 * `bitmap(self, row_id)`
 * `setbit(self, row_id, column_id, timestamp=None)`

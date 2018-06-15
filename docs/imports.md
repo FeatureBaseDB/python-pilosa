@@ -13,7 +13,7 @@ ROW_ID,COLUMN_ID,TIMESTAMP
 ```
 
 Note that, each line corresponds to a single bit and the lines end with a new line (`\n` or `\r\n`).
-The target index and frame must have been created before hand.
+The target index and field must have been created before hand.
 
 Here's some sample code:
 ```python
@@ -37,7 +37,7 @@ reader = csv_bit_reader(StringIO(text))
 client = pilosa.Client()
 schema = client.schema()
 index = schema.index("sample-index")
-frame = index.frame("sample-frame", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY_HOUR)
+field = index.field("sample-field", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY_HOUR)
 client.sync_schema(schema)
-client.import_frame(frame, reader)
+client.import_field(field, reader)
 ```

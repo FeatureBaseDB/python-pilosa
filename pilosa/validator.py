@@ -36,7 +36,7 @@ import re
 from pilosa.exceptions import ValidationError
 
 __all__ = ("valid_index_name", "validate_index_name", "valid_frame_name",
-           "validate_frame_name", "valid_label", "validate_label")
+           "validate_field_name", "valid_label", "validate_label")
 
 
 __INDEX_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -72,9 +72,9 @@ def valid_key(key):
     return bool(__KEY.match(key))
 
 
-def validate_frame_name(frame_name):
+def validate_field_name(frame_name):
     if not valid_frame_name(frame_name):
-        raise ValidationError("Invalid frame name: %s" % frame_name)
+        raise ValidationError("Invalid field name: %s" % frame_name)
 
 
 def valid_label(label):

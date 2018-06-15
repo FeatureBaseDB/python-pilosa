@@ -39,7 +39,7 @@ import threading
 
 import urllib3
 
-from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExistsError
+from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
 from .imports import batch_bits
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum, Schema, CacheType
@@ -67,7 +67,7 @@ class Client(object):
         # Create an Index instance
         index = pilosa.Index("repository")
 
-        stargazer = index.frame("stargazer")
+        stargazer = index.field("stargazer")
         response = client.query(stargazer.bitmap(5))
 
         # Act on the result
@@ -145,29 +145,29 @@ class Client(object):
         path = "/index/%s" % index.name
         self.__http_request("DELETE", path)
 
-    def create_frame(self, frame):
-        """Creates a frame on the server using the given Frame object.
+    def create_field(self, field):
+        """Creates a field on the server using the given Field object.
         
-        :param pilosa.Frame frame:
-        :raises pilosa.FrameExistsError: if there already is a frame with the given name
+        :param pilosa.Field field:
+        :raises pilosa.FieldExistsError: if there already is a field with the given name
         """
-        data = frame._get_options_string()
-        path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
+        data = field._get_options_string()
+        path = "/index/%s/field/%s" % (field.index.name, field.name)
         try:
             self.__http_request("POST", path, data=data)
         except PilosaServerError as e:
             if e.response.status == 409:
-                raise FrameExistsError
+                raise FieldExistsError
             raise
 
 
-    def delete_frame(self, frame):
-        """Deletes the given frame on the server.
+    def delete_field(self, field):
+        """Deletes the given field on the server.
         
-        :param pilosa.Frame frame:
-        :raises pilosa.PilosaError: if the frame does not exist
+        :param pilosa.Field field:
+        :raises pilosa.PilosaError: if the field does not exist
         """
-        path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
+        path = "/index/%s/field/%s" % (field.index.name, field.name)
         self.__http_request("DELETE", path)
 
     def ensure_index(self, index):
@@ -180,14 +180,14 @@ class Client(object):
         except IndexExistsError:
             pass
 
-    def ensure_frame(self, frame):
-        """Creates a frame on the server if it does not exist.
+    def ensure_field(self, field):
+        """Creates a field on the server if it does not exist.
         
-        :param pilosa.Frame frame:
+        :param pilosa.Field field:
         """
         try:
-            self.create_frame(frame)
-        except FrameExistsError:
+            self.create_field(field)
+        except FieldExistsError:
             pass
 
     def _read_schema(self):
@@ -198,9 +198,9 @@ class Client(object):
         schema = Schema()
         for index_info in self._read_schema():
             index = schema.index(index_info["name"])
-            for frame_info in index_info.get("frames") or []:
-                options = decode_frame_meta_options(frame_info)
-                index.frame(frame_info["name"], **options)
+            for field_info in index_info.get("fields") or []:
+                options = decode_field_meta_options(field_info)
+                index.field(field_info["name"], **options)
 
         return schema
 
@@ -209,12 +209,12 @@ class Client(object):
 
         # find out local - remote schema
         diff_schema = schema._diff(server_schema)
-        # create indexes and frames which doesn't exist on the server side
+        # create indexes and fields which doesn't exist on the server side
         for index_name, index in diff_schema._indexes.items():
             if index_name not in server_schema._indexes:
                 self.ensure_index(index)
-            for frame_name, frame in index._frames.items():
-                self.ensure_frame(frame)
+            for field_name, field in index._fields.items():
+                self.ensure_field(field)
 
         # find out remote - local schema
         diff_schema = server_schema._diff(schema)
@@ -223,21 +223,21 @@ class Client(object):
             if local_index is None:
                 schema._indexes[index_name] = index
             else:
-                for frame_name, frame in index._frames.items():
-                    local_index._frames[frame_name] = frame
+                for field_name, field in index._fields.items():
+                    local_index._fields[field_name] = field
 
-    def import_frame(self, frame, bit_reader, batch_size=100000):
-        """Imports a frame using the given bit reader
+    def import_field(self, field, bit_reader, batch_size=100000):
+        """Imports a field using the given bit reader
 
-        :param frame:
+        :param field:
         :param bit_reader:
         :param batch_size:
         """
-        index_name = frame.index.name
-        frame_name = frame.name
+        index_name = field.index.name
+        field_name = field.name
         import_bits = self._import_bits
         for slice, bits in batch_bits(bit_reader, batch_size):
-            import_bits(index_name, frame_name, slice, bits)
+            import_bits(index_name, field_name, slice, bits)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -253,7 +253,7 @@ class Client(object):
         """
         return self.__http_request(method, path, data=data, headers=headers)
 
-    def _import_bits(self, index_name, frame_name, slice, bits):
+    def _import_bits(self, index_name, field_name, slice, bits):
         # sort by row_id then by column_id
         bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
@@ -269,7 +269,7 @@ class Client(object):
             client_params[k] = v
         for node in nodes:
             client = Client(URI.address(node.url), **client_params)
-            client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
+            client._import_node(_ImportRequest(index_name, field_name, slice, bits))
 
     def _fetch_fragment_nodes(self, index_name, slice):
         path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
@@ -338,13 +338,14 @@ class Client(object):
         self.__client = client
 
 
-def decode_frame_meta_options(frame_info):
-    meta = frame_info.get("options", {})
+def decode_field_meta_options(field_info):
+    meta = field_info.get("options", {})
     return {
         "cache_size": meta.get("cacheSize", 50000),
         "cache_type": CacheType(meta.get("cacheType", "")),
-        "inverse_enabled": meta.get("inverseEnabled", False),
         "time_quantum": TimeQuantum(meta.get("timeQuantum", "")),
+        "int_min": meta.get("min", 0),
+        "int_max": meta.get("max", 0),
     }
 
 
@@ -510,16 +511,16 @@ class _QueryRequest:
 
 class _ImportRequest:
 
-    def __init__(self, index_name, frame_name, slice, bits):
+    def __init__(self, index_name, field_name, slice, bits):
         self.index_name = index_name
-        self.frame_name = frame_name
+        self.field_name = field_name
         self.slice = slice
         self.bits = bits
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
         import_request = internal.ImportRequest()
         import_request.Index = self.index_name
-        import_request.Frame = self.frame_name
+        import_request.Frame = self.field_name
         import_request.Slice = self.slice
         row_ids = import_request.RowIDs
         column_ids = import_request.ColumnIDs

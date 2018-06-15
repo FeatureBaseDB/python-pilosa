@@ -37,7 +37,7 @@ import unittest
 import pilosa.internal.public_pb2 as internal
 from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
-    decode_frame_meta_options, _ImportRequest, _Node
+    decode_field_meta_options, _ImportRequest, _Node
 from pilosa.exceptions import PilosaURIError, PilosaError
 from pilosa.imports import Bit
 
@@ -61,12 +61,13 @@ class ClientTestCase(unittest.TestCase):
 
     def test_decode_frame_meta_options(self):
         frame_info = {}
-        options = decode_frame_meta_options(frame_info)
+        options = decode_field_meta_options(frame_info)
         target = {
             "cache_size": 50000,
             "cache_type": CacheType.DEFAULT,
-            "inverse_enabled": False,
-            "time_quantum": TimeQuantum.NONE
+            "time_quantum": TimeQuantum.NONE,
+            "int_min": 0,
+            "int_max": 0,
         }
         self.assertEquals(target, options)
 
@@ -219,12 +220,12 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True)
+        qr = _QueryRequest("Bitmap(field='foo', id=1)", columns=True)
         bin = qr.to_protobuf(False)  # do not return a bytearray
         self.assertIsNotNone(bin)
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
-        self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
+        self.assertEquals("Bitmap(field='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.ColumnAttrs)
 
 
