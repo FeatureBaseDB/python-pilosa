@@ -43,7 +43,7 @@ except ImportError:
 from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum, Schema, CacheType
-from pilosa.imports import csv_bit_reader
+from pilosa.imports import csv_column_reader
 
 
 class ClientIT(unittest.TestCase):
@@ -92,12 +92,12 @@ class ClientIT(unittest.TestCase):
         client.query(field.setbit(100, 1000))
         column_attrs = {"name": "bombo"}
         client.query(self.index.set_column_attrs(1000, column_attrs))
-        response = client.query(field.bitmap(100), columns=True)
+        response = client.query(field.row(100), column_attrs=True)
         self.assertTrue(response is not None)
         self.assertEquals(1000, response.column.id)
         self.assertEquals({"name": "bombo"}, response.column.attributes)
 
-        response = client.query(field.bitmap(300))
+        response = client.query(field.row(300))
         self.assertTrue(response.column is None)
 
     def test_failed_connection(self):
@@ -118,22 +118,22 @@ class ClientIT(unittest.TestCase):
             count_field.setbit(10, 21),
             count_field.setbit(15, 25))
         client.query(qry)
-        response = client.query(self.index.count(count_field.bitmap(10)))
+        response = client.query(self.index.count(count_field.row(10)))
         self.assertEquals(2, response.result.count)
 
     def test_new_orm(self):
         client = self.get_client()
         client.query(self.field.setbit(10, 20))
-        response1 = client.query(self.field.bitmap(10))
+        response1 = client.query(self.field.row(10))
         self.assertEquals(0, len(response1.columns))
-        bitmap1 = response1.result.bitmap
+        bitmap1 = response1.result.row
         self.assertEquals(0, len(bitmap1.attributes))
-        self.assertEquals(1, len(bitmap1.bits))
-        self.assertEquals(20, bitmap1.bits[0])
+        self.assertEquals(1, len(bitmap1.columns))
+        self.assertEquals(20, bitmap1.columns[0])
 
         column_attrs = {"name": "bombo"}
         client.query(self.col_index.set_column_attrs(20, column_attrs))
-        response2 = client.query(self.field.bitmap(10), columns=True)
+        response2 = client.query(self.field.row(10), column_attrs=True)
         column = response2.column
         self.assertTrue(column is not None)
         self.assertEquals(20, column.id)
@@ -145,9 +145,9 @@ class ClientIT(unittest.TestCase):
             "name": "Mr. Pi"
         }
         client.query(self.field.set_row_attrs(10, bitmap_attrs))
-        response3 = client.query(self.field.bitmap(10))
-        bitmap = response3.result.bitmap
-        self.assertEquals(1, len(bitmap.bits))
+        response3 = client.query(self.field.row(10))
+        bitmap = response3.result.row
+        self.assertEquals(1, len(bitmap.columns))
         self.assertEquals(4, len(bitmap.attributes))
         self.assertEquals(True, bitmap.attributes["active"])
         self.assertEquals(5, bitmap.attributes["unsigned"])
@@ -202,19 +202,19 @@ class ClientIT(unittest.TestCase):
             2, 3
             7, 1
         """
-        reader = csv_bit_reader(StringIO(text))
+        reader = csv_column_reader(StringIO(text))
         field = self.index.field("importfield")
         client.ensure_field(field)
         client.import_field(field, reader)
         bq = self.index.batch_query(
-            field.bitmap(2),
-            field.bitmap(7),
-            field.bitmap(10),
+            field.row(2),
+            field.row(7),
+            field.row(10),
         )
         response = client.query(bq)
         target = [3, 1, 5]
         self.assertEqual(3, len(response.results))
-        self.assertEqual(target, [result.bitmap.bits[0] for result in response.results])
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
 
     def test_csv_import2(self):
         # Checks against encoding errors on Python 2.x
@@ -224,7 +224,7 @@ class ClientIT(unittest.TestCase):
             3,41,683793385        
             10,10485760,683793385        
         """
-        reader = csv_bit_reader(StringIO(text))
+        reader = csv_column_reader(StringIO(text))
         client = self.get_client()
         schema = client.schema()
         field = schema.index(self.index.name).field("importfield", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
@@ -280,7 +280,7 @@ class ClientIT(unittest.TestCase):
     def test_failover_fail(self):
         uris = [URI.address("nonexistent%s" % i) for i in range(20)]
         client = Client(Cluster(*uris))
-        self.assertRaises(PilosaError, client.query, self.field.bitmap(5))
+        self.assertRaises(PilosaError, client.query, self.field.row(5))
 
     def test_range_field(self):
         client = self.get_client()
@@ -289,40 +289,40 @@ class ClientIT(unittest.TestCase):
         client.query(self.col_index.batch_query(
             field.setbit(1, 10),
             field.setbit(1, 100),
-            field.set_value(10, 11),
+            field.setvalue(10, 11),
         ))
-        response = client.query(field.sum(field.bitmap(1)))
+        response = client.query(field.sum(field.row(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
-        response = client.query(field.min(field.bitmap(1)))
+        response = client.query(field.min(field.row(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
-        response = client.query(field.max(field.bitmap(1)))
+        response = client.query(field.max(field.row(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
         response = client.query(field.lt(15))
         self.assertEquals(1, len(response.results))
-        self.assertEquals(10, response.result.bitmap.bits[0])
+        self.assertEquals(10, response.result.row.columns[0])
 
-    def test_exclude_attrs_bits(self):
+    def test_exclude_attrs_columns(self):
         client = self.get_client()
         client.query(self.col_index.batch_query(
             self.field.setbit(1, 100),
             self.field.set_row_attrs(1, {"foo": "bar"})
         ))
 
-        # test exclude bits.
-        response = client.query(self.field.bitmap(1), exclude_bits=True)
-        self.assertEquals(0, len(response.result.bitmap.bits))
-        self.assertEquals(1, len(response.result.bitmap.attributes))
+        # test exclude columns.
+        response = client.query(self.field.row(1), exclude_columns=True)
+        self.assertEquals(0, len(response.result.row.columns))
+        self.assertEquals(1, len(response.result.row.attributes))
 
         # test exclude attributes.
-        response = client.query(self.field.bitmap(1), exclude_attrs=True)
-        self.assertEquals(1, len(response.result.bitmap.bits))
-        self.assertEquals(0, len(response.result.bitmap.attributes))
+        response = client.query(self.field.row(1), exclude_attrs=True)
+        self.assertEquals(1, len(response.result.row.columns))
+        self.assertEquals(0, len(response.result.row.attributes))
 
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")

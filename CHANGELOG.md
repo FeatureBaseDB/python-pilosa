@@ -28,7 +28,7 @@
 * **v0.7.0** (2017-10-04):
     * Added support for creating range encoded frames.
     * Added `Xor` call.
-    * Added support for excluding bits or attributes from bitmap calls. In order to exclude bits, call `setExcludeBits(true)` in your `QueryOptions.Builder`. In order to exclude attributes, call `setExcludeAttributes(true)`.
+    * Added support for excluding bits or attributes from bitmap calls.
     * Added range field operations.
     * Customizable CSV timestamp format (Contributed by @lachlanorr).
     * **Deprecation** Row and column labels are deprecated, and will be removed in a future release of this library. Do not use `column_label` field when creating `Index` objects and do not use `row_label` field when creating `Frame` objects for new code. See: https://github.com/pilosa/pilosa/issues/752 for more info.

@@ -6,7 +6,7 @@
 Welcome to Python Client for Pilosa's documentation!
 ====================================================
 
-Python client for `Pilosa <https://www.pilosa.com>`_ high performance distributed bitmap index.
+Python client for `Pilosa <https://www.pilosa.com>`_ high performance distributed row index.
 
 
 .. toctree::
@@ -43,37 +43,37 @@ at ``localhost:10101`` (the default):
     # Create the default client
     client = pilosa.Client()
 
+    # Retrieve the schema
+    schema = client.schema()
+
     # Create an Index object
-    myindex = pilosa.Index("myindex")
+    myindex = schema.index("myindex")
 
-    # Make sure the index exists on the server
-    client.ensure_index(myindex)
+    # Create a Field object
+    myfield = myindex.field("myfield")
 
-    # Create a Frame object
-    myframe = myindex.frame("myframe")
-
-    # Make sure the frame exists on the server
-    client.ensure_frame(myframe)
+    # make sure the index and field exists on the server
+    client.sync_schema(schema)
 
     # Send a SetBit query. PilosaError is thrown if execution of the query fails.
-    client.query(myframe.setbit(5, 42))
+    client.query(myfield.setbit(5, 42))
 
     # Send a Bitmap query. PilosaError is thrown if execution of the query fails.
-    response = client.query(myframe.bitmap(5))
+    response = client.query(myfield.row(5))
 
     # Get the result
     result = response.result
 
     # Act on the result
     if result:
-        bits = result.bitmap.bits
-        print("Got bits: ", bits)
+        columns = result.row.columns
+        print("Got columns: ", columns)
 
     # You can batch queries to improve throughput
     response = client.query(
         myindex.batch_query(
-            myframe.bitmap(5),
-            myframe.bitmap(10),
+            myfield.row(5),
+            myfield.row(10),
         )
     )
     for result in response.results:

@@ -31,13 +31,12 @@
 # DAMAGE.
 #
 
+import calendar
+import datetime
 import unittest
 
-import datetime
-import calendar
-
 from pilosa.exceptions import PilosaError
-from pilosa.imports import csv_bit_reader, batch_bits
+from pilosa.imports import csv_column_reader, batch_columns
 
 try:
     from io import StringIO
@@ -48,13 +47,13 @@ except ImportError:
 class ImportsTestCase(unittest.TestCase):
 
     def test_csvbititerator(self):
-        reader = csv_bit_reader(StringIO(u"""
+        reader = csv_column_reader(StringIO(u"""
             1,10,683793200
             5,20,683793300
             3,41,683793385        
             10,10485760,683793385        
         """))
-        slice_bit_groups = list(batch_bits(reader, 2))
+        slice_bit_groups = list(batch_columns(reader, 2))
         self.assertEqual(3, len(slice_bit_groups))
 
         slice1, batch1 = slice_bit_groups[0]
@@ -82,7 +81,7 @@ class ImportsTestCase(unittest.TestCase):
         ]
 
         for text in invalid_inputs:
-            reader = csv_bit_reader(StringIO(text))
+            reader = csv_column_reader(StringIO(text))
             self.assertRaises(PilosaError, list, reader)
 
     def test_csvbititerator_customtimefunc(self):
@@ -100,7 +99,7 @@ class ImportsTestCase(unittest.TestCase):
             dt = dt.replace(tzinfo=UtcTzinfo())
             return calendar.timegm(dt.timetuple())
 
-        reader = csv_bit_reader(StringIO(u"""
+        reader = csv_column_reader(StringIO(u"""
             1,10,1991-09-02T06:33:20
             5,20,1991-09-02T06:35:00
             3,41,1991-09-02T06:36:25

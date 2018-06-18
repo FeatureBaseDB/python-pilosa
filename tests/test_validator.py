@@ -51,12 +51,12 @@ class ValidatorTestCase(unittest.TestCase):
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
 
-    VALID_FRAME_NAMES = [
+    VALID_FIELD_NAMES = [
         "a", "ab", "ab1", "b-c", "d_e",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     ]
 
-    INVALID_FRAME_NAMES = [
+    INVALID_FIELD_NAMES = [
         "", "'", "^", "/", "\\", "A", "*", "a:b", "valid?no", "yüce", "_", "-", ".data", "d.e", "1",
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
     ]
@@ -98,12 +98,12 @@ class ValidatorTestCase(unittest.TestCase):
                 continue
             self.fail("Index name validation should have failed for: " + name)
 
-    def test_validate_valid_frame_name(self):
-        for name in self.VALID_FRAME_NAMES:
+    def test_validate_valid_field_name(self):
+        for name in self.VALID_FIELD_NAMES:
             validate_field_name(name)
 
-    def test_invalid_frame_name_fails(self):
-        for name in self.INVALID_FRAME_NAMES:
+    def test_invalid_field_name_fails(self):
+        for name in self.INVALID_FIELD_NAMES:
             try:
                 validate_field_name(name)
             except ValidationError:
@@ -114,7 +114,7 @@ class ValidatorTestCase(unittest.TestCase):
         for label in self.VALID_LABELS:
             validate_label(label)
 
-    def test_validate_invalid_frame_name_fails(self):
+    def test_validate_invalid_field_name_fails(self):
         for label in self.INVALID_LABELS:
             try:
                 validate_label(label)

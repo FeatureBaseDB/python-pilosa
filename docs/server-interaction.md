@@ -70,7 +70,7 @@ client = pilosa.Client(cluster,
 )
 ```
 
-Once you create a client, you can create indexes, frames and start sending queries.
+Once you create a client, you can create indexes, fields and start sending queries.
 
 Here is how you would create a index and field:
 
@@ -84,13 +84,13 @@ client.sync_schema(schema)
 You can send queries to a Pilosa server using the `query` method of client objects:
 
 ```python
-response = client.query(field.bitmap(5))
+response = client.query(field.row(5))
 ```
 
 `query` method accepts optional `columns` argument:
 
 ```python
-response = client.query(field.bitmap(5),
+response = client.query(field.row(5),
     columns=True  # return column data in the response
 )
 ```
@@ -102,7 +102,7 @@ When a query is sent to a Pilosa server, the server either fulfills the query or
 A `QueryResponse` object may contain zero or more results of `QueryResult` type. You can access all results using the `results` property of `QueryResponse` (which returns a list of `QueryResult` objects) or you can use the `result` property (which returns either the first result or `None` if there are no results):
 
 ```python
-response = client.query(field.bitmap(5))
+response = client.query(field.row(5))
 
 # check that there's a result and act on it
 result = response.result
@@ -129,7 +129,7 @@ for column in response.columns:
 
 `QueryResult` objects contain:
 
-* `bitmap` property to retrieve a bitmap result,
+* `row` property to retrieve a row result,
 * `count_items` property to retrieve column count per row ID entries returned from `topn` queries,
 * `count` attribute to retrieve the number of rows per the given row ID returned from `count` queries.
 * `value` attribute to retrieve the result of `Min`, `Max` or `Sum` queries.
@@ -137,9 +137,9 @@ for column in response.columns:
 
 ```python
 result = response.result
-bitmap = result.bitmap
-bits = bitmap.bits
-attributes = bitmap.attributes
+row = result.row
+columns = row.columns
+attributes = row.attributes
 
 count_items = result.count_items
 

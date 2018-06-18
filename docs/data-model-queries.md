@@ -1,6 +1,6 @@
 # Data Model and Queries
 
-## Indexes and Frames
+## Indexes and Fields
 
 *Index* and *field*s are the main data models of Pilosa. You can check the [Pilosa documentation](https://www.pilosa.com/docs) for more detail about the data model.
 
@@ -11,7 +11,7 @@ schema = pilosa.Schema()
 repository = schema.index("repository")
 ```
 
-Frames are created with a call to `index.field` method:
+Fields are created with a call to `index.field` method:
 
 ```python
 stargazer = repository.field("stargazer")
@@ -25,12 +25,12 @@ stargazer = repository.field("stargazer", time_quantum=pilosa.TimeQuantum.YEAR_M
 
 ## Queries
 
-Once you have indexes and field objects created, you can create queries for them. Some of the queries work on the columns; corresponding methods are attached to the index. Other queries work on rows, with related methods attached to frames.
+Once you have indexes and field objects created, you can create queries for them. Some of the queries work on the columns; corresponding methods are attached to the index. Other queries work on rows, with related methods attached to fields.
 
 For instance, `Bitmap` queries work on rows; use a field object to create those queries:
 
 ```python
-bitmap_query = stargazer.bitmap(1)  # corresponds to PQL: Bitmap(field='stargazer', row=1)
+bitmap_query = stargazer.row(1)  # corresponds to PQL: Bitmap(field='stargazer', row=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
@@ -43,8 +43,8 @@ In order to increase throughput, you may want to batch queries sent to the Pilos
 
 ```python
 query = repository.batch_query(
-    stargazer.bitmap(1),
-    repository.union(stargazer.bitmap(100), stargazer.bitmap(5)))
+    stargazer.row(1),
+    repository.union(stargazer.row(100), stargazer.row(5)))
 ```
 
 The recommended way of creating query objects is, using dedicated methods attached to index and field objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
@@ -70,7 +70,7 @@ data = [3, 392, 47, 956, 219, 14, 47, 504, 21, 0, 123, 318]
 query = index.batch_query()
 for i, x in enumerate(data):
     column = i + 1
-    query.add(captivity.set_value(column, x))
+    query.add(captivity.setvalue(column, x))
 client.query(query)
 ```
 
@@ -78,14 +78,14 @@ Let's write a range query:
 ```python
 # Query for all animals with more than 100 specimens
 response = client.query(captivity.gt(100))
-print(response.result.bitmap.bits)
+print(response.result.row.columns)
 
 # Query for the total number of animals in captivity
 response = client.query(captivity.sum())
 print(response.result.value)
 ```
 
-It's possible to pass a bitmap query to `sum`, so only columns where a row is set are filtered in:
+It's possible to pass a row query to `sum`, so only columns where a row is set are filtered in:
 ```python
 # Let's run a few setbit queries first
 client.query(index.batch_query(
@@ -93,7 +93,7 @@ client.query(index.batch_query(
     field.setbit(42, 6)
 ))
 # Query for the total number of animals in captivity where row 42 is set
-response = client.query(captivity.sum(field.bitmap(42)))
+response = client.query(captivity.sum(field.row(42)))
 print(response.result.value)
 ```
 
@@ -106,22 +106,22 @@ Index:
 * `union(self, *bitmaps)`
 * `intersect(self, *bitmaps)`
 * `difference(self, *bitmaps)`
-* `count(self, bitmap)`
+* `count(self, row)`
 * `set_column_attrs(self, column_id, attrs)`
 * `xor(self, *bitmaps)`
 
 Field:
 
-* `bitmap(self, row_id)`
+* `row(self, row_id)`
 * `setbit(self, row_id, column_id, timestamp=None)`
 * `clearbit(self, row_id, column_id)`
-* `topn(self, n, bitmap=None, field="", *values)`
+* `topn(self, n, row=None, field="", *values)`
 * `range(self, row_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
 * (**deprecated**) `inverse_bitmap(self, column_id)`
-* (**deprecated**) `inverse_topn(self, n, bitmap=None, field="", *values)`
+* (**deprecated**) `inverse_topn(self, n, row=None, field="", *values)`
 * (**deprecated**) `inverse_range(self, column_id, start, end)`
-* (**deprecated**) `sum(self, bitmap, field)`
+* (**deprecated**) `sum(self, row, field)`
 * (**deprecated**) `set_field_value(self, column_id, field, value)`
 
 Field:
@@ -131,7 +131,7 @@ Field:
 * `gt(self, n)`
 * `gte(self, n)`
 * `between(self, a, b)`
-* `sum(self, bitmap=None)`
-* `min(self, bitmap=None)`
-* `max(self, bitmap=None)`
-* `set_value(self, column_id, value)`
+* `sum(self, row=None)`
+* `min(self, row=None)`
+* `max(self, row=None)`
+* `setvalue(self, column_id, value)`

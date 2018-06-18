@@ -8,7 +8,7 @@
 
 <img src="https://www.pilosa.com/img/ce.svg" style="float: right" align="right" height="301">
 
-Python client for Pilosa high performance distributed bitmap index.
+Python client for Pilosa high performance distributed row index.
 
 ## What's New?
 
@@ -45,30 +45,30 @@ schema = client.schema()
 myindex = schema.index("myindex")
 
 # Create a Field object
-myframe = myindex.field("myframe")
+myfield = myindex.field("myfield")
 
 # make sure the index and field exists on the server
 client.sync_schema(schema)
 
 # Send a SetBit query. PilosaError is thrown if execution of the query fails.
-client.query(myframe.setbit(5, 42))
+client.query(myfield.setbit(5, 42))
 
 # Send a Bitmap query. PilosaError is thrown if execution of the query fails.
-response = client.query(myframe.bitmap(5))
+response = client.query(myfield.row(5))
 
 # Get the result
 result = response.result
 
 # Act on the result
 if result:
-    bits = result.bitmap.bits
-    print("Got bits: ", bits)
+    columns = result.row.columns
+    print("Got columns: ", columns)
 
 # You can batch queries to improve throughput
 response = client.query(
     myindex.batch_query(
-        myframe.bitmap(5),
-        myframe.bitmap(10),
+        myfield.row(5),
+        myfield.row(10),
     )    
 )
 for result in response.results:

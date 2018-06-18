@@ -40,7 +40,7 @@ import threading
 import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
-from .imports import batch_bits
+from .imports import batch_columns
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum, Schema, CacheType
 from .response import QueryResponse
@@ -68,7 +68,7 @@ class Client(object):
         index = pilosa.Index("repository")
 
         stargazer = index.field("stargazer")
-        response = client.query(stargazer.bitmap(5))
+        response = client.query(stargazer.row(5))
 
         # Act on the result
         print(response.result)
@@ -104,17 +104,17 @@ class Client(object):
         self.__client = None
         self.logger = logging.getLogger("pilosa")
 
-    def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
+    def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
-        :param bool columns: Enables returning column data from bitmap queries
-        :param bool exclude_bits: Disables returning bits from bitmap queries
-        :param bool exclude_attrs: Disables returning attributes from bitmap queries
+        :param bool column_attrs: Enables returning column data from row queries
+        :param bool exclude_columns: Disables returning columns from row queries
+        :param bool exclude_attrs: Disables returning attributes from row queries
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs)
+        request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs)
         path = "/index/%s/query" % query.index.name
         try:
             response = self.__http_request("POST", path, data=request.to_protobuf())
@@ -235,9 +235,9 @@ class Client(object):
         """
         index_name = field.index.name
         field_name = field.name
-        import_bits = self._import_bits
-        for slice, bits in batch_bits(bit_reader, batch_size):
-            import_bits(index_name, field_name, slice, bits)
+        import_columns = self._import_columns
+        for slice, columns in batch_columns(bit_reader, batch_size):
+            import_columns(index_name, field_name, slice, columns)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -253,9 +253,9 @@ class Client(object):
         """
         return self.__http_request(method, path, data=data, headers=headers)
 
-    def _import_bits(self, index_name, field_name, slice, bits):
+    def _import_columns(self, index_name, field_name, slice, columns):
         # sort by row_id then by column_id
-        bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
+        columns.sort(key=lambda bit: (bit.row_id, bit.column_id))
         nodes = self._fetch_fragment_nodes(index_name, slice)
         # copy client params
         client_params = {}
@@ -269,7 +269,7 @@ class Client(object):
             client_params[k] = v
         for node in nodes:
             client = Client(URI.address(node.url), **client_params)
-            client._import_node(_ImportRequest(index_name, field_name, slice, bits))
+            client._import_node(_ImportRequest(index_name, field_name, slice, columns))
 
     def _fetch_fragment_nodes(self, index_name, slice):
         path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
@@ -492,18 +492,18 @@ class Cluster:
 
 class _QueryRequest:
 
-    def __init__(self, query, columns=False, exclude_bits=False, exclude_attrs=False):
+    def __init__(self, query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False):
         self.query = query
-        self.columns = columns
-        self.exclude_bits = exclude_bits
-        self.exclude_attrs = exclude_attrs
+        self.column_attrs = column_attrs
+        self.exclude_columns = exclude_columns
+        self.exclude_row_attrs = exclude_row_attrs
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
         qr = internal.QueryRequest()
         qr.Query = self.query
-        qr.ColumnAttrs = self.columns
-        qr.ExcludeBits = self.exclude_bits
-        qr.ExcludeAttrs = self.exclude_attrs
+        qr.ColumnAttrs = self.column_attrs
+        qr.ExcludeColumns = self.exclude_columns
+        qr.ExcludeRowAttrs = self.exclude_row_attrs
         if return_bytearray:
             return bytearray(qr.SerializeToString())
         return qr.SerializeToString()
@@ -511,21 +511,21 @@ class _QueryRequest:
 
 class _ImportRequest:
 
-    def __init__(self, index_name, field_name, slice, bits):
+    def __init__(self, index_name, field_name, slice, columns):
         self.index_name = index_name
         self.field_name = field_name
         self.slice = slice
-        self.bits = bits
+        self.columns = columns
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
         import_request = internal.ImportRequest()
         import_request.Index = self.index_name
-        import_request.Frame = self.field_name
+        import_request.Field = self.field_name
         import_request.Slice = self.slice
         row_ids = import_request.RowIDs
         column_ids = import_request.ColumnIDs
         timestamps = import_request.Timestamps
-        for bit in self.bits:
+        for bit in self.columns:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)

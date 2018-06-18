@@ -242,68 +242,68 @@ class Index:
         q.add(*queries)
         return q
 
-    def union(self, *bitmaps):
+    def union(self, *rows):
         """Creates a ``Union`` query.
         
-        ``Union`` performs a logical OR on the results of each BITMAP_CALL query passed to it.
+        ``Union`` performs a logical OR on the results of each ROW_CALL query passed to it.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 0 or more bitmap queries to union
-        :return: Pilosa bitmap query
-        :rtype: pilosa.PQLBitmapQuery
+        :param pilosa.PQLQuery rows: 0 or more row queries to union
+        :return: Pilosa row query
+        :rtype: pilosa.PQLQuery
         """
-        return self._bitmap_op("Union", bitmaps)
+        return self._row_op("Union", rows)
 
-    def intersect(self, *bitmaps):
+    def intersect(self, *rows):
         """Creates an ``Intersect`` query.
 
         ``Intersect`` performs a logical AND on the results of each BITMAP_CALL query passed to it.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 1 or more bitmap queries to intersect
-        :return: Pilosa bitmap query
-        :rtype: pilosa.PQLBitmapQuery
-        :raise PilosaError: if the number of bitmaps is less than 1
+        :param pilosa.PQLQuery rows: 1 or more row queries to intersect
+        :return: Pilosa row query
+        :rtype: pilosa.PQLQuery
+        :raise PilosaError: if the number of rows is less than 1
         """
-        if len(bitmaps) < 1:
-            raise PilosaError("Number of bitmap queries should be greater than or equal to 1")
-        return self._bitmap_op("Intersect", bitmaps)
+        if len(rows) < 1:
+            raise PilosaError("Number of row queries should be greater than or equal to 1")
+        return self._row_op("Intersect", rows)
 
-    def difference(self, *bitmaps):
+    def difference(self, *rows):
         """Creates a ``Difference`` query.
 
-        ``Difference`` returns all of the bits from the first BITMAP_CALL argument passed to it,
-        without the bits from each subsequent BITMAP_CALL.
+        ``Difference`` returns all of the columns from the first ROW_CALL argument passed to it,
+        without the columns from each subsequent ROW_CALL.
         
-        :param pilosa.PQLBitmapQuery bitmaps: 1 or more bitmap queries to differentiate
-        :return: Pilosa bitmap query
-        :rtype: pilosa.PQLBitmapQuery
-        :raise PilosaError: if the number of bitmaps is less than 1
+        :param pilosa.PQLQuery rows: 1 or more row queries to differentiate
+        :return: Pilosa row query
+        :rtype: pilosa.PQLQuery
+        :raise PilosaError: if the number of rows is less than 1
         """
-        if len(bitmaps) < 1:
-            raise PilosaError("Number of bitmap queries should be greater than or equal to 1")
-        return self._bitmap_op("Difference", bitmaps)
+        if len(rows) < 1:
+            raise PilosaError("Number of row queries should be greater than or equal to 1")
+        return self._row_op("Difference", rows)
 
-    def xor(self, *bitmaps):
+    def xor(self, *rows):
         """Creates a ``Xor`` query.
 
-        :param pilosa.PQLBitmapQuery bitmaps: 2 or more bitmap queries to xor
-        :return: Pilosa bitmap query
-        :rtype: pilosa.PQLBitmapQuery
-        :raise PilosaError: if the number of bitmaps is less than 2
+        :param pilosa.PQLQuery rows: 2 or more row queries to xor
+        :return: Pilosa row query
+        :rtype: pilosa.PQLQuery
+        :raise PilosaError: if the number of rows is less than 2
         """
-        if len(bitmaps) < 2:
-            raise PilosaError("Number of bitmap queries should be greater than or equal to 2")
-        return self._bitmap_op("Xor", bitmaps)
+        if len(rows) < 2:
+            raise PilosaError("Number of row queries should be greater than or equal to 2")
+        return self._row_op("Xor", rows)
 
-    def count(self, bitmap):
+    def count(self, row):
         """Creates a Count query.
         
-        ``Count`` returns the number of set bits in the BITMAP_CALL passed in.
+        ``Count`` returns the number of set columns in the ROW_CALL passed in.
         
-        :param pilosa.PQLQuery bitmap: the bitmap query
+        :param pilosa.PQLQuery row: the row query
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        return PQLQuery(u"Count(%s)" % bitmap.serialize(), self)
+        return PQLQuery(u"Count(%s)" % row.serialize(), self)
 
     def set_column_attrs(self, column_idkey, attrs):
         """Creates a SetColumnAttrs query.
@@ -328,8 +328,8 @@ class Index:
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(fmt % (column_idkey, attrs_str), self)
 
-    def _bitmap_op(self, name, bitmaps):
-        return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in bitmaps)), self)
+    def _row_op(self, name, rows):
+        return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in rows)), self)
 
 
 class Field:
@@ -379,16 +379,16 @@ class Field:
         return Field(self.index, self.name, self.time_quantum,
                      self.cache_type, self.cache_size, self.int_min, self.int_max)
 
-    def bitmap(self, row_idkey):
-        """Creates a Bitmap query.
+    def row(self, row_idkey):
+        """Creates a Row query.
         
-        Bitmap retrieves the indices of all the set bits in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
+        Row retrieves the indices of all the set columns in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
         
-        This variant of Bitmap query uses the row label.
+        This variant of Row query uses the row label.
         
         :param int row_idkey:
-        :return: Pilosa bitmap query
-        :rtype: pilosa.PQLBitmapQuery
+        :return: Pilosa row query
+        :rtype: pilosa.PQLQuery
         """
         fmt = id_key_format("Row ID/Key", row_idkey,
                             u"Bitmap(row=%s, field='%s')",
@@ -437,21 +437,21 @@ class Field:
             raise ValidationError("Both Row and Columns must be integers or strings")
         return PQLQuery(fmt % (row_idkey, self.name, column_idkey), self.index)
 
-    def topn(self, n, bitmap=None, field="", *values):
+    def topn(self, n, row=None, field="", *values):
         """Creates a TopN query.
 
-        ``TopN`` returns the id and count of the top n bitmaps (by count of bits) in the field.
+        ``TopN`` returns the id and count of the top n rows (by count of columns) in the field.
 
         * see: `TopN Query <https://www.pilosa.com/docs/query-language/#topn>`_
 
         :param int n: number of items to return
-        :param pilosa.PQLBitmapQuery bitmap: a PQL Bitmap query
+        :param pilosa.PQLQuery row: a PQL Row query
         :param field str field: field name
         :param object values: filter values to be matched against the field
         """
         parts = ["field='%s'" % self.name, "n=%d" % n]
-        if bitmap:
-            parts.insert(0, bitmap.serialize())
+        if row:
+            parts.insert(0, row.serialize())
         if field:
             validate_label(field)
             values_str = json.dumps(values, separators=(',', ': '))
@@ -462,7 +462,7 @@ class Field:
     def range(self, row_idkey, start, end):
         """Creates a Range query.
 
-        Similar to ``Bitmap``, but only returns bits which were set with timestamps between the given start and end timestamps.
+        Similar to ``Row``, but only returns columns which were set with timestamps between the given start and end timestamps.
 
         * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
 
@@ -575,34 +575,34 @@ class Field:
         q = u"Range(%s >< [%d,%d])" % (self.name, a, b)
         return PQLQuery(q, self.index)
 
-    def sum(self, bitmap=None):
+    def sum(self, row=None):
         """Creates a Sum query.
 
-        :param bitmap: The bitmap query to use.
+        :param row: The row query to use.
         :return: a PQL query
         :rtype: PQLQuery
         """
-        return self._value_query("Sum", bitmap)
+        return self._value_query("Sum", row)
 
-    def min(self, bitmap=None):
+    def min(self, row=None):
         """Creates a Min query.
 
-        :param bitmap: The bitmap query to use.
+        :param row: The row query to use.
         :return: a PQL query
         :rtype: PQLQuery
         """
-        return self._value_query("Min", bitmap)
+        return self._value_query("Min", row)
 
-    def max(self, bitmap=None):
+    def max(self, row=None):
         """Creates a Max query.
 
-        :param bitmap: The bitmap query to use.
+        :param row: The row query to use.
         :return: a PQL query
         :rtype: PQLQuery
         """
-        return self._value_query("Max", bitmap)
+        return self._value_query("Max", row)
 
-    def set_value(self, column_id, value):
+    def setvalue(self, column_id, value):
         """Creates a SetValue query.
 
         :param column_id: column ID
@@ -617,9 +617,9 @@ class Field:
         q = u"Range(%s %s %d)" % (self.name, op, n)
         return PQLQuery(q, self.index)
 
-    def _value_query(self, op, bitmap):
-        bitmap_str = "%s, " % bitmap.serialize() if bitmap else ""
-        q = u"%s(%sfield='%s')" % (op, bitmap_str, self.name)
+    def _value_query(self, op, row):
+        row_str = "%s, " % row.serialize() if row else ""
+        q = u"%s(%sfield='%s')" % (op, row_str, self.name)
         return PQLQuery(q, self.index)
 
     def _get_options_string(self):

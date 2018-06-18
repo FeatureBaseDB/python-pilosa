@@ -2,7 +2,7 @@
 
 If you have large amounts of data, it is more efficient to import it to Pilosa instead of several `SetBit` queries.
 
-This library supports importing bits in the CSV (comma separated values) format:
+This library supports importing columns in the CSV (comma separated values) format:
 ```
 ROW_ID,COLUMN_ID
 ```
@@ -18,7 +18,7 @@ The target index and field must have been created before hand.
 Here's some sample code:
 ```python
 import pilosa
-from pilosa.imports import csv_bit_reader
+from pilosa.imports import csv_column_reader
 
 try:
     # python 2.7 and 3
@@ -33,7 +33,7 @@ text = u"""
     3,41,683793385
     10,10485760,683793385
 """
-reader = csv_bit_reader(StringIO(text))
+reader = csv_column_reader(StringIO(text))
 client = pilosa.Client()
 schema = client.schema()
 index = schema.index("sample-index")
