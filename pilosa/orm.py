@@ -256,7 +256,7 @@ class Index:
     def intersect(self, *rows):
         """Creates an ``Intersect`` query.
 
-        ``Intersect`` performs a logical AND on the results of each BITMAP_CALL query passed to it.
+        ``Intersect`` performs a logical AND on the results of each ROW_CALL query passed to it.
         
         :param pilosa.PQLQuery rows: 1 or more row queries to intersect
         :return: Pilosa row query

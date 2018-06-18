@@ -126,10 +126,10 @@ class ClientIT(unittest.TestCase):
         client.query(self.field.setbit(10, 20))
         response1 = client.query(self.field.row(10))
         self.assertEquals(0, len(response1.columns))
-        bitmap1 = response1.result.row
-        self.assertEquals(0, len(bitmap1.attributes))
-        self.assertEquals(1, len(bitmap1.columns))
-        self.assertEquals(20, bitmap1.columns[0])
+        row1 = response1.result.row
+        self.assertEquals(0, len(row1.attributes))
+        self.assertEquals(1, len(row1.columns))
+        self.assertEquals(20, row1.columns[0])
 
         column_attrs = {"name": "bombo"}
         client.query(self.col_index.set_column_attrs(20, column_attrs))
@@ -138,21 +138,21 @@ class ClientIT(unittest.TestCase):
         self.assertTrue(column is not None)
         self.assertEquals(20, column.id)
 
-        bitmap_attrs = {
+        row_attrs = {
             "active": True,
             "unsigned": 5,
             "height": 1.81,
             "name": "Mr. Pi"
         }
-        client.query(self.field.set_row_attrs(10, bitmap_attrs))
+        client.query(self.field.set_row_attrs(10, row_attrs))
         response3 = client.query(self.field.row(10))
-        bitmap = response3.result.row
-        self.assertEquals(1, len(bitmap.columns))
-        self.assertEquals(4, len(bitmap.attributes))
-        self.assertEquals(True, bitmap.attributes["active"])
-        self.assertEquals(5, bitmap.attributes["unsigned"])
-        self.assertEquals(1.81, bitmap.attributes["height"])
-        self.assertEquals("Mr. Pi", bitmap.attributes["name"])
+        row = response3.result.row
+        self.assertEquals(1, len(row.columns))
+        self.assertEquals(4, len(row.attributes))
+        self.assertEquals(True, row.attributes["active"])
+        self.assertEquals(5, row.attributes["unsigned"])
+        self.assertEquals(1.81, row.attributes["height"])
+        self.assertEquals("Mr. Pi", row.attributes["name"])
 
     def test_topn(self):
         client = self.get_client()

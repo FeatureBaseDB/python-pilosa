@@ -181,13 +181,13 @@ class IndexTestCase(unittest.TestCase):
         q = sampleIndex.union(sampleField.row(10))
         self.assertEquals("Union(Bitmap(row=10, field='sample-field'))", q.serialize())
 
-    def test_intersect_invalid_bitmap_count_fails(self):
+    def test_intersect_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.intersect)
 
-    def test_difference_invalid_bitmap_count_fails(self):
+    def test_difference_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.difference)
 
-    def test_xor_invalid_bitmap_count_fails(self):
+    def test_xor_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.xor, sampleField.row(10))
 
     def test_count(self):
@@ -231,7 +231,7 @@ class FieldTestCase(unittest.TestCase):
         schema = Schema()
         self.assertNotEqual(sampleField, schema)
 
-    def test_bitmap(self):
+    def test_row(self):
         qry1 = collabField.row(5)
         self.assertEquals(
             "Bitmap(row=5, field='collaboration')",
@@ -247,7 +247,7 @@ class FieldTestCase(unittest.TestCase):
             "Bitmap(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', field='collaboration')",
             qry3.serialize())
 
-    def test_bitmap_with_invalid_id_type(self):
+    def test_row_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.row, {})
 
     def test_setbit(self):

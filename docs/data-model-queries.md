@@ -27,16 +27,16 @@ stargazer = repository.field("stargazer", time_quantum=pilosa.TimeQuantum.YEAR_M
 
 Once you have indexes and field objects created, you can create queries for them. Some of the queries work on the columns; corresponding methods are attached to the index. Other queries work on rows, with related methods attached to fields.
 
-For instance, `Bitmap` queries work on rows; use a field object to create those queries:
+For instance, `Row` queries work on rows; use a field object to create those queries:
 
 ```python
-bitmap_query = stargazer.row(1)  # corresponds to PQL: Bitmap(field='stargazer', row=1)
+row_query = stargazer.row(1)  # corresponds to PQL: Bitmap(field='stargazer', row=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
 
 ```python
-query = repository.union(bitmap_query1, bitmap_query2)
+query = repository.union(row_query1, row_query2)
 ```
 
 In order to increase throughput, you may want to batch queries sent to the Pilosa server. The `index.batch_query` method is used for that purpose:
@@ -103,12 +103,12 @@ Please check [Pilosa documentation](https://www.pilosa.com/docs) for PQL details
 
 Index:
 
-* `union(self, *bitmaps)`
-* `intersect(self, *bitmaps)`
-* `difference(self, *bitmaps)`
+* `union(self, *rows)`
+* `intersect(self, *rows)`
+* `difference(self, *rows)`
 * `count(self, row)`
 * `set_column_attrs(self, column_id, attrs)`
-* `xor(self, *bitmaps)`
+* `xor(self, *rows)`
 
 Field:
 
@@ -118,14 +118,6 @@ Field:
 * `topn(self, n, row=None, field="", *values)`
 * `range(self, row_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`
-* (**deprecated**) `inverse_bitmap(self, column_id)`
-* (**deprecated**) `inverse_topn(self, n, row=None, field="", *values)`
-* (**deprecated**) `inverse_range(self, column_id, start, end)`
-* (**deprecated**) `sum(self, row, field)`
-* (**deprecated**) `set_field_value(self, column_id, field, value)`
-
-Field:
-
 * `lt(self, n)`
 * `lte(self, n)`
 * `gt(self, n)`

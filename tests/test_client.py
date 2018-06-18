@@ -220,12 +220,12 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = _QueryRequest("Bitmap(field='foo', id=1)", column_attrs=True)
+        qr = _QueryRequest("Row(field='foo', id=1)", column_attrs=True)
         bin = qr.to_protobuf(False)  # do not return a bytearray
         self.assertIsNotNone(bin)
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
-        self.assertEquals("Bitmap(field='foo', id=1)", qr.Query)
+        self.assertEquals("Row(field='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.ColumnAttrs)
 
 
