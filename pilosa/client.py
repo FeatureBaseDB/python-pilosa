@@ -117,7 +117,11 @@ class Client(object):
         request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs)
         path = "/index/%s/query" % query.index.name
         try:
-            response = self.__http_request("POST", path, data=request.to_protobuf())
+            headers = {
+                'Content-Type': 'application/x-protobuf',
+                'Accept': 'application/x-protobuf',
+            }
+            response = self.__http_request("POST", path, data=request.to_protobuf(), headers=headers)
             return QueryResponse._from_protobuf(response.data)
         except PilosaServerError as e:
             raise PilosaError(e.content)
@@ -284,7 +288,11 @@ class Client(object):
 
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
-        self.__http_request("POST", "/import", data=data)
+        headers = {
+            'Content-Type': 'application/x-protobuf',
+            'Accept': 'application/x-protobuf',
+        }
+        self.__http_request("POST", "/import", data=data, headers=headers)
 
     def __http_request(self, method, path, data=None, headers=None):
         if not self.__client:
@@ -316,8 +324,6 @@ class Client(object):
     def __connect(self):
         num_pools = float(self.pool_size_total) / self.pool_size_per_route
         headers = {
-            'Content-Type': 'application/x-protobuf',
-            'Accept': 'application/x-protobuf',
             'User-Agent': 'python-pilosa/%s' % VERSION,
         }
 
