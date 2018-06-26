@@ -391,9 +391,9 @@ class Field:
         :rtype: pilosa.PQLQuery
         """
         fmt = id_key_format("Row ID/Key", row_idkey,
-                            u"Row(%s, field='%s')",
-                            u"Row(row='%s', field='%s')")
-        return PQLQuery(u"Row(%s=%s)"% (self.name, row_idkey), self.index)
+                            u"Row(%s=%s)",
+                            u"Row(%s='%s')")
+        return PQLQuery(fmt % (self.name, row_idkey), self.index)
 
     def set(self, row_idkey, column_idkey, timestamp=None):
         """Creates a SetBit query.

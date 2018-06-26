@@ -244,7 +244,7 @@ class FieldTestCase(unittest.TestCase):
 
         qry3 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
-            "Row(collaboration=b7feb014-8ea7-49a8-9cd8-19709161ab63)",
+            "Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry3.serialize())
 
     def test_row_with_invalid_id_type(self):
