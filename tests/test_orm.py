@@ -237,15 +237,10 @@ class FieldTestCase(unittest.TestCase):
             "Row(collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabField.row(10)
-        self.assertEquals(
-            "Row(collaboration=10)",
-            qry2.serialize())
-
-        qry3 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
+        qry2 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
             "Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry3.serialize())
+            qry2.serialize())
 
     def test_row_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.row, {})
@@ -256,15 +251,10 @@ class FieldTestCase(unittest.TestCase):
              u"Set(10, collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabField.set(10, 20)
-        self.assertEquals(
-            u"Set(20, collaboration=10)",
-            qry2.serialize())
-
-        qry3 = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        qry2 = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
             u"Set(some_id, collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry3.serialize())
+            qry2.serialize())
 
     def test_setbit_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.set, {}, 1)
@@ -275,11 +265,11 @@ class FieldTestCase(unittest.TestCase):
         timestamp = datetime(2017, 4, 24, 12, 14)
         qry = collabField.set(10, 20, timestamp)
         self.assertEquals(
-            u"Set(20, collaboration=10, timestamp='2017-04-24T12:14')",
+            u"Set(20, collaboration=10, 2017-04-24T12:14)",
             qry.serialize()
         )
 
-    def test_clearbit(self):
+    def test_clear(self):
         qry1 = collabField.clear(5, 10)
         self.assertEquals(
             "Clear(10, collaboration=5)",
@@ -295,7 +285,7 @@ class FieldTestCase(unittest.TestCase):
             "Clear('some_id', collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry3.serialize())
 
-    def test_clearbit_with_invalid_id_type(self):
+    def test_clear_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.clear, {}, 1)
         self.assertRaises(ValidationError, sampleField.clear, 1, {})
         self.assertRaises(ValidationError, sampleField.clear, 1, "zero")
@@ -303,7 +293,7 @@ class FieldTestCase(unittest.TestCase):
     def test_topn(self):
         q1 = collabField.topn(27)
         self.assertEquals(
-            "TopN(collaboration, n=27)",
+            u"TopN(collaboration, n=27)",
             q1.serialize())
 
         q2 = collabField.topn(10, collabField.row(3))
@@ -313,7 +303,7 @@ class FieldTestCase(unittest.TestCase):
 
         q3 = sampleField.topn(12, collabField.row(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(sample-field, Row(collaboration=7), n=12, field='category', filters=[80,81])",
+            u"TopN(sample-field, Row(collaboration=7), n=12, field='category', filters=[80,81])",
             q3.serialize())
 
     def test_range(self):
@@ -322,12 +312,12 @@ class FieldTestCase(unittest.TestCase):
 
         q1 = collabField.range(10, start, end)
         self.assertEquals(
-            "Range(row=10, field='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            "Range(collaboration=10, 1970-01-01T00:00, 2000-02-02T03:04)",
             q1.serialize())
 
-        q3 = sampleField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
+        q3 = collabField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
         self.assertEquals(
-            u"Range(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', field='sample-field', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63', 1970-01-01T00:00, 2000-02-02T03:04)",
             q3.serialize())
 
     def test_set_row_attributes(self):

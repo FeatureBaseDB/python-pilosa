@@ -185,7 +185,6 @@ class ClientIT(unittest.TestCase):
         item = items[0]
         self.assertEquals(3, item.count)
 
-
     def test_ensure_index_exists(self):
         client = self.get_client()
         index = Index(self.index.name + "-ensure")
@@ -295,6 +294,20 @@ class ClientIT(unittest.TestCase):
         uris = [URI.address("nonexistent%s" % i) for i in range(20)]
         client = Client(Cluster(*uris))
         self.assertRaises(PilosaError, client.query, self.field.row(5))
+
+    def test_range(self):
+        from datetime import datetime
+        client = self.get_client()
+        field = self.col_index.field("test-range-field", time_quantum=TimeQuantum.MONTH_DAY_HOUR)
+        client.ensure_field(field)
+        client.query(self.col_index.batch_query(
+            field.set(10, 100, timestamp=datetime(2017, 1, 1, 0, 0)),
+            field.set(10, 100, timestamp=datetime(2018, 1, 1, 0, 0)),
+            field.set(10, 100, timestamp=datetime(2019, 1, 1, 0, 0)),
+        ))
+        response = client.query(field.range(10, start=datetime(2017, 5, 1, 0, 0), end=datetime(2018, 5, 1, 0, 0)))
+        self.assertEqual([100], response.result.row.columns)
+
 
     def test_range_field(self):
         client = self.get_client()

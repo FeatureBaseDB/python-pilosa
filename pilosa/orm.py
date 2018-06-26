@@ -414,7 +414,7 @@ class Field:
             validate_key(column_idkey)
         else:
             raise ValidationError("Both Row and Columns must be integers or strings")
-        ts = ", timestamp='%s'" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
+        ts = ", %s" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
         return PQLQuery(fmt % (column_idkey, self.name, row_idkey, ts), self.index)
 
     def clear(self, row_idkey, column_idkey):
@@ -472,11 +472,11 @@ class Field:
         :param datetime.datetime end: end timestamp
         """
         fmt = id_key_format("Row", row_idkey,
-                            u"Range(row=%s, field='%s', start='%s', end='%s')",
-                            u"Range(row='%s', field='%s', start='%s', end='%s')")
+                            u"Range(%s=%s, %s, %s)",
+                            u"Range(%s='%s', %s, %s)")
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        return PQLQuery(fmt % (row_idkey, self.name, start_str, end_str),
+        return PQLQuery(fmt % (self.name, row_idkey, start_str, end_str),
                         self.index)
 
     def set_row_attrs(self, row_idkey, attrs):
@@ -498,7 +498,7 @@ class Field:
         """
         fmt = id_key_format("Row", row_idkey,
                             u"SetRowAttrs(%s, %s, %s)",
-                            u"SetRowAttrs(row='%s', field='%s', %s)")
+                            u"SetRowAttrs('%s', '%s', %s)")
         attrs_str = _create_attributes_str(attrs)
         return PQLQuery(fmt % (self.name, row_idkey, attrs_str), self.index)
 
