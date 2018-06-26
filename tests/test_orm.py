@@ -109,17 +109,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.union(b1, b2)
         self.assertEquals(
-            "Union(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'))",
+            "Union(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
         q2 = sampleIndex.union(b1, b2, b3)
         self.assertEquals(
-            "Union(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'), Bitmap(row=42, field='sample-field'))",
+            "Union(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
             q2.serialize())
 
         q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
-            "Union(Bitmap(row=10, field='sample-field'), Bitmap(row=2, field='collaboration'))",
+            "Union(Row(sample-field=10), Row(collaboration=2))",
             q3.serialize())
 
     def test_intersect(self):
@@ -130,17 +130,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.intersect(b1, b2)
         self.assertEquals(
-            "Intersect(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'))",
+            "Intersect(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
         q2 = sampleIndex.intersect(b1, b2, b3)
         self.assertEquals(
-            "Intersect(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'), Bitmap(row=42, field='sample-field'))",
+            "Intersect(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
             q2.serialize())
 
         q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
-            "Intersect(Bitmap(row=10, field='sample-field'), Bitmap(row=2, field='collaboration'))",
+            "Intersect(Row(sample-field=10), Row(collaboration=2))",
             q3.serialize())
 
     def test_difference(self):
@@ -151,17 +151,17 @@ class IndexTestCase(unittest.TestCase):
 
         q1 = sampleIndex.difference(b1, b2)
         self.assertEquals(
-            "Difference(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'))",
+            "Difference(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
         q2 = sampleIndex.difference(b1, b2, b3)
         self.assertEquals(
-            "Difference(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'), Bitmap(row=42, field='sample-field'))",
+            "Difference(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
             q2.serialize())
 
         q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
-            "Difference(Bitmap(row=10, field='sample-field'), Bitmap(row=2, field='collaboration'))",
+            "Difference(Row(sample-field=10), Row(collaboration=2))",
             q3.serialize())
 
     def test_xor(self):
@@ -170,7 +170,7 @@ class IndexTestCase(unittest.TestCase):
         q1 = sampleIndex.xor(b1, b2)
 
         self.assertEquals(
-            "Xor(Bitmap(row=10, field='sample-field'), Bitmap(row=20, field='sample-field'))",
+            "Xor(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
     def test_union0(self):
@@ -179,7 +179,7 @@ class IndexTestCase(unittest.TestCase):
 
     def test_union1(self):
         q = sampleIndex.union(sampleField.row(10))
-        self.assertEquals("Union(Bitmap(row=10, field='sample-field'))", q.serialize())
+        self.assertEquals("Union(Row(sample-field=10))", q.serialize())
 
     def test_intersect_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.intersect)
@@ -194,7 +194,7 @@ class IndexTestCase(unittest.TestCase):
         b = collabField.row(42)
         q = projectIndex.count(b)
         self.assertEquals(
-            "Count(Bitmap(row=42, field='collaboration'))",
+            "Count(Row(collaboration=42))",
             q.serialize())
 
     def test_set_column_attributes(self):
@@ -204,7 +204,7 @@ class IndexTestCase(unittest.TestCase):
         }
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            u"SetColumnAttrs(col=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u"SetColumnAttrs(5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_column_attributes_invalid_values(self):
@@ -234,87 +234,86 @@ class FieldTestCase(unittest.TestCase):
     def test_row(self):
         qry1 = collabField.row(5)
         self.assertEquals(
-            "Bitmap(row=5, field='collaboration')",
+            "Row(collaboration=5)",
             qry1.serialize())
 
         qry2 = collabField.row(10)
         self.assertEquals(
-            "Bitmap(row=10, field='collaboration')",
+            "Row(collaboration=10)",
             qry2.serialize())
 
         qry3 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
-            "Bitmap(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', field='collaboration')",
+            "Row(collaboration=b7feb014-8ea7-49a8-9cd8-19709161ab63)",
             qry3.serialize())
 
     def test_row_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.row, {})
 
     def test_setbit(self):
-        qry1 = collabField.setbit(5, 10)
+        qry1 = collabField.set(5, 10)
         self.assertEquals(
-            "SetBit(row=5, field='collaboration', col=10)",
+             u"Set(10, collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabField.setbit(10, 20)
+        qry2 = collabField.set(10, 20)
         self.assertEquals(
-            "SetBit(row=10, field='collaboration', col=20)",
-
+            u"Set(20, collaboration=10)",
             qry2.serialize())
 
-        qry3 = collabField.setbit("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        qry3 = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
-            "SetBit(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', field='collaboration', col='some_id')",
+            u"Set(some_id, collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry3.serialize())
 
     def test_setbit_with_invalid_id_type(self):
-        self.assertRaises(ValidationError, sampleField.setbit, {}, 1)
-        self.assertRaises(ValidationError, sampleField.setbit, 1, {})
-        self.assertRaises(ValidationError, sampleField.setbit, 1, "zero")
+        self.assertRaises(ValidationError, sampleField.set, {}, 1)
+        self.assertRaises(ValidationError, sampleField.set, 1, {})
+        self.assertRaises(ValidationError, sampleField.set, 1, "zero")
 
     def test_setbit_with_timestamp(self):
         timestamp = datetime(2017, 4, 24, 12, 14)
-        qry = collabField.setbit(10, 20, timestamp)
+        qry = collabField.set(10, 20, timestamp)
         self.assertEquals(
-            "SetBit(row=10, field='collaboration', col=20, timestamp='2017-04-24T12:14')",
+            u"Set(20, collaboration=10, timestamp='2017-04-24T12:14')",
             qry.serialize()
         )
 
     def test_clearbit(self):
-        qry1 = collabField.clearbit(5, 10)
+        qry1 = collabField.clear(5, 10)
         self.assertEquals(
-            "ClearBit(row=5, field='collaboration', col=10)",
+            "Clear(10, collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabField.clearbit(10, 20)
+        qry2 = collabField.clear(10, 20)
         self.assertEquals(
-            "ClearBit(row=10, field='collaboration', col=20)",
+            "Clear(20, collaboration=10)",
             qry2.serialize())
 
-        qry3 = collabField.clearbit("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        qry3 = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
-            "ClearBit(row='b7feb014-8ea7-49a8-9cd8-19709161ab63', field='collaboration', col='some_id')",
+            "Clear('some_id', collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry3.serialize())
 
     def test_clearbit_with_invalid_id_type(self):
-        self.assertRaises(ValidationError, sampleField.clearbit, {}, 1)
-        self.assertRaises(ValidationError, sampleField.clearbit, 1, {})
-        self.assertRaises(ValidationError, sampleField.clearbit, 1, "zero")
+        self.assertRaises(ValidationError, sampleField.clear, {}, 1)
+        self.assertRaises(ValidationError, sampleField.clear, 1, {})
+        self.assertRaises(ValidationError, sampleField.clear, 1, "zero")
 
     def test_topn(self):
         q1 = collabField.topn(27)
         self.assertEquals(
-            "TopN(field='collaboration', n=27)",
+            "TopN(collaboration, n=27)",
             q1.serialize())
 
         q2 = collabField.topn(10, collabField.row(3))
         self.assertEquals(
-            u"TopN(Bitmap(row=3, field='collaboration'), field='collaboration', n=10)",
+            u"TopN(collaboration, Row(collaboration=3), n=10)",
             q2.serialize())
 
         q3 = sampleField.topn(12, collabField.row(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(row=7, field='collaboration'), field='sample-field', n=12, field='category', filters=[80,81])",
+            "TopN(sample-field, Row(collaboration=7), n=12, field='category', filters=[80,81])",
             q3.serialize())
 
     def test_range(self):
@@ -338,7 +337,7 @@ class FieldTestCase(unittest.TestCase):
         }
         q = collabField.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            "SetRowAttrs(row=5, field='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u'SetRowAttrs(collaboration, 5, active=true, quote="\\"Don\'t worry, be happy\\"")',
             q.serialize())
 
     def test_field_lt(self):
@@ -392,7 +391,7 @@ class FieldTestCase(unittest.TestCase):
     def test_field_sum(self):
         q = collabField.sum(collabField.row(10))
         self.assertEquals(
-            "Sum(Bitmap(row=10, field='collaboration'), field='collaboration')",
+            "Sum(Row(collaboration=10), field='collaboration')",
             q.serialize())
         q = collabField.sum()
         self.assertEquals(

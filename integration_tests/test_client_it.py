@@ -82,14 +82,14 @@ class ClientIT(unittest.TestCase):
         client = self.get_client()
         field = self.index.field("query-test")
         client.ensure_field(field)
-        response = client.query(field.setbit(555, 10))
+        response = client.query(field.set(555, 10))
         self.assertTrue(response.result is not None)
 
     def test_query_with_columns(self):
         client = self.get_client()
         field = self.index.field("query-test")
         client.ensure_field(field)
-        client.query(field.setbit(100, 1000))
+        client.query(field.set(100, 1000))
         column_attrs = {"name": "bombo"}
         client.query(self.index.set_column_attrs(1000, column_attrs))
         response = client.query(field.row(100), column_attrs=True)
@@ -102,7 +102,7 @@ class ClientIT(unittest.TestCase):
 
     def test_failed_connection(self):
         client = Client("http://non-existent-sub.pilosa.com:22222")
-        self.assertRaises(PilosaError, client.query, self.field.setbit(15, 10))
+        self.assertRaises(PilosaError, client.query, self.field.set(15, 10))
 
     def test_parse_error(self):
         client = self.get_client()
@@ -114,27 +114,28 @@ class ClientIT(unittest.TestCase):
         count_field = self.index.field("count-test")
         client.ensure_field(count_field)
         qry = self.index.batch_query(
-            count_field.setbit(10, 20),
-            count_field.setbit(10, 21),
-            count_field.setbit(15, 25))
+            count_field.set(10, 20),
+            count_field.set(10, 21),
+            count_field.set(15, 25))
         client.query(qry)
         response = client.query(self.index.count(count_field.row(10)))
         self.assertEquals(2, response.result.count)
 
     def test_new_orm(self):
         client = self.get_client()
-        client.query(self.field.setbit(10, 20))
-        response1 = client.query(self.field.row(10))
-        self.assertEquals(0, len(response1.columns))
-        row1 = response1.result.row
+        response1 = client.query(self.field.set(10, 20))
+        self.assertTrue(response1.result.changed)
+        response2 = client.query(self.field.row(10))
+        self.assertEquals(0, len(response2.columns))
+        row1 = response2.result.row
         self.assertEquals(0, len(row1.attributes))
         self.assertEquals(1, len(row1.columns))
         self.assertEquals(20, row1.columns[0])
 
         column_attrs = {"name": "bombo"}
         client.query(self.col_index.set_column_attrs(20, column_attrs))
-        response2 = client.query(self.field.row(10), column_attrs=True)
-        column = response2.column
+        response3 = client.query(self.field.row(10), column_attrs=True)
+        column = response3.column
         self.assertTrue(column is not None)
         self.assertEquals(20, column.id)
 
@@ -145,8 +146,8 @@ class ClientIT(unittest.TestCase):
             "name": "Mr. Pi"
         }
         client.query(self.field.set_row_attrs(10, row_attrs))
-        response3 = client.query(self.field.row(10))
-        row = response3.result.row
+        response4 = client.query(self.field.row(10))
+        row = response4.result.row
         self.assertEquals(1, len(row.columns))
         self.assertEquals(4, len(row.attributes))
         self.assertEquals(True, row.attributes["active"])
@@ -154,23 +155,36 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(1.81, row.attributes["height"])
         self.assertEquals("Mr. Pi", row.attributes["name"])
 
+        response5 = client.query(self.field.clear(10, 20))
+        self.assertTrue(response5.result.changed)
+        response6 = client.query(self.field.row(10))
+        row = response6.result.row
+        self.assertEquals(0, len(row.columns))
+
     def test_topn(self):
         client = self.get_client()
         field = self.index.field("topn_test")
         client.query(self.index.batch_query(
-            field.setbit(10, 5),
-            field.setbit(10, 10),
-            field.setbit(10, 15),
-            field.setbit(20, 5),
-            field.setbit(30, 5)))
+            field.set(10, 5),
+            field.set(10, 10),
+            field.set(10, 15),
+            field.set(20, 5),
+            field.set(30, 5)))
         # XXX: The following is required to make this test pass. See: https://github.com/pilosa/pilosa/issues/625
         client.http_request("POST", "/recalculate-caches")
-        response4 = client.query(field.topn(2))
-        items = response4.result.count_items
+        response = client.query(field.topn(2))
+        items = response.result.count_items
         self.assertEquals(2, len(items))
         item = items[0]
         self.assertEquals(10, item.id)
         self.assertEquals(3, item.count)
+
+        response = client.query(field.topn(5, row=field.row(10)))
+        items = response.result.count_items
+        self.assertEquals(3, len(items))
+        item = items[0]
+        self.assertEquals(3, item.count)
+
 
     def test_ensure_index_exists(self):
         client = self.get_client()
@@ -287,8 +301,8 @@ class ClientIT(unittest.TestCase):
         field = self.col_index.field("rangefield", int_min=10, int_max=20)
         client.ensure_field(field)
         client.query(self.col_index.batch_query(
-            field.setbit(1, 10),
-            field.setbit(1, 100),
+            field.set(1, 10),
+            field.set(1, 100),
             field.setvalue(10, 11),
         ))
         response = client.query(field.sum(field.row(1)))
@@ -310,7 +324,7 @@ class ClientIT(unittest.TestCase):
     def test_exclude_attrs_columns(self):
         client = self.get_client()
         client.query(self.col_index.batch_query(
-            self.field.setbit(1, 100),
+            self.field.set(1, 100),
             self.field.set_row_attrs(1, {"foo": "bar"})
         ))
 

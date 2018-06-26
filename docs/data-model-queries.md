@@ -87,10 +87,10 @@ print(response.result.value)
 
 It's possible to pass a row query to `sum`, so only columns where a row is set are filtered in:
 ```python
-# Let's run a few setbit queries first
+# Let's run a few set queries first
 client.query(index.batch_query(
-    field.setbit(42, 1),
-    field.setbit(42, 6)
+    field.set(42, 1),
+    field.set(42, 6)
 ))
 # Query for the total number of animals in captivity where row 42 is set
 response = client.query(captivity.sum(field.row(42)))
@@ -113,8 +113,8 @@ Index:
 Field:
 
 * `row(self, row_id)`
-* `setbit(self, row_id, column_id, timestamp=None)`
-* `clearbit(self, row_id, column_id)`
+* `set(self, row_id, column_id, timestamp=None)`
+* `clear(self, row_id, column_id)`
 * `topn(self, n, row=None, field="", *values)`
 * `range(self, row_id, start, end)`
 * `set_row_attrs(self, row_id, attrs)`

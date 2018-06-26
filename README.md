@@ -51,7 +51,7 @@ myfield = myindex.field("myfield")
 client.sync_schema(schema)
 
 # Send a SetBit query. PilosaError is thrown if execution of the query fails.
-client.query(myfield.setbit(5, 42))
+client.query(myfield.set(5, 42))
 
 # Send a Bitmap query. PilosaError is thrown if execution of the query fails.
 response = client.query(myfield.row(5))
