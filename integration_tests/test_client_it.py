@@ -308,7 +308,6 @@ class ClientIT(unittest.TestCase):
         response = client.query(field.range(10, start=datetime(2017, 5, 1, 0, 0), end=datetime(2018, 5, 1, 0, 0)))
         self.assertEqual([100], response.result.row.columns)
 
-
     def test_range_field(self):
         client = self.get_client()
         field = self.col_index.field("rangefield", int_min=10, int_max=20)

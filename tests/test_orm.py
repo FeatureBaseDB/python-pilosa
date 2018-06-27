@@ -245,7 +245,7 @@ class FieldTestCase(unittest.TestCase):
     def test_row_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.row, {})
 
-    def test_setbit(self):
+    def test_set(self):
         qry1 = collabField.set(5, 10)
         self.assertEquals(
              u"Set(10, collaboration=5)",
@@ -256,12 +256,12 @@ class FieldTestCase(unittest.TestCase):
             u"Set(some_id, collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry2.serialize())
 
-    def test_setbit_with_invalid_id_type(self):
+    def test_set_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.set, {}, 1)
         self.assertRaises(ValidationError, sampleField.set, 1, {})
         self.assertRaises(ValidationError, sampleField.set, 1, "zero")
 
-    def test_setbit_with_timestamp(self):
+    def test_set_with_timestamp(self):
         timestamp = datetime(2017, 4, 24, 12, 14)
         qry = collabField.set(10, 20, timestamp)
         self.assertEquals(
@@ -312,7 +312,7 @@ class FieldTestCase(unittest.TestCase):
 
         q1 = collabField.range(10, start, end)
         self.assertEquals(
-            "Range(collaboration=10, 1970-01-01T00:00, 2000-02-02T03:04)",
+            u"Range(collaboration=10, 1970-01-01T00:00, 2000-02-02T03:04)",
             q1.serialize())
 
         q3 = collabField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
