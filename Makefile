@@ -1,7 +1,7 @@
 SRC_DIR = pilosa/internal
 DST_DIR = pilosa/internal
 
-.PHONY: cover doc generate test test-all
+.PHONY: build clean cover doc generate test test-all release upload
 
 cover:
 	py.test --cov=pilosa tests integration_tests
@@ -25,3 +25,6 @@ upload:
 	twine upload dist/*
 
 release: build upload
+
+clean:
+	rm -rf build dist pilosa.egg-info

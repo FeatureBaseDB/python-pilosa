@@ -276,7 +276,7 @@ class Client(object):
             client._import_node(_ImportRequest(index_name, field_name, slice, columns))
 
     def _fetch_fragment_nodes(self, index_name, slice):
-        path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
+        path = "/fragment/nodes?shard=%d&index=%s" % (slice, index_name)
         response = self.__http_request("GET", path)
         content = response.data.decode("utf-8")
         node_dicts = json.loads(content)
