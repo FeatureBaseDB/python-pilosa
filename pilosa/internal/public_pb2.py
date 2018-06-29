@@ -19,36 +19,36 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='public.proto',
   package='internal',
   syntax='proto3',
-  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"C\n\x06\x42itmap\x12\x0c\n\x04\x42its\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x03 \x03(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\".\n\x04Pair\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"&\n\x08ValCount\x12\x0b\n\x03Val\x18\x01 \x01(\x03\x12\r\n\x05\x43ount\x18\x02 \x01(\x03\"9\n\x03\x42it\x12\r\n\x05RowID\x18\x01 \x01(\x04\x12\x10\n\x08\x43olumnID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\"G\n\rColumnAttrSet\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"}\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Slices\x18\x02 \x03(\x04\x12\x13\n\x0b\x43olumnAttrs\x18\x03 \x01(\x08\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\x12\x14\n\x0c\x45xcludeAttrs\x18\x06 \x01(\x08\x12\x13\n\x0b\x45xcludeBits\x18\x07 \x01(\x08\"u\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12/\n\x0e\x43olumnAttrSets\x18\x03 \x03(\x0b\x32\x17.internal.ColumnAttrSet\"\x9e\x01\n\x0bQueryResult\x12\x0c\n\x04Type\x18\x06 \x01(\r\x12 \n\x06\x42itmap\x18\x01 \x01(\x0b\x32\x10.internal.Bitmap\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12$\n\x08ValCount\x18\x05 \x01(\x0b\x32\x12.internal.ValCount\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\"\x98\x01\n\rImportRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x0e\n\x06RowIDs\x18\x04 \x03(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x0f\n\x07RowKeys\x18\x07 \x03(\t\x12\x12\n\nColumnKeys\x18\x08 \x03(\t\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\"\x87\x01\n\x12ImportValueRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46rame\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\r\n\x05\x46ield\x18\x04 \x01(\t\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x12\n\nColumnKeys\x18\x07 \x03(\t\x12\x0e\n\x06Values\x18\x06 \x03(\x03\x62\x06proto3')
+  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"C\n\x03Row\x12\x0f\n\x07\x43olumns\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x03 \x03(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\".\n\x04Pair\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"&\n\x08ValCount\x12\x0b\n\x03Val\x18\x01 \x01(\x03\x12\r\n\x05\x43ount\x18\x02 \x01(\x03\"9\n\x03\x42it\x12\r\n\x05RowID\x18\x01 \x01(\x04\x12\x10\n\x08\x43olumnID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\"G\n\rColumnAttrSet\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"\x83\x01\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Slices\x18\x02 \x03(\x04\x12\x13\n\x0b\x43olumnAttrs\x18\x03 \x01(\x08\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\x12\x17\n\x0f\x45xcludeRowAttrs\x18\x06 \x01(\x08\x12\x16\n\x0e\x45xcludeColumns\x18\x07 \x01(\x08\"u\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12/\n\x0e\x43olumnAttrSets\x18\x03 \x03(\x0b\x32\x17.internal.ColumnAttrSet\"\x98\x01\n\x0bQueryResult\x12\x0c\n\x04Type\x18\x06 \x01(\r\x12\x1a\n\x03Row\x18\x01 \x01(\x0b\x32\r.internal.Row\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12$\n\x08ValCount\x18\x05 \x01(\x0b\x32\x12.internal.ValCount\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\"\x98\x01\n\rImportRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x0e\n\x06RowIDs\x18\x04 \x03(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x0f\n\x07RowKeys\x18\x07 \x03(\t\x12\x12\n\nColumnKeys\x18\x08 \x03(\t\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\"x\n\x12ImportValueRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\r\n\x05Slice\x18\x03 \x01(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x12\n\nColumnKeys\x18\x07 \x03(\t\x12\x0e\n\x06Values\x18\x06 \x03(\x03\x62\x06proto3')
 )
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 
 
 
-_BITMAP = _descriptor.Descriptor(
-  name='Bitmap',
-  full_name='internal.Bitmap',
+_ROW = _descriptor.Descriptor(
+  name='Row',
+  full_name='internal.Row',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Bits', full_name='internal.Bitmap.Bits', index=0,
+      name='Columns', full_name='internal.Row.Columns', index=0,
       number=1, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Keys', full_name='internal.Bitmap.Keys', index=1,
+      name='Keys', full_name='internal.Row.Keys', index=1,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Attrs', full_name='internal.Bitmap.Attrs', index=2,
+      name='Attrs', full_name='internal.Row.Attrs', index=2,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -377,14 +377,14 @@ _QUERYREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='ExcludeAttrs', full_name='internal.QueryRequest.ExcludeAttrs', index=4,
+      name='ExcludeRowAttrs', full_name='internal.QueryRequest.ExcludeRowAttrs', index=4,
       number=6, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='ExcludeBits', full_name='internal.QueryRequest.ExcludeBits', index=5,
+      name='ExcludeColumns', full_name='internal.QueryRequest.ExcludeColumns', index=5,
       number=7, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -402,8 +402,8 @@ _QUERYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=470,
-  serialized_end=595,
+  serialized_start=471,
+  serialized_end=602,
 )
 
 
@@ -447,8 +447,8 @@ _QUERYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=597,
-  serialized_end=714,
+  serialized_start=604,
+  serialized_end=721,
 )
 
 
@@ -467,7 +467,7 @@ _QUERYRESULT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Bitmap', full_name='internal.QueryResult.Bitmap', index=1,
+      name='Row', full_name='internal.QueryResult.Row', index=1,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -513,8 +513,8 @@ _QUERYRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=717,
-  serialized_end=875,
+  serialized_start=724,
+  serialized_end=876,
 )
 
 
@@ -533,7 +533,7 @@ _IMPORTREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Frame', full_name='internal.ImportRequest.Frame', index=1,
+      name='Field', full_name='internal.ImportRequest.Field', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -593,8 +593,8 @@ _IMPORTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=878,
-  serialized_end=1030,
+  serialized_start=879,
+  serialized_end=1031,
 )
 
 
@@ -613,7 +613,7 @@ _IMPORTVALUEREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Frame', full_name='internal.ImportValueRequest.Frame', index=1,
+      name='Field', full_name='internal.ImportValueRequest.Field', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -627,28 +627,21 @@ _IMPORTVALUEREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Field', full_name='internal.ImportValueRequest.Field', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None),
-    _descriptor.FieldDescriptor(
-      name='ColumnIDs', full_name='internal.ImportValueRequest.ColumnIDs', index=4,
+      name='ColumnIDs', full_name='internal.ImportValueRequest.ColumnIDs', index=3,
       number=5, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='ColumnKeys', full_name='internal.ImportValueRequest.ColumnKeys', index=5,
+      name='ColumnKeys', full_name='internal.ImportValueRequest.ColumnKeys', index=4,
       number=7, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
-      name='Values', full_name='internal.ImportValueRequest.Values', index=6,
+      name='Values', full_name='internal.ImportValueRequest.Values', index=5,
       number=6, type=3, cpp_type=2, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -667,18 +660,18 @@ _IMPORTVALUEREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=1033,
-  serialized_end=1168,
+  serialized_end=1153,
 )
 
-_BITMAP.fields_by_name['Attrs'].message_type = _ATTR
+_ROW.fields_by_name['Attrs'].message_type = _ATTR
 _COLUMNATTRSET.fields_by_name['Attrs'].message_type = _ATTR
 _ATTRMAP.fields_by_name['Attrs'].message_type = _ATTR
 _QUERYRESPONSE.fields_by_name['Results'].message_type = _QUERYRESULT
 _QUERYRESPONSE.fields_by_name['ColumnAttrSets'].message_type = _COLUMNATTRSET
-_QUERYRESULT.fields_by_name['Bitmap'].message_type = _BITMAP
+_QUERYRESULT.fields_by_name['Row'].message_type = _ROW
 _QUERYRESULT.fields_by_name['Pairs'].message_type = _PAIR
 _QUERYRESULT.fields_by_name['ValCount'].message_type = _VALCOUNT
-DESCRIPTOR.message_types_by_name['Bitmap'] = _BITMAP
+DESCRIPTOR.message_types_by_name['Row'] = _ROW
 DESCRIPTOR.message_types_by_name['Pair'] = _PAIR
 DESCRIPTOR.message_types_by_name['ValCount'] = _VALCOUNT
 DESCRIPTOR.message_types_by_name['Bit'] = _BIT
@@ -691,12 +684,12 @@ DESCRIPTOR.message_types_by_name['QueryResult'] = _QUERYRESULT
 DESCRIPTOR.message_types_by_name['ImportRequest'] = _IMPORTREQUEST
 DESCRIPTOR.message_types_by_name['ImportValueRequest'] = _IMPORTVALUEREQUEST
 
-Bitmap = _reflection.GeneratedProtocolMessageType('Bitmap', (_message.Message,), dict(
-  DESCRIPTOR = _BITMAP,
+Row = _reflection.GeneratedProtocolMessageType('Row', (_message.Message,), dict(
+  DESCRIPTOR = _ROW,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:internal.Bitmap)
+  # @@protoc_insertion_point(class_scope:internal.Row)
   ))
-_sym_db.RegisterMessage(Bitmap)
+_sym_db.RegisterMessage(Row)
 
 Pair = _reflection.GeneratedProtocolMessageType('Pair', (_message.Message,), dict(
   DESCRIPTOR = _PAIR,

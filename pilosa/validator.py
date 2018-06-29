@@ -35,16 +35,16 @@ import re
 
 from pilosa.exceptions import ValidationError
 
-__all__ = ("valid_index_name", "validate_index_name", "valid_frame_name",
-           "validate_frame_name", "valid_label", "validate_label")
+__all__ = ("valid_index_name", "validate_index_name", "valid_field_name",
+           "validate_field_name", "valid_label", "validate_label")
 
 
 __INDEX_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
-__FRAME_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
+__FIELD_NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 __LABEL = re.compile(r"^[a-zA-Z][a-zA-Z0-9_-]*$")
 __KEY = re.compile(r"^[A-Za-z0-9_{}+/=.~%:-]*$")
 __MAX_INDEX_NAME = 64
-__MAX_FRAME_NAME = 64
+__MAX_FIELD_NAME = 64
 __MAX_LABEL = 64
 __MAX_KEY = 64
 
@@ -60,10 +60,10 @@ def validate_index_name(index_name):
         raise ValidationError("Invalid index name: %s" % index_name)
 
 
-def valid_frame_name(frame_name):
-    if len(frame_name) > __MAX_FRAME_NAME:
+def valid_field_name(field_name):
+    if len(field_name) > __MAX_FIELD_NAME:
         return False
-    return bool(__FRAME_NAME.match(frame_name))
+    return bool(__FIELD_NAME.match(field_name))
 
 
 def valid_key(key):
@@ -72,9 +72,9 @@ def valid_key(key):
     return bool(__KEY.match(key))
 
 
-def validate_frame_name(frame_name):
-    if not valid_frame_name(frame_name):
-        raise ValidationError("Invalid frame name: %s" % frame_name)
+def validate_field_name(field_name):
+    if not valid_field_name(field_name):
+        raise ValidationError("Invalid field name: %s" % field_name)
 
 
 def valid_label(label):

@@ -36,14 +36,14 @@ from collections import namedtuple
 
 from pilosa.exceptions import PilosaError
 
-__all__ = ("Bit", "csv_bit_reader")
+__all__ = ("Columns", "csv_column_reader")
 
-Bit = namedtuple("Bit", "row_id column_id timestamp")
+Columns = namedtuple("Column", "row_id column_id timestamp")
 
 
-def csv_bit_reader(file_obj, timefunc=int):
+def csv_column_reader(file_obj, timefunc=int):
     """
-    Reads bits from the given file-like object.
+    Reads columns from the given file-like object.
 
     Each line of the file-like object should correspond to a single bit and must be in the following form:
     rowID,columnID[,timestamp]
@@ -59,12 +59,12 @@ def csv_bit_reader(file_obj, timefunc=int):
         parts = line.split(",")
         if len(parts) == 2:
             try:
-                bit = Bit(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=0)
+                bit = Columns(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=0)
             except ValueError:
                 raise PilosaError("Invalid CSV line: %s", line)
         elif len(parts) == 3:
             try:
-                bit = Bit(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=timefunc(parts[2]))
+                bit = Columns(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=timefunc(parts[2]))
             except ValueError:
                 raise PilosaError("Invalid CSV line: %s", line)
         else:
@@ -72,7 +72,7 @@ def csv_bit_reader(file_obj, timefunc=int):
         yield bit
 
 
-def batch_bits(reader, batch_size):
+def batch_columns(reader, batch_size):
     slice_width = 1048576
     while 1:
         batch = list(itertools.islice(reader, batch_size))
