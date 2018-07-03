@@ -240,8 +240,8 @@ class Client(object):
         index_name = field.index.name
         field_name = field.name
         import_columns = self._import_columns
-        for slice, columns in batch_columns(bit_reader, batch_size):
-            import_columns(index_name, field_name, slice, columns)
+        for shard, columns in batch_columns(bit_reader, batch_size):
+            import_columns(index_name, field_name, shard, columns)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -257,10 +257,10 @@ class Client(object):
         """
         return self.__http_request(method, path, data=data, headers=headers)
 
-    def _import_columns(self, index_name, field_name, slice, columns):
+    def _import_columns(self, index_name, field_name, shard, columns):
         # sort by row_id then by column_id
         columns.sort(key=lambda bit: (bit.row_id, bit.column_id))
-        nodes = self._fetch_fragment_nodes(index_name, slice)
+        nodes = self._fetch_fragment_nodes(index_name, shard)
         # copy client params
         client_params = {}
         for k,v in self.__dict__.items():
@@ -273,10 +273,10 @@ class Client(object):
             client_params[k] = v
         for node in nodes:
             client = Client(URI.address(node.url), **client_params)
-            client._import_node(_ImportRequest(index_name, field_name, slice, columns))
+            client._import_node(_ImportRequest(index_name, field_name, shard, columns))
 
-    def _fetch_fragment_nodes(self, index_name, slice):
-        path = "/fragment/nodes?shard=%d&index=%s" % (slice, index_name)
+    def _fetch_fragment_nodes(self, index_name, shard):
+        path = "/internal/fragment/nodes?shard=%d&index=%s" % (shard, index_name)
         response = self.__http_request("GET", path)
         content = response.data.decode("utf-8")
         node_dicts = json.loads(content)
@@ -292,7 +292,8 @@ class Client(object):
             'Content-Type': 'application/x-protobuf',
             'Accept': 'application/x-protobuf',
         }
-        self.__http_request("POST", "/import", data=data, headers=headers)
+        path = "/index/%s/field/%s/import" % (import_request.index_name, import_request.field_name)
+        self.__http_request("POST", path, data=data, headers=headers)
 
     def __http_request(self, method, path, data=None, headers=None):
         if not self.__client:
@@ -517,17 +518,17 @@ class _QueryRequest:
 
 class _ImportRequest:
 
-    def __init__(self, index_name, field_name, slice, columns):
+    def __init__(self, index_name, field_name, shard, columns):
         self.index_name = index_name
         self.field_name = field_name
-        self.slice = slice
+        self.shard = shard
         self.columns = columns
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
         import_request = internal.ImportRequest()
         import_request.Index = self.index_name
         import_request.Field = self.field_name
-        import_request.Slice = self.slice
+        import_request.Shard = self.shard
         row_ids = import_request.RowIDs
         column_ids = import_request.ColumnIDs
         timestamps = import_request.Timestamps

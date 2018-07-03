@@ -1,5 +1,19 @@
 ## Change Log
 
+* **v1.0.0** (2018-06-28)
+    * Compatible with Pilosa 1.0.
+    * Removed all deprecated code.
+    * Following terminology was changed:
+        * frame to field
+        * bitmap to row
+        * bit to column
+        * slice to shard
+    * Removed `Field` type and renamed `Frame` to `Field`.
+    * There are three types of fields:
+        * Set fields to store boolean values (default)
+        * Integer fields to store an integer in the given range.
+        * Time fields which can store timestamps.
+
 * **v0.9.0** (2018-05-08)
     * Compatible with Pilosa 0.9.
     * Added `RangeField.min` and `RangeField.max` methods.
