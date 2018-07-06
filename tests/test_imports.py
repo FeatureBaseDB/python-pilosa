@@ -53,19 +53,19 @@ class ImportsTestCase(unittest.TestCase):
             3,41,683793385        
             10,10485760,683793385        
         """))
-        slice_bit_groups = list(batch_columns(reader, 2))
-        self.assertEqual(3, len(slice_bit_groups))
+        shard_bit_groups = list(batch_columns(reader, 2))
+        self.assertEqual(3, len(shard_bit_groups))
 
-        slice1, batch1 = slice_bit_groups[0]
-        self.assertEqual(slice1, 0)
+        shard1, batch1 = shard_bit_groups[0]
+        self.assertEqual(shard1, 0)
         self.assertEqual(2, len(list(batch1)))
 
-        slice2, batch2 = slice_bit_groups[1]
-        self.assertEqual(slice2, 0)
+        shard2, batch2 = shard_bit_groups[1]
+        self.assertEqual(shard2, 0)
         self.assertEqual(1, len(list(batch2)))
 
-        slice3, batch3 = slice_bit_groups[2]
-        self.assertEqual(slice3, 10)
+        shard3, batch3 = shard_bit_groups[2]
+        self.assertEqual(shard3, 10)
         self.assertEqual(1, len(list(batch3)))
 
     def test_invalid_input(self):

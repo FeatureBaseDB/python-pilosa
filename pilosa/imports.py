@@ -73,14 +73,14 @@ def csv_column_reader(file_obj, timefunc=int):
 
 
 def batch_columns(reader, batch_size):
-    slice_width = 1048576
+    shard_width = 1048576
     while 1:
         batch = list(itertools.islice(reader, batch_size))
         if not batch:
             break
         bit_groups = {}
         for bit in batch:
-            bit_groups.setdefault(bit.column_id // slice_width, []).append(bit)
-        for slice_bit_group in bit_groups.items():
-            yield slice_bit_group
+            bit_groups.setdefault(bit.column_id // shard_width, []).append(bit)
+        for shard_bit_group in bit_groups.items():
+            yield shard_bit_group
 
