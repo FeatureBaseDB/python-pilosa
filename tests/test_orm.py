@@ -391,7 +391,7 @@ class FieldTestCase(unittest.TestCase):
     def test_field_set_value(self):
         q = collabField.setvalue(10, 20)
         self.assertEquals(
-            "SetValue(col=10, collaboration=20)",
+            "Set(10, collaboration=20)",
             q.serialize())
 
     def test_get_options_string(self):
