@@ -611,7 +611,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"SetValue(col=%d, %s=%d)" % (column_id, self.name, value)
+        q = u"Set(%d, %s=%d)" % (column_id, self.name, value)
         return PQLQuery(q, self.index)
 
     def _binary_operation(self, op, n):

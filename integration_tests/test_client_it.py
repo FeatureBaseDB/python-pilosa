@@ -311,21 +311,23 @@ class ClientIT(unittest.TestCase):
     def test_range_field(self):
         client = self.get_client()
         field = self.col_index.field("rangefield", int_min=10, int_max=20)
+        field2 = self.col_index.field("rangefield-set")
         client.ensure_field(field)
+        client.ensure_field(field2)
         client.query(self.col_index.batch_query(
-            field.set(1, 10),
-            field.set(1, 100),
+            field2.set(1, 10),
+            field2.set(1, 100),
             field.setvalue(10, 11),
         ))
-        response = client.query(field.sum(field.row(1)))
+        response = client.query(field.sum(field2.row(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
-        response = client.query(field.min(field.row(1)))
+        response = client.query(field.min(field2.row(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
-        response = client.query(field.max(field.row(1)))
+        response = client.query(field.max(field2.row(1)))
         self.assertEquals(11, response.result.value)
         self.assertEquals(1, response.result.count)
 
