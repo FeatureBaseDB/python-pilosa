@@ -35,7 +35,7 @@ import unittest
 
 from pilosa.exceptions import PilosaError
 from pilosa.internal import public_pb2 as internal
-from pilosa.response import QueryResponse, QUERYRESULT_BITMAP
+from pilosa.response import QueryResponse, QUERYRESULT_ROW
 
 
 class QueryResultTestCase(unittest.TestCase):
@@ -43,8 +43,8 @@ class QueryResultTestCase(unittest.TestCase):
     def test_invalid_attr_type(self):
         qr = internal.QueryResponse()
         result1 = qr.Results.add()
-        result1.Type = QUERYRESULT_BITMAP
-        attr = result1.Bitmap.Attrs.add()
+        result1.Type = QUERYRESULT_ROW
+        attr = result1.Row.Attrs.add()
         attr.Key = "foo"
         attr.StringValue = "bar"
         attr.Type = 0

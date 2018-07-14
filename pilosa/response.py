@@ -35,27 +35,27 @@ from .exceptions import PilosaError
 from .internal import public_pb2 as internal
 
 
-__all__ = ("BitmapResult", "CountResultItem", "QueryResult", "ColumnItem", "QueryResponse")
+__all__ = ("RowResult", "CountResultItem", "QueryResult", "ColumnItem", "QueryResponse")
 
 
-QUERYRESULT_NONE, QUERYRESULT_BITMAP, QUERYRESULT_PAIRS, \
-    QUERYRESULT_VAL_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL = range(6)
+QUERYRESULT_NONE, QUERYRESULT_ROW, QUERYRESULT_PAIRS, \
+QUERYRESULT_VAL_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL = range(6)
 
 
-class BitmapResult:
-    """Represents a result from ``Bitmap``, ``Union``, ``Intersect``, ``Difference`` and ``Range`` PQL calls.
+class RowResult:
+    """Represents a result from ``Row``, ``Union``, ``Intersect``, ``Difference`` and ``Range`` PQL calls.
     
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
     """
 
-    def __init__(self, bits=None, keys=None, attributes=None):
-        self.bits = bits or []
+    def __init__(self, columns=None, keys=None, attributes=None):
+        self.columns = columns or []
         self.keys = keys or []
         self.attributes = attributes or {}
 
     @classmethod
     def from_internal(cls, obj):
-        return cls(list(obj.Bits), obj.Keys, _convert_protobuf_attrs_to_dict(obj.Attrs))
+        return cls(list(obj.Columns), obj.Keys, _convert_protobuf_attrs_to_dict(obj.Attrs))
 
 
 class CountResultItem:
@@ -76,8 +76,8 @@ class QueryResult:
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
     """
 
-    def __init__(self, bitmap=None, count_items=None, count=0, value=0, changed=False):
-        self.bitmap = bitmap or BitmapResult()
+    def __init__(self, row=None, count_items=None, count=0, value=0, changed=False):
+        self.row = row or RowResult()
         self.count_items = count_items or []
         self.count = count
         self.value = value
@@ -85,14 +85,14 @@ class QueryResult:
 
     @classmethod
     def from_internal(cls, obj):
-        bitmap = None
+        row = None
         count_items = []
         count = 0
         value = 0
         changed = False
 
-        if obj.Type == QUERYRESULT_BITMAP:
-            bitmap = BitmapResult.from_internal(obj.Bitmap)
+        if obj.Type == QUERYRESULT_ROW:
+            row = RowResult.from_internal(obj.Row)
         elif obj.Type == QUERYRESULT_PAIRS:
             for pair in obj.Pairs:
                 count_items.append(CountResultItem(pair.ID, pair.Key, pair.Count))
@@ -108,7 +108,7 @@ class QueryResult:
         else:
             raise PilosaError("Unknown type: %s" % obj.Type)
 
-        return cls(bitmap, count_items, count, value, changed)
+        return cls(row, count_items, count, value, changed)
 
 
 class ColumnItem:

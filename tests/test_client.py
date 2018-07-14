@@ -37,9 +37,9 @@ import unittest
 import pilosa.internal.public_pb2 as internal
 from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
-    decode_frame_meta_options, _ImportRequest, _Node
+    decode_field_meta_options, _ImportRequest, _Node
 from pilosa.exceptions import PilosaURIError, PilosaError
-from pilosa.imports import Bit
+from pilosa.imports import Columns
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +59,15 @@ class ClientTestCase(unittest.TestCase):
         # create with invalid type
         self.assertRaises(PilosaError, Client, 15000)
 
-    def test_decode_frame_meta_options(self):
-        frame_info = {}
-        options = decode_frame_meta_options(frame_info)
+    def test_decode_field_meta_options(self):
+        field_info = {}
+        options = decode_field_meta_options(field_info)
         target = {
             "cache_size": 50000,
             "cache_type": CacheType.DEFAULT,
-            "inverse_enabled": False,
-            "time_quantum": TimeQuantum.NONE
+            "time_quantum": TimeQuantum.NONE,
+            "int_min": 0,
+            "int_max": 0,
         }
         self.assertEquals(target, options)
 
@@ -219,25 +220,25 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True)
+        qr = _QueryRequest("Row(field='foo', id=1)", column_attrs=True)
         bin = qr.to_protobuf(False)  # do not return a bytearray
         self.assertIsNotNone(bin)
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
-        self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
+        self.assertEquals("Row(field='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.ColumnAttrs)
 
 
 class ImportRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        ir = _ImportRequest("foo", "bar", 0, [Bit(row_id=1, column_id=2, timestamp=3)])
+        ir = _ImportRequest("foo", "bar", 0, [Columns(row_id=1, column_id=2, timestamp=3)])
         bin = ir.to_protobuf(False)
         self.assertIsNotNone(bin)
         ir = internal.ImportRequest()
         ir.ParseFromString(bin)
         self.assertEquals("foo", ir.Index)
-        self.assertEquals("bar", ir.Frame)
+        self.assertEquals("bar", ir.Field)
         self.assertEquals([1], ir.RowIDs)
         self.assertEquals([2], ir.ColumnIDs)
         self.assertEquals([3], ir.Timestamps)
