@@ -34,12 +34,13 @@
 import json
 import logging
 import re
+import sys
 import threading
 
 import urllib3
 
-from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FrameExistsError
-from .imports import batch_bits
+from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
+from .imports import batch_columns
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum, Schema, CacheType
 from .response import QueryResponse
@@ -47,8 +48,8 @@ from .version import VERSION
 
 __all__ = ("Client", "Cluster", "URI")
 
-_LOGGER = logging.getLogger("pilosa")
 _MAX_HOSTS = 10
+_IS_PY2 = sys.version_info.major == 2
 
 
 class Client(object):
@@ -66,8 +67,8 @@ class Client(object):
         # Create an Index instance
         index = pilosa.Index("repository")
 
-        stargazer = index.frame("stargazer")
-        response = client.query(stargazer.bitmap(5))
+        stargazer = index.field("stargazer")
+        response = client.query(stargazer.row(5))
 
         # Act on the result
         print(response.result)
@@ -101,26 +102,30 @@ class Client(object):
         self.tls_ca_certificate_path = tls_ca_certificate_path
         self.__current_host = None
         self.__client = None
+        self.logger = logging.getLogger("pilosa")
 
-    def query(self, query, columns=False, exclude_bits=False, exclude_attrs=False, slices=[]):
+    def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False, shards=None):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
-        :param bool columns: Enables returning column data from bitmap queries
-        :param bool exclude_bits: Disables returning bits from bitmap queries
-        :param bool exclude_attrs: Disables returning attributes from bitmap queries
+        :param bool column_attrs: Enables returning column data from row queries
+        :param bool exclude_columns: Disables returning columns from row queries
+        :param bool exclude_attrs: Disables returning attributes from row queries
         :param list(int) slices: Returns data from a subset of slices
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), columns=columns, exclude_bits=exclude_bits, exclude_attrs=exclude_attrs, slices=slices)
-        data = bytearray(request.to_protobuf())
+        request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs, shards=shards)
         path = "/index/%s/query" % query.index.name
-        response = self.__http_request("POST", path, data=data, client_response=Client.__RAW_RESPONSE)
-        query_response = QueryResponse._from_protobuf(response.data)
-        if query_response.error_message:
-            raise PilosaError(query_response.error_message)
-        return query_response
+        try:
+            headers = {
+                'Content-Type': 'application/x-protobuf',
+                'Accept': 'application/x-protobuf',
+            }
+            response = self.__http_request("POST", path, data=request.to_protobuf(), headers=headers)
+            return QueryResponse._from_protobuf(response.data)
+        except PilosaServerError as e:
+            raise PilosaError(e.content)
 
     def create_index(self, index):
         """Creates an index on the server using the given Index object.
@@ -128,13 +133,13 @@ class Client(object):
         :param pilosa.Index index:
         :raises pilosa.IndexExistsError: if there already is a index with the given name
         """
-        data = json.dumps({
-            "options": {"columnLabel": index.column_label}
-        })
         path = "/index/%s" % index.name
-        self.__http_request("POST", path, data=data)
-        if index.time_quantum != TimeQuantum.NONE:
-            self.__patch_index_time_quantum(index)
+        try:
+            self.__http_request("POST", path)
+        except PilosaServerError as e:
+            if e.response.status == 409:
+                raise IndexExistsError
+            raise
 
     def delete_index(self, index):
         """Deletes the given index on the server.
@@ -145,23 +150,29 @@ class Client(object):
         path = "/index/%s" % index.name
         self.__http_request("DELETE", path)
 
-    def create_frame(self, frame):
-        """Creates a frame on the server using the given Frame object.
+    def create_field(self, field):
+        """Creates a field on the server using the given Field object.
         
-        :param pilosa.Frame frame:
-        :raises pilosa.FrameExistsError: if there already is a frame with the given name
+        :param pilosa.Field field:
+        :raises pilosa.FieldExistsError: if there already is a field with the given name
         """
-        data = frame._get_options_string()
-        path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
-        self.__http_request("POST", path, data=data)
+        data = field._get_options_string()
+        path = "/index/%s/field/%s" % (field.index.name, field.name)
+        try:
+            self.__http_request("POST", path, data=data)
+        except PilosaServerError as e:
+            if e.response.status == 409:
+                raise FieldExistsError
+            raise
 
-    def delete_frame(self, frame):
-        """Deletes the given frame on the server.
+
+    def delete_field(self, field):
+        """Deletes the given field on the server.
         
-        :param pilosa.Frame frame:
-        :raises pilosa.PilosaError: if the frame does not exist
+        :param pilosa.Field field:
+        :raises pilosa.PilosaError: if the field does not exist
         """
-        path = "/index/%s/frame/%s" % (frame.index.name, frame.name)
+        path = "/index/%s/field/%s" % (field.index.name, field.name)
         self.__http_request("DELETE", path)
 
     def ensure_index(self, index):
@@ -174,42 +185,27 @@ class Client(object):
         except IndexExistsError:
             pass
 
-    def ensure_frame(self, frame):
-        """Creates a frame on the server if it does not exist.
+    def ensure_field(self, field):
+        """Creates a field on the server if it does not exist.
         
-        :param pilosa.Frame frame:
+        :param pilosa.Field field:
         """
         try:
-            self.create_frame(frame)
-        except FrameExistsError:
+            self.create_field(field)
+        except FieldExistsError:
             pass
 
-    def status(self):
-        response = self.__http_request("GET", "/status",
-                                       client_response=Client.__ERROR_CHECKED_RESPONSE)
-        return json.loads(response.data.decode('utf-8'))["status"]
+    def _read_schema(self):
+        response = self.__http_request("GET", "/schema")
+        return json.loads(response.data.decode('utf-8')).get("indexes") or []
 
     def schema(self):
-        status = self.status()
-        nodes = status.get("Nodes")
         schema = Schema()
-        for indexInfo in nodes[0].get("Indexes", []):
-            meta = indexInfo["Meta"]
-            options = {
-                "column_label": meta["ColumnLabel"],
-                "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
-            }
-            index = schema.index(indexInfo["Name"], **options)
-            for frameInfo in indexInfo.get("Frames", []):
-                meta = frameInfo["Meta"]
-                options = {
-                    "row_label": meta["RowLabel"],
-                    "cache_size": meta["CacheSize"],
-                    "cache_type": CacheType(meta["CacheType"]),
-                    "inverse_enabled": meta.get("InverseEnabled", False),
-                    "time_quantum": TimeQuantum(meta.get("TimeQuantum", "")),
-                }
-                index.frame(frameInfo["Name"], **options)
+        for index_info in self._read_schema():
+            index = schema.index(index_info["name"])
+            for field_info in index_info.get("fields") or []:
+                options = decode_field_meta_options(field_info)
+                index.field(field_info["name"], **options)
 
         return schema
 
@@ -218,12 +214,12 @@ class Client(object):
 
         # find out local - remote schema
         diff_schema = schema._diff(server_schema)
-        # create the indexes and frames which doesn't exist on the server side
+        # create indexes and fields which doesn't exist on the server side
         for index_name, index in diff_schema._indexes.items():
             if index_name not in server_schema._indexes:
                 self.ensure_index(index)
-            for frame_name, frame in index._frames.items():
-                self.ensure_frame(frame)
+            for field_name, field in index._fields.items():
+                self.ensure_field(field)
 
         # find out remote - local schema
         diff_schema = server_schema._diff(schema)
@@ -232,21 +228,21 @@ class Client(object):
             if local_index is None:
                 schema._indexes[index_name] = index
             else:
-                for frame_name, frame in index._frames.items():
-                    local_index._frames[frame_name] = frame
+                for field_name, field in index._fields.items():
+                    local_index._fields[field_name] = field
 
-    def import_frame(self, frame, bit_reader, batch_size=100000):
-        """Imports a frame using the given bit reader
+    def import_field(self, field, bit_reader, batch_size=100000):
+        """Imports a field using the given bit reader
 
-        :param frame:
+        :param field:
         :param bit_reader:
         :param batch_size:
         """
-        index_name = frame.index.name
-        frame_name = frame.name
-        import_bits = self._import_bits
-        for slice, bits in batch_bits(bit_reader, batch_size):
-            import_bits(index_name, frame_name, slice, bits)
+        index_name = field.index.name
+        field_name = field.name
+        import_columns = self._import_columns
+        for shard, columns in batch_columns(bit_reader, batch_size):
+            import_columns(index_name, field_name, shard, columns)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -260,78 +256,77 @@ class Client(object):
         :return HTTP response:
 
         """
-        return self.__http_request(method, path, data=data, headers=headers,
-                                   client_response=Client.__RAW_RESPONSE)
+        return self.__http_request(method, path, data=data, headers=headers)
 
-    def _import_bits(self, index_name, frame_name, slice, bits):
+    def _import_columns(self, index_name, field_name, shard, columns):
         # sort by row_id then by column_id
-        bits.sort(key=lambda bit: (bit.row_id, bit.column_id))
-        nodes = self._fetch_fragment_nodes(index_name, slice)
+        columns.sort(key=lambda bit: (bit.row_id, bit.column_id))
+        nodes = self._fetch_fragment_nodes(index_name, shard)
+        # copy client params
+        client_params = {}
+        for k,v in self.__dict__.items():
+            # don't copy protected, private params
+            if k.startswith("_"):
+                continue
+            # don't copy these
+            if k in ["cluster", "logger"]:
+                continue
+            client_params[k] = v
         for node in nodes:
-            client_params={
-                "tls_skip_verify": self.tls_skip_verify,
-                "tls_ca_certificate_path": self.tls_ca_certificate_path,
-            }
-            address = "%s://%s" % (node["scheme"], node["host"])
-            client = Client(URI.address(address), **client_params)
-            client._import_node(_ImportRequest(index_name, frame_name, slice, bits))
+            client = Client(URI.address(node.url), **client_params)
+            client._import_node(_ImportRequest(index_name, field_name, shard, columns))
 
-    def _fetch_fragment_nodes(self, index_name, slice):
-        path = "/fragment/nodes?slice=%d&index=%s" % (slice, index_name)
-        response = self.__http_request("GET", path, client_response=Client.__ERROR_CHECKED_RESPONSE)
-        content = response.data.decode('utf-8')
-        return json.loads(content)
+    def _fetch_fragment_nodes(self, index_name, shard):
+        path = "/internal/fragment/nodes?shard=%d&index=%s" % (shard, index_name)
+        response = self.__http_request("GET", path)
+        content = response.data.decode("utf-8")
+        node_dicts = json.loads(content)
+        nodes = []
+        for node_dict in node_dicts:
+            node_dict = node_dict["uri"]
+            nodes.append(_Node(node_dict["scheme"], node_dict["host"], node_dict.get("port", "")))
+        return nodes
 
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
-        self.__http_request("POST", "/import", data=data, client_response=Client.__RAW_RESPONSE)
+        headers = {
+            'Content-Type': 'application/x-protobuf',
+            'Accept': 'application/x-protobuf',
+        }
+        path = "/index/%s/field/%s/import" % (import_request.index_name, import_request.field_name)
+        self.__http_request("POST", path, data=data, headers=headers)
 
-    def __patch_index_time_quantum(self, index):
-        path = "/index/%s/time-quantum" % index.name
-        data = '{\"timeQuantum\":\"%s\"}"' % str(index.time_quantum)
-        self.__http_request("PATCH", path, data=data)
-
-    def __http_request(self, method, path, data=None, headers=None, client_response=0):
+    def __http_request(self, method, path, data=None, headers=None):
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
             uri = "%s%s" % (self.__get_address(), path)
             try:
-                _LOGGER.debug("Request: %s %s %s", method, uri,
-                              "[binary]" if client_response == Client.__RAW_RESPONSE else data)
+                self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
                 self.cluster.remove_host(self.__current_host)
-                _LOGGER.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
+                self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
                 self.__current_host = None
         else:
             raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
 
-        if client_response == Client.__RAW_RESPONSE:
-            return response
-
         if 200 <= response.status < 300:
-            return None if client_response == Client.__NO_RESPONSE else response
-        content = response.data.decode('utf-8')
-        ex = self.__RECOGNIZED_ERRORS.get(content)
-        if ex is not None:
-            raise ex
-        raise PilosaError("Server error (%d): %s" % (response.status, content))
+            return response
+        raise PilosaServerError(response)
 
     def __get_address(self):
         if self.__current_host is None:
             self.__current_host = self.cluster.get_host()
-            _LOGGER.debug("Current host set: %s", self.__current_host)
+            self.logger.debug("Current host set: %s", self.__current_host)
         return self.__current_host._normalize()
 
     def __connect(self):
         num_pools = float(self.pool_size_total) / self.pool_size_per_route
         headers = {
-            'Content-Type': 'application/x-protobuf',
-            'Accept': 'application/x-protobuf',
-            'User-Agent': 'python-pilosa/' + VERSION,
+            'User-Agent': 'python-pilosa/%s' % VERSION,
         }
 
         timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
@@ -350,9 +345,15 @@ class Client(object):
         client = urllib3.PoolManager(**client_options)
         self.__client = client
 
-    __RECOGNIZED_ERRORS = {
-        "index already exists\n": IndexExistsError,
-        "frame already exists\n": FrameExistsError,
+
+def decode_field_meta_options(field_info):
+    meta = field_info.get("options", {})
+    return {
+        "cache_size": meta.get("cacheSize", 50000),
+        "cache_type": CacheType(meta.get("cacheType", "")),
+        "time_quantum": TimeQuantum(meta.get("timeQuantum", "")),
+        "int_min": meta.get("min", 0),
+        "int_max": meta.get("max", 0),
     }
 
 
@@ -360,13 +361,13 @@ class URI:
     """Represents a Pilosa URI
 
     A Pilosa URI consists of three parts:
-    
+
     * Scheme: Protocol of the URI. Default: ``http``
     * Host: Hostname or IP URI. Default: ``localhost``
     * Port: Port of the URI. Default ``10101``
-    
+
     All parts of the URI are optional. The following are equivalent:
-    
+
     * ``http://localhost:10101``
     * ``http://localhost``
     * ``http://:10101``
@@ -374,11 +375,11 @@ class URI:
     * ``localhost``
     * ``:10101``
 
-    :param str scheme: is the scheme of the Pilosa Server. Currently only ``http`` is supported     
-    :param str host: is the hostname or IP address of the Pilosa server
+    :param str scheme: is the scheme of the Pilosa Server, such as ``http`` or ``https``
+    :param str host: is the hostname or IP address of the Pilosa server. IPv6 addresses should be enclosed in brackets, e.g., ``[fe00::0]``.
     :param int port: is the port of the Pilosa server
     """
-    __PATTERN = re.compile("^(([+a-z]+)://)?([0-9a-z.-]+)?(:([0-9]+))?$")
+    __PATTERN = re.compile("^(([+a-z]+):\\/\\/)?([0-9a-z.-]+|\\[[:0-9a-fA-F]+\\])?(:([0-9]+))?$")
 
     def __init__(self, scheme="http", host="localhost", port=10101):
         self.scheme = scheme
@@ -499,42 +500,70 @@ class Cluster:
 
 class _QueryRequest:
 
-    def __init__(self, query, columns=False, exclude_bits=False, exclude_attrs=False, slices=[]):
+    def __init__(self, query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=None):
         self.query = query
-        self.columns = columns
-        self.exclude_bits = exclude_bits
-        self.exclude_attrs = exclude_attrs
-        self.slices = slices
+        self.column_attrs = column_attrs
+        self.exclude_columns = exclude_columns
+        self.exclude_row_attrs = exclude_row_attrs
+        self.shards = shards or []
 
-    def to_protobuf(self):
+    def to_protobuf(self, return_bytearray=_IS_PY2):
         qr = internal.QueryRequest()
         qr.Query = self.query
-        qr.ColumnAttrs = self.columns
-        qr.ExcludeBits = self.exclude_bits
-        qr.ExcludeAttrs = self.exclude_attrs
-        qr.Slices.extend(self.slices)
+        qr.ColumnAttrs = self.column_attrs
+        qr.ExcludeColumns = self.exclude_columns
+        qr.ExcludeRowAttrs = self.exclude_row_attrs
+        qr.Shards.extend(self.shards)
+        if return_bytearray:
+            return bytearray(qr.SerializeToString())
         return qr.SerializeToString()
 
 
 class _ImportRequest:
 
-    def __init__(self, index_name, frame_name, slice, bits):
+    def __init__(self, index_name, field_name, shard, columns):
         self.index_name = index_name
-        self.frame_name = frame_name
-        self.slice = slice
-        self.bits = bits
+        self.field_name = field_name
+        self.shard = shard
+        self.columns = columns
 
-    def to_protobuf(self):
+    def to_protobuf(self, return_bytearray=_IS_PY2):
         import_request = internal.ImportRequest()
         import_request.Index = self.index_name
-        import_request.Frame = self.frame_name
-        import_request.Slice = self.slice
+        import_request.Field = self.field_name
+        import_request.Shard = self.shard
         row_ids = import_request.RowIDs
         column_ids = import_request.ColumnIDs
         timestamps = import_request.Timestamps
-        for bit in self.bits:
+        for bit in self.columns:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)
+        if return_bytearray:
+            return bytearray(import_request.SerializeToString())
         return import_request.SerializeToString()
 
+
+class PilosaServerError(PilosaError):
+
+    def __init__(self, response):
+        self.response = response
+        self.content = response.data.decode('utf-8')
+        super(Exception, PilosaServerError).__init__(self, u"Server error (%d): %s" % (response.status, self.content))
+
+
+class _Node(object):
+
+    __slots__ = "scheme", "host", "port"
+
+    def __init__(self, scheme, host, port):
+        self.scheme = scheme
+        self.host = host
+        self.port = port
+
+
+    @property
+    def url(self):
+        if self.port:
+            return "%s://%s:%s" % (self.scheme, self.host, self.port)
+        return "%s://%s" % (self.scheme, self.host)

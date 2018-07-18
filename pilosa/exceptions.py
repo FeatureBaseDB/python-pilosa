@@ -31,7 +31,7 @@
 # DAMAGE.
 #
 
-__all__ = ("PilosaError", "ValidationError", "PilosaURIError", "IndexExistsError", "FrameExistsError")
+__all__ = ("PilosaError", "ValidationError", "PilosaURIError", "IndexExistsError", "FieldExistsError")
 
 
 class PilosaError(Exception):
@@ -50,6 +50,6 @@ class IndexExistsError(PilosaError):
     pass
 
 
-class FrameExistsError(PilosaError):
+class FieldExistsError(PilosaError):
     pass
 

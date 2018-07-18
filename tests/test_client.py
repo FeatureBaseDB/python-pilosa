@@ -35,8 +35,11 @@ import logging
 import unittest
 
 import pilosa.internal.public_pb2 as internal
-from pilosa.client import Client, URI, Cluster, _QueryRequest
+from pilosa import TimeQuantum, CacheType
+from pilosa.client import Client, URI, Cluster, _QueryRequest, \
+    decode_field_meta_options, _ImportRequest, _Node
 from pilosa.exceptions import PilosaURIError, PilosaError
+from pilosa.imports import Columns
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +58,19 @@ class ClientTestCase(unittest.TestCase):
         self.assertEquals(URI.address(":20000"), c.cluster.hosts[0][0])
         # create with invalid type
         self.assertRaises(PilosaError, Client, 15000)
+
+    def test_decode_field_meta_options(self):
+        field_info = {}
+        options = decode_field_meta_options(field_info)
+        target = {
+            "cache_size": 50000,
+            "cache_type": CacheType.DEFAULT,
+            "time_quantum": TimeQuantum.NONE,
+            "int_min": 0,
+            "int_max": 0,
+        }
+        self.assertEquals(target, options)
+
 
 
 class URITestCase(unittest.TestCase):
@@ -103,8 +119,23 @@ class URITestCase(unittest.TestCase):
         self.assertEquals("https://big-data.pilosa.com:6888", uri._normalize())
 
     def test_invalid_address(self):
-        for address in ["foo:bar", "http://foo:", "http://foo:", "foo:", ":bar"]:
+        for address in ["foo:bar", "http://foo:", "http://foo:", "foo:", ":bar", "fd42:4201:f86b:7e09:216:3eff:fefa:ed80"]:
             self.assertRaises(PilosaURIError, URI.address, address)
+
+    def test_ipv6(self):
+        addresses = [
+            ("[::1]", "http", "[::1]", 10101),
+            ("[::1]:3333", "http", "[::1]", 3333),
+            ("[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]:3333", "http", "[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]", 3333),
+            ("https://[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]:3333", "https",
+             "[fd42:4201:f86b:7e09:216:3eff:fefa:ed80]", 3333),
+        ]
+        for address, scheme, host, port in addresses:
+            uri = URI.address(address)
+            self.assertEquals(scheme, uri.scheme)
+            self.assertEquals(host, uri.host)
+            self.assertEquals(port, uri.port)
+
 
     def test_to_string(self):
         uri = URI()
@@ -189,14 +220,38 @@ class ClusterTestCase(unittest.TestCase):
 class QueryRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        qr = _QueryRequest("Bitmap(frame='foo', id=1)", columns=True)
-        bin = qr.to_protobuf()
-        self.assertTrue(bin is not None)
-
+        qr = _QueryRequest("Row(field='foo', id=1)", column_attrs=True)
+        bin = qr.to_protobuf(False)  # do not return a bytearray
+        self.assertIsNotNone(bin)
         qr = internal.QueryRequest()
         qr.ParseFromString(bin)
-        self.assertEquals("Bitmap(frame='foo', id=1)", qr.Query)
+        self.assertEquals("Row(field='foo', id=1)", qr.Query)
         self.assertEquals(True, qr.ColumnAttrs)
+
+
+class ImportRequestTestCase(unittest.TestCase):
+
+    def test_serialize(self):
+        ir = _ImportRequest("foo", "bar", 0, [Columns(row_id=1, column_id=2, timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([1], ir.RowIDs)
+        self.assertEquals([2], ir.ColumnIDs)
+        self.assertEquals([3], ir.Timestamps)
+
+
+class NodeTestCase(unittest.TestCase):
+
+    def test_node_url(self):
+        n1 = _Node("https", "foo.com", "")
+        self.assertEquals("https://foo.com", n1.url)
+        n2 = _Node("https", "foo.com", 9999)
+        self.assertEquals("https://foo.com:9999", n2.url)
+
 
 if __name__ == '__main__':
     unittest.main()

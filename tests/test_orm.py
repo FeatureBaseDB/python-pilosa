@@ -34,14 +34,14 @@
 import unittest
 from datetime import datetime
 
-from pilosa import PilosaError, Index, TimeQuantum, CacheType, IntField, ValidationError
+from pilosa import PilosaError, Index, TimeQuantum, CacheType, ValidationError
 from pilosa.orm import Schema
 
 schema = Schema()
 sampleIndex = schema.index("sample-db")
-sampleFrame = sampleIndex.frame("sample-frame")
-projectIndex = schema.index("project-db", column_label="user")
-collabFrame = projectIndex.frame("collaboration", row_label="project")
+sampleField = sampleIndex.field("sample-field")
+projectIndex = schema.index("project-db")
+collabField = projectIndex.field("collaboration")
 
 
 class SchemaTestCase(unittest.TestCase):
@@ -49,21 +49,21 @@ class SchemaTestCase(unittest.TestCase):
     def test_diff(self):
         schema1 = Schema()
         index11 = schema1.index("diff-index1")
-        index11.frame("frame1-1")
-        index11.frame("frame1-2")
+        index11.field("field1-1")
+        index11.field("field1-2")
         index12 = schema1.index("diff-index2")
-        index12.frame("frame2-1")
+        index12.field("field2-1")
 
         schema2 = Schema()
         index21 = schema2.index("diff-index1")
-        index21.frame("another-frame")
+        index21.field("another-field")
 
         target_diff12 = Schema()
         target_index1 = target_diff12.index("diff-index1")
-        target_index1.frame("frame1-1")
-        target_index1.frame("frame1-2")
+        target_index1.field("field1-1")
+        target_index1.field("field1-2")
         target_index2 = target_diff12.index("diff-index2")
-        target_index2.frame("frame2-1")
+        target_index2.field("field2-1")
 
         diff12 = schema1._diff(schema2)
         self.assertEqual(target_diff12, diff12)
@@ -82,17 +82,11 @@ class IndexTestCase(unittest.TestCase):
     def test_create_index(self):
         index = schema.index("sample-index")
         self.assertEqual("sample-index", index.name)
-        self.assertEqual("columnID", index.column_label)
-        self.assertEqual(TimeQuantum.NONE, index.time_quantum)
         index2 = schema.index("sample-index")
         self.assertEqual(index, index2)
 
-        index = schema.index("sample-index2",
-                             column_label="col_id",
-                             time_quantum=TimeQuantum.YEAR_MONTH)
+        index = schema.index("sample-index2")
         self.assertEqual("sample-index2", index.name)
-        self.assertEqual("col_id", index.column_label)
-        self.assertEqual(TimeQuantum.YEAR_MONTH, index.time_quantum)
 
     def test_same_equals(self):
         self.assertEqual(projectIndex, projectIndex)
@@ -108,75 +102,75 @@ class IndexTestCase(unittest.TestCase):
             q.serialize())
 
     def test_union(self):
-        b1 = sampleFrame.bitmap(10)
-        b2 = sampleFrame.bitmap(20)
-        b3 = sampleFrame.bitmap(42)
-        b4 = collabFrame.bitmap(2)
+        b1 = sampleField.row(10)
+        b2 = sampleField.row(20)
+        b3 = sampleField.row(42)
+        b4 = collabField.row(2)
 
         q1 = sampleIndex.union(b1, b2)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Union(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
         q2 = sampleIndex.union(b1, b2, b3)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
+            "Union(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
             q2.serialize())
 
         q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
-            "Union(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Union(Row(sample-field=10), Row(collaboration=2))",
             q3.serialize())
 
     def test_intersect(self):
-        b1 = sampleFrame.bitmap(10)
-        b2 = sampleFrame.bitmap(20)
-        b3 = sampleFrame.bitmap(42)
-        b4 = collabFrame.bitmap(2)
+        b1 = sampleField.row(10)
+        b2 = sampleField.row(20)
+        b3 = sampleField.row(42)
+        b4 = collabField.row(2)
 
         q1 = sampleIndex.intersect(b1, b2)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Intersect(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
         q2 = sampleIndex.intersect(b1, b2, b3)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
+            "Intersect(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
             q2.serialize())
 
         q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
-            "Intersect(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Intersect(Row(sample-field=10), Row(collaboration=2))",
             q3.serialize())
 
     def test_difference(self):
-        b1 = sampleFrame.bitmap(10)
-        b2 = sampleFrame.bitmap(20)
-        b3 = sampleFrame.bitmap(42)
-        b4 = collabFrame.bitmap(2)
+        b1 = sampleField.row(10)
+        b2 = sampleField.row(20)
+        b3 = sampleField.row(42)
+        b4 = collabField.row(2)
 
         q1 = sampleIndex.difference(b1, b2)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Difference(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
         q2 = sampleIndex.difference(b1, b2, b3)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'), Bitmap(rowID=42, frame='sample-frame'))",
+            "Difference(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
             q2.serialize())
 
         q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
-            "Difference(Bitmap(rowID=10, frame='sample-frame'), Bitmap(project=2, frame='collaboration'))",
+            "Difference(Row(sample-field=10), Row(collaboration=2))",
             q3.serialize())
 
     def test_xor(self):
-        b1 = sampleFrame.bitmap(10)
-        b2 = sampleFrame.bitmap(20)
+        b1 = sampleField.row(10)
+        b2 = sampleField.row(20)
         q1 = sampleIndex.xor(b1, b2)
 
         self.assertEquals(
-            "Xor(Bitmap(rowID=10, frame='sample-frame'), Bitmap(rowID=20, frame='sample-frame'))",
+            "Xor(Row(sample-field=10), Row(sample-field=20))",
             q1.serialize())
 
     def test_union0(self):
@@ -184,23 +178,23 @@ class IndexTestCase(unittest.TestCase):
         self.assertEquals("Union()", q.serialize())
 
     def test_union1(self):
-        q = sampleIndex.union(sampleFrame.bitmap(10))
-        self.assertEquals("Union(Bitmap(rowID=10, frame='sample-frame'))", q.serialize())
+        q = sampleIndex.union(sampleField.row(10))
+        self.assertEquals("Union(Row(sample-field=10))", q.serialize())
 
-    def test_intersect_invalid_bitmap_count_fails(self):
+    def test_intersect_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.intersect)
 
-    def test_difference_invalid_bitmap_count_fails(self):
+    def test_difference_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.difference)
 
-    def test_xor_invalid_bitmap_count_fails(self):
-        self.assertRaises(PilosaError, projectIndex.xor, sampleFrame.bitmap(10))
+    def test_xor_invalid_row_count_fails(self):
+        self.assertRaises(PilosaError, projectIndex.xor, sampleField.row(10))
 
     def test_count(self):
-        b = collabFrame.bitmap(42)
+        b = collabField.row(42)
         q = projectIndex.count(b)
         self.assertEquals(
-            "Count(Bitmap(project=42, frame='collaboration'))",
+            "Count(Row(collaboration=42))",
             q.serialize())
 
     def test_set_column_attributes(self):
@@ -210,7 +204,7 @@ class IndexTestCase(unittest.TestCase):
         }
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            "SetColumnAttrs(user=5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u"SetColumnAttrs(5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_column_attributes_invalid_values(self):
@@ -221,173 +215,192 @@ class IndexTestCase(unittest.TestCase):
         self.assertRaises(PilosaError, projectIndex.set_column_attrs, 5, attrs_map)
 
 
-class FrameTestCase(unittest.TestCase):
+class FieldTestCase(unittest.TestCase):
 
-    def test_create_frame(self):
+    def test_create_field(self):
         db = Index("foo")
-        frame = db.frame("sample-frame")
-        self.assertEqual(db, frame.index)
-        self.assertEqual("sample-frame", frame.name)
-        self.assertEqual("rowID", frame.row_label)
-        self.assertEqual(TimeQuantum.NONE, frame.time_quantum)
+        field = db.field("sample-field")
+        self.assertEqual(db, field.index)
+        self.assertEqual("sample-field", field.name)
+        self.assertEqual(TimeQuantum.NONE, field.time_quantum)
 
     def test_same_equals(self):
-        self.assertEqual(sampleFrame, sampleFrame)
+        self.assertEqual(sampleField, sampleField)
 
     def test_other_class_not_equals(self):
         schema = Schema()
-        self.assertNotEqual(sampleFrame, schema)
+        self.assertNotEqual(sampleField, schema)
 
-    def test_bitmap(self):
-        qry1 = sampleFrame.bitmap(5)
+    def test_row(self):
+        qry1 = collabField.row(5)
         self.assertEquals(
-            "Bitmap(rowID=5, frame='sample-frame')",
+            "Row(collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabFrame.bitmap(10)
+        qry2 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
-            "Bitmap(project=10, frame='collaboration')",
+            "Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry2.serialize())
 
-    def test_inverse_bitmap(self):
-        f1 = projectIndex.frame("f1-inversable", row_label="row_label", inverse_enabled=True)
-        qry = f1.inverse_bitmap(5)
-        self.assertEquals(
-            "Bitmap(user=5, frame='f1-inversable')",
-            qry.serialize()
-        )
+    def test_row_with_invalid_id_type(self):
+        self.assertRaises(ValidationError, sampleField.row, {})
 
-    def test_setbit(self):
-        qry1 = sampleFrame.setbit(5, 10)
+    def test_set(self):
+        qry1 = collabField.set(5, 10)
         self.assertEquals(
-            "SetBit(rowID=5, frame='sample-frame', columnID=10)",
+             u"Set(10, collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabFrame.setbit(10, 20)
+        qry2 = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
-            "SetBit(project=10, frame='collaboration', user=20)",
-
+            u"Set(some_id, collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry2.serialize())
 
-    def test_setbit_with_timestamp(self):
+    def test_set_with_invalid_id_type(self):
+        self.assertRaises(ValidationError, sampleField.set, {}, 1)
+        self.assertRaises(ValidationError, sampleField.set, 1, {})
+        self.assertRaises(ValidationError, sampleField.set, 1, "zero")
+
+    def test_set_with_timestamp(self):
         timestamp = datetime(2017, 4, 24, 12, 14)
-        qry = collabFrame.setbit(10, 20, timestamp)
+        qry = collabField.set(10, 20, timestamp)
         self.assertEquals(
-            "SetBit(project=10, frame='collaboration', user=20, timestamp='2017-04-24T12:14')",
+            u"Set(20, collaboration=10, 2017-04-24T12:14)",
             qry.serialize()
         )
 
-    def test_clearbit(self):
-        qry1 = sampleFrame.clearbit(5, 10)
+    def test_clear(self):
+        qry1 = collabField.clear(5, 10)
         self.assertEquals(
-            "ClearBit(rowID=5, frame='sample-frame', columnID=10)",
+            "Clear(10, collaboration=5)",
             qry1.serialize())
 
-        qry2 = collabFrame.clearbit(10, 20)
+        qry2 = collabField.clear(10, 20)
         self.assertEquals(
-            "ClearBit(project=10, frame='collaboration', user=20)",
+            "Clear(20, collaboration=10)",
             qry2.serialize())
+
+        qry3 = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        self.assertEquals(
+            "Clear('some_id', collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            qry3.serialize())
+
+    def test_clear_with_invalid_id_type(self):
+        self.assertRaises(ValidationError, sampleField.clear, {}, 1)
+        self.assertRaises(ValidationError, sampleField.clear, 1, {})
+        self.assertRaises(ValidationError, sampleField.clear, 1, "zero")
 
     def test_topn(self):
-        q1 = sampleFrame.topn(27)
+        q1 = collabField.topn(27)
         self.assertEquals(
-            u"TopN(frame='sample-frame', n=27, inverse=false)",
+            u"TopN(collaboration, n=27)",
             q1.serialize())
 
-        q2 = sampleFrame.topn(10, collabFrame.bitmap(3))
+        q2 = collabField.topn(10, collabField.row(3))
         self.assertEquals(
-            u"TopN(Bitmap(project=3, frame='collaboration'), frame='sample-frame', n=10, inverse=false)",
+            u"TopN(collaboration, Row(collaboration=3), n=10)",
             q2.serialize())
 
-        q3 = sampleFrame.topn(12, collabFrame.bitmap(7), "category", 80, 81)
+        q3 = sampleField.topn(12, collabField.row(7), "category", 80, 81)
         self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=false, field='category', filters=[80,81])",
+            u"TopN(sample-field, Row(collaboration=7), n=12, field='category', filters=[80,81])",
             q3.serialize())
-
-        q4 = sampleFrame.inverse_topn(12, collabFrame.bitmap(7), "category", 80, 81)
-        self.assertEquals(
-            "TopN(Bitmap(project=7, frame='collaboration'), frame='sample-frame', n=12, inverse=true, field='category', filters=[80,81])",
-            q4.serialize())
 
     def test_range(self):
         start = datetime(1970, 1, 1, 0, 0)
         end = datetime(2000, 2, 2, 3, 4)
-        q1 = collabFrame.range(10, start, end)
+
+        q1 = collabField.range(10, start, end)
         self.assertEquals(
-            "Range(project=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
+            u"Range(collaboration=10, 1970-01-01T00:00, 2000-02-02T03:04)",
             q1.serialize())
-        q2 = collabFrame.inverse_range(10, start, end)
+
+        q3 = collabField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
         self.assertEquals(
-            "Range(user=10, frame='collaboration', start='1970-01-01T00:00', end='2000-02-02T03:04')",
-            q2.serialize())
+            u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63', 1970-01-01T00:00, 2000-02-02T03:04)",
+            q3.serialize())
 
     def test_set_row_attributes(self):
         attrs_map = {
             "quote": '''"Don't worry, be happy"''',
             "active": True
         }
-        q = collabFrame.set_row_attrs(5, attrs_map)
+        q = collabField.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            "SetRowAttrs(project=5, frame='collaboration', active=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u'SetRowAttrs(collaboration, 5, active=true, quote="\\"Don\'t worry, be happy\\"")',
             q.serialize())
 
-    def test_field(self):
-        # only a single instance of a field should exist
-        field1 = sampleFrame.field("the-field")
-        field2 = sampleFrame.field("the-field")
-        self.assertTrue(id(field1) == id(field2))
-
     def test_field_lt(self):
-        q = sampleFrame.field("foo").lt(10)
+        q = collabField.lt(10)
         self.assertEquals(
-            "Range(frame='sample-frame', foo < 10)",
+            "Range(collaboration < 10)",
             q.serialize())
 
     def test_field_lte(self):
-        q = sampleFrame.field("foo").lte(10)
+        q = collabField.lte(10)
         self.assertEquals(
-            "Range(frame='sample-frame', foo <= 10)",
+            "Range(collaboration <= 10)",
             q.serialize())
 
     def test_field_gt(self):
-        q = sampleFrame.field("foo").gt(10)
+        q = collabField.gt(10)
         self.assertEquals(
-            "Range(frame='sample-frame', foo > 10)",
+            "Range(collaboration > 10)",
             q.serialize())
 
     def test_field_gte(self):
-        q = sampleFrame.field("foo").gte(10)
+        q = collabField.gte(10)
         self.assertEquals(
-            "Range(frame='sample-frame', foo >= 10)",
+            "Range(collaboration >= 10)",
+            q.serialize())
+
+    def test_field_equals(self):
+        q = collabField.equals(10)
+        self.assertEquals(
+            "Range(collaboration == 10)",
+            q.serialize())
+
+    def test_field_not_equals(self):
+        q = collabField.not_equals(10)
+        self.assertEquals(
+            "Range(collaboration != 10)",
+            q.serialize())
+
+    def test_field_not_null(self):
+        q = collabField.not_null()
+        self.assertEquals(
+            "Range(collaboration != null)",
             q.serialize())
 
     def test_field_between(self):
-        q = sampleFrame.field("foo").between(10, 20)
+        q = collabField.between(10, 20)
         self.assertEquals(
-            "Range(frame='sample-frame', foo >< [10,20])",
-            q.serialize())
-
-    def test_field_set_value(self):
-        q = sampleFrame.field("foo").set_value(10, 20)
-        self.assertEquals(
-            "SetFieldValue(frame='sample-frame', columnID=10, foo=20)",
+            "Range(collaboration >< [10,20])",
             q.serialize())
 
     def test_field_sum(self):
-        q = sampleFrame.field("foo").sum(sampleFrame.bitmap(10))
+        q = collabField.sum(collabField.row(10))
         self.assertEquals(
-            "Sum(Bitmap(rowID=10, frame='sample-frame'), frame='sample-frame', field='foo')",
+            "Sum(Row(collaboration=10), field='collaboration')",
+            q.serialize())
+        q = collabField.sum()
+        self.assertEquals(
+            "Sum(field='collaboration')",
+            q.serialize())
+
+    def test_field_set_value(self):
+        q = collabField.setvalue(10, 20)
+        self.assertEquals(
+            "Set(10, collaboration=20)",
             q.serialize())
 
     def test_get_options_string(self):
-        frame = sampleIndex.frame("stargazer_id",
+        field = sampleIndex.field("stargazer_id",
                                   time_quantum=TimeQuantum.DAY_HOUR,
-                                  inverse_enabled=True,
                                   cache_type=CacheType.RANKED,
-                                  cache_size=1000,
-                                  fields=[IntField.int("foo"), IntField.int("bar", min=-1, max=1)])
-        target = '{"options": {"cacheSize": 1000, "cacheType": "ranked", "fields": [{"max": 100, "min": 0, "name": "foo", "type": "int"}, {"max": 1, "min": -1, "name": "bar", "type": "int"}], "inverseEnabled": true, "rangeEnabled": true, "rowLabel": "rowID", "timeQuantum": "DH"}}'
-        self.assertEquals(target, frame._get_options_string())
+                                  cache_size=1000)
+        target = '{"options": {"timeQuantum": "DH", "type": "time"}}'
+        self.assertEquals(target, field._get_options_string())
 
 
 class TimeQuantumTestCase(unittest.TestCase):
@@ -417,4 +430,4 @@ class CacheTypeTestCase(unittest.TestCase):
 class RangeFieldTestCase(unittest.TestCase):
 
     def test_min_greater_equals_max_fails(self):
-        self.assertRaises(ValidationError, IntField.int, "foo", min=10, max=9)
+        self.assertRaises(ValidationError, sampleIndex.field, "intminmax", int_min=10, int_max=9)
