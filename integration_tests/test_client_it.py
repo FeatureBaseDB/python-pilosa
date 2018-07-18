@@ -355,19 +355,19 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
-    def test_slices(self):
-        slice_width = 1048576
+    def test_shards(self):
+        shard_width = 1048576
         client = self.get_client()
-        client.query(self.col_db.batch_query(
-            self.frame.setbit(1, 100),
-            self.frame.setbit(1, slice_width),
-            self.frame.setbit(1, slice_width*3),
+        client.query(self.col_index.batch_query(
+            self.field.set(1, 100),
+            self.field.set(1, shard_width),
+            self.field.set(1, shard_width*3),
         ))
 
-        response = client.query(self.frame.bitmap(1), slices=[0,3])
-        self.assertEquals(2, len(response.result.bitmap.bits))
-        self.assertEquals(100, response.result.bitmap.bits[0])
-        self.assertEquals(slice_width*3, response.result.bitmap.bits[1])
+        response = client.query(self.field.row(1), shards=[0,3])
+        self.assertEquals(2, len(response.result.row.columns))
+        self.assertEquals(100, response.result.row.columns[0])
+        self.assertEquals(shard_width*3, response.result.row.columns[1])
 
     def test_create_index_fail(self):
         server = MockServer(404)
