@@ -2,6 +2,7 @@
 
 * **v1.0.0** (2018-06-28)
     * Compatible with Pilosa 1.0.
+    * Added `shards` option to `client.query` which allows limiting a query to be run for the specified shards.
     * Removed all deprecated code.
     * Following terminology was changed:
         * frame to field
