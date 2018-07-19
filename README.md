@@ -1,6 +1,6 @@
 # Python Client for Pilosa
 
-<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-0.9-blue.svg"></a>
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-1.0-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 <a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://api.travis-ci.org/pilosa/python-pilosa.svg?branch=master"></a>
@@ -12,7 +12,7 @@ Python client for Pilosa high performance distributed row index.
 
 ## What's New?
 
-See: [CHANGELOG](CHANGELOG.md)
+See: [CHANGELOG](https://github.com/pilosa/python-pilosa/blob/master/CHANGELOG.md)
 
 ## Requirements
 
@@ -50,10 +50,10 @@ myfield = myindex.field("myfield")
 # make sure the index and field exists on the server
 client.sync_schema(schema)
 
-# Send a SetBit query. PilosaError is thrown if execution of the query fails.
+# Send a Setquery. PilosaError is thrown if execution of the query fails.
 client.query(myfield.set(5, 42))
 
-# Send a Bitmap query. PilosaError is thrown if execution of the query fails.
+# Send a Row query. PilosaError is thrown if execution of the query fails.
 response = client.query(myfield.row(5))
 
 # Get the result
@@ -73,27 +73,27 @@ response = client.query(
 )
 for result in response.results:
     # Act on the result
-    print(result)
+    print(result.row.columns)
 ```
 
 ## Documentation
 
 ### Data Model and Queries
 
-See: [Data Model and Queries](docs/data-model-queries.md)
+See: [Data Model and Queries](https://github.com/pilosa/python-pilosa/blob/master/docs/data-model-queries.md)
 
 ### Executing Queries
 
-See: [Server Interaction](docs/server-interaction.md)
+See: [Server Interaction](https://github.com/pilosa/python-pilosa/blob/master/docs/server-interaction.md)
 
 ### Importing and Exporting Data
 
-See: [Importing and Exporting Data](docs/imports.md)
+See: [Importing and Exporting Data](https://github.com/pilosa/python-pilosa/blob/master/docs/imports.md)
 
 ## Contributing
 
-See: [CONTRIBUTING](CONTRIBUTING.md)
+See: [CONTRIBUTING](https://github.com/pilosa/python-pilosa/blob/master/CONTRIBUTING.md)
 
 ## License
 
-See: [LICENSE](LICENSE)
+See: [LICENSE](https://github.com/pilosa/python-pilosa/blob/master/LICENSE)

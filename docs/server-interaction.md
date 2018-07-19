@@ -42,7 +42,7 @@ client = pilosa.Client()
 To use a a custom server address, pass the address in the first argument:
 
 ```python
-client = pilosa.Client("http://db1.pilosa.com:15000")
+client = pilosa.Client("http://node1.pilosa.com:15000")
 ```
 
 If you are running a cluster of Pilosa servers, you can create a `pilosa.Cluster` object that keeps addresses of those servers:
@@ -87,11 +87,11 @@ You can send queries to a Pilosa server using the `query` method of client objec
 response = client.query(field.row(5))
 ```
 
-`query` method accepts optional `columns` argument:
+`query` method accepts optional arguments, including `column_attrs`, `exclude_columns`, `exclude_attrs` and `shards`.
 
 ```python
 response = client.query(field.row(5),
-    columns=True  # return column data in the response
+    column_attrs=True  # return column data in the response
 )
 ```
 
@@ -114,7 +114,7 @@ for result in response.results:
     # act on the result
 ```
 
-Similarly, a `QueryResponse` object may include a number of column objects, if `columns=True` query option was used:
+Similarly, a `QueryResponse` object may include a number of column objects, if `column_attrs=True` query option was used:
 
 ```python
 # check that there's a column object and act on it

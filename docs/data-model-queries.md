@@ -17,7 +17,7 @@ Fields are created with a call to `index.field` method:
 stargazer = repository.field("stargazer")
 ```
 
-Similar to index objects, you can pass custom options to the `index.field` method:
+You can pass custom options to the `index.field` method:
 
 ```python
 stargazer = repository.field("stargazer", time_quantum=pilosa.TimeQuantum.YEAR_MONTH_DAY)
@@ -30,7 +30,7 @@ Once you have indexes and field objects created, you can create queries for them
 For instance, `Row` queries work on rows; use a field object to create those queries:
 
 ```python
-row_query = stargazer.row(1)  # corresponds to PQL: Bitmap(field='stargazer', row=1)
+row_query = stargazer.row(1)  # corresponds to PQL: Row(stargazer=1)
 ```
 
 `Union` queries work on columns; use the index object to create them:
@@ -47,10 +47,10 @@ query = repository.batch_query(
     repository.union(stargazer.row(100), stargazer.row(5)))
 ```
 
-The recommended way of creating query objects is, using dedicated methods attached to index and field objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, query string is not validated before sending to the server:
+The recommended way of creating query objects is, using dedicated methods attached to index and field objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, the query string is not validated before sending to the server:
 
 ```python
-query = repository.raw_query("Bitmap(field='stargazer', row=5)")
+query = repository.raw_query("Row(stargazer=5)")
 ```
 
 This client supports [Range encoded fields](https://www.pilosa.com/docs/latest/query-language/#range-bsi). Read [Range Encoded Bitmaps](https://www.pilosa.com/blog/range-encoded-bitmaps/) blog post for more information about the BSI implementation of range encoding in Pilosa.
@@ -58,30 +58,30 @@ This client supports [Range encoded fields](https://www.pilosa.com/docs/latest/q
 In order to use range encoded fields, a field should be created with one or more integer fields. Each field should have their minimums and maximums set. Here's how you would do that using this library:
 ```python
 index = schema.index("animals")
-field = index.field("traits", fields=[pilosa.IntField.int("captivity", min=0, max=956)])
+traits = index.field("traits", int_min=0, int_max=956)
+captivity = index.field("captivity")
 client.sync_schema(schema)
 ```
 
-If the field with the necessary field already exists on the server, you don't need to create the field instance, `client.syncSchema(schema)` would load that to `schema`. You can then add some data:
+If the field with the necessary field already exists on the server, you don't need to create the field instance, `client.sync_schema(schema)` would load that to `schema`. You can then add some data:
 ```python
 # Add the captivity values to the field.
-captivity = field.field("captivity")
 data = [3, 392, 47, 956, 219, 14, 47, 504, 21, 0, 123, 318]
 query = index.batch_query()
 for i, x in enumerate(data):
     column = i + 1
-    query.add(captivity.setvalue(column, x))
+    query.add(traits.setvalue(column, x))
 client.query(query)
 ```
 
 Let's write a range query:
 ```python
 # Query for all animals with more than 100 specimens
-response = client.query(captivity.gt(100))
+response = client.query(traits.gt(100))
 print(response.result.row.columns)
 
 # Query for the total number of animals in captivity
-response = client.query(captivity.sum())
+response = client.query(traits.sum())
 print(response.result.value)
 ```
 
@@ -93,7 +93,7 @@ client.query(index.batch_query(
     field.set(42, 6)
 ))
 # Query for the total number of animals in captivity where row 42 is set
-response = client.query(captivity.sum(field.row(42)))
+response = client.query(traits.sum(captivity.row(42)))
 print(response.result.value)
 ```
 
