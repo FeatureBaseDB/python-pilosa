@@ -133,7 +133,7 @@ for column in response.columns:
 * `count_items` property to retrieve column count per row ID entries returned from `topn` queries,
 * `count` attribute to retrieve the number of rows per the given row ID returned from `count` queries.
 * `value` attribute to retrieve the result of `Min`, `Max` or `Sum` queries.
-* `changed` attribute shows whether a `SetBit` or `ClearBit` query changed a bit.
+* `changed` attribute shows whether a `Set` or `Clear` query changed a bit.
 
 ```python
 result = response.result
