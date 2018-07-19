@@ -1,6 +1,6 @@
 # Importing Data
 
-If you have large amounts of data, it is more efficient to import it to Pilosa instead of several `SetBit` queries.
+If you have large amounts of data, it is more efficient to import it to Pilosa instead of several `Set` queries.
 
 This library supports importing columns in the CSV (comma separated values) format:
 ```

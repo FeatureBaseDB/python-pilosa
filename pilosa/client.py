@@ -104,17 +104,18 @@ class Client(object):
         self.__client = None
         self.logger = logging.getLogger("pilosa")
 
-    def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False):
+    def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False, shards=None):
         """Runs the given query against the server with the given options.
         
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
         :param bool column_attrs: Enables returning column data from row queries
         :param bool exclude_columns: Disables returning columns from row queries
         :param bool exclude_attrs: Disables returning attributes from row queries
+        :param list(int) slices: Returns data from a subset of slices
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs)
+        request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs, shards=shards)
         path = "/index/%s/query" % query.index.name
         try:
             headers = {
@@ -499,11 +500,12 @@ class Cluster:
 
 class _QueryRequest:
 
-    def __init__(self, query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False):
+    def __init__(self, query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=None):
         self.query = query
         self.column_attrs = column_attrs
         self.exclude_columns = exclude_columns
         self.exclude_row_attrs = exclude_row_attrs
+        self.shards = shards or []
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
         qr = internal.QueryRequest()
@@ -511,6 +513,7 @@ class _QueryRequest:
         qr.ColumnAttrs = self.column_attrs
         qr.ExcludeColumns = self.exclude_columns
         qr.ExcludeRowAttrs = self.exclude_row_attrs
+        qr.Shards.extend(self.shards)
         if return_bytearray:
             return bytearray(qr.SerializeToString())
         return qr.SerializeToString()

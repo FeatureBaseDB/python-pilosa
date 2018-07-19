@@ -355,12 +355,25 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
+    def test_shards(self):
+        shard_width = 1048576
+        client = self.get_client()
+        client.query(self.col_index.batch_query(
+            self.field.set(1, 100),
+            self.field.set(1, shard_width),
+            self.field.set(1, shard_width*3),
+        ))
+
+        response = client.query(self.field.row(1), shards=[0,3])
+        self.assertEquals(2, len(response.result.row.columns))
+        self.assertEquals(100, response.result.row.columns[0])
+        self.assertEquals(shard_width*3, response.result.row.columns[1])
+
     def test_create_index_fail(self):
         server = MockServer(404)
         with server:
             client = Client(server.uri)
             self.assertRaises(PilosaServerError, client.create_index, self.index)
-
 
     @classmethod
     def random_index_name(cls):
