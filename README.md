@@ -50,7 +50,7 @@ myfield = myindex.field("myfield")
 # make sure the index and field exists on the server
 client.sync_schema(schema)
 
-# Send a Setquery. PilosaError is thrown if execution of the query fails.
+# Send a Set query. PilosaError is thrown if execution of the query fails.
 client.query(myfield.set(5, 42))
 
 # Send a Row query. PilosaError is thrown if execution of the query fails.
