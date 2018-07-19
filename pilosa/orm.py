@@ -201,7 +201,7 @@ class Index:
 
     def field(self, name, time_quantum=TimeQuantum.NONE,
               cache_type=CacheType.DEFAULT, cache_size=0,
-              int_min=0, int_max=0):
+              int_min=0, int_max=0, keys=None):
         """Creates a field object with the specified name and defaults.
         
         :param str name: field name
@@ -210,13 +210,14 @@ class Index:
         :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
         :param int int_min: Minimum for the integer field
         :param int int_max: Maximum for the integer field
+        :param bool keys: Sets whether field uses string keys
         :return: Pilosa field
         :rtype: pilosa.Field
         """
         field = self._fields.get(name)
         if field is None:
             field = Field(self, name, time_quantum,
-                          cache_type, cache_size, int_min, int_max)
+                          cache_type, cache_size, int_min, int_max, keys)
             self._fields[name] = field
         return field
 
@@ -345,7 +346,7 @@ class Field:
     """
 
     def __init__(self, index, name, time_quantum,
-                 cache_type, cache_size, int_min, int_max):
+                 cache_type, cache_size, int_min, int_max, keys):
         validate_field_name(name)
         if int_max < int_min:
             raise ValidationError("Max should be greater than min for int fields")
@@ -357,6 +358,7 @@ class Field:
         self.cache_size = cache_size
         self.int_min = int_min
         self.int_max = int_max
+        self.keys = keys
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -377,7 +379,8 @@ class Field:
 
     def copy(self):
         return Field(self.index, self.name, self.time_quantum,
-                     self.cache_type, self.cache_size, self.int_min, self.int_max)
+                     self.cache_type, self.cache_size,
+                     self.int_min, self.int_max, self.keys)
 
     def row(self, row_idkey):
         """Creates a Row query.
@@ -625,6 +628,8 @@ class Field:
 
     def _get_options_string(self):
         data = {}
+        if self.keys is not None:
+            data["keys"] = self.keys
         if self.time_quantum != TimeQuantum.NONE:
             data["type"] = "time"
             data["timeQuantum"] = str(self.time_quantum)
