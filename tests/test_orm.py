@@ -397,9 +397,8 @@ class FieldTestCase(unittest.TestCase):
     def test_get_options_string(self):
         field = sampleIndex.field("stargazer_id",
                                   time_quantum=TimeQuantum.DAY_HOUR,
-                                  cache_type=CacheType.RANKED,
-                                  cache_size=1000)
-        target = '{"options": {"timeQuantum": "DH", "type": "time"}}'
+                                  keys=True)
+        target = '{"options": {"keys": true, "timeQuantum": "DH", "type": "time"}}'
         self.assertEquals(target, field._get_options_string())
 
 
