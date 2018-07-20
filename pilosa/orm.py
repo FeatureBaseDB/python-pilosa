@@ -210,7 +210,7 @@ class Index:
         :param int cache_size: Values greater than 0 sets the cache size. Otherwise uses the default cache size
         :param int int_min: Minimum for the integer field
         :param int int_max: Maximum for the integer field
-        :param bool keys: Sets whether field uses string keys
+        :param bool keys: Whether the field uses string keys
         :return: Pilosa field
         :rtype: pilosa.Field
         """
