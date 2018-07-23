@@ -126,12 +126,13 @@ class Schema:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def index(self, name):
+    def index(self, name, keys=None):
         """Returns an index object with the given name and options.
 
         If the index didn't exist in the schema, it is added to the schema.
 
-        :param str name: index name
+        :param str name: Index name
+        :param bool keys: Whether the field uses string keys
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
@@ -139,7 +140,7 @@ class Schema:
         """
         index = self._indexes.get(name)
         if index is None:
-            index = Index(name)
+            index = Index(name, keys=keys)
             self._indexes[name] = index
         return index
 
@@ -168,15 +169,17 @@ class Index:
     
     You cannot perform cross-index queries. Column-level attributes are global to the Index.
     
-    :param str name: index name
+    :param str name: Index name
+    :param bool keys: Whether the field uses string keys
 
     * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
     """
 
-    def __init__(self, name):
+    def __init__(self, name, keys=False):
         validate_index_name(name)
         self.name = name
+        self.keys = keys
         self._fields = {}
 
     def __eq__(self, other):
@@ -194,7 +197,7 @@ class Index:
         return self.name == other.name
 
     def copy(self, fields=True):
-        index = Index(self.name)
+        index = Index(self.name, keys=self.keys)
         if fields:
             index._fields = dict((name, field.copy()) for name, field in self._fields.items())
         return index
@@ -332,6 +335,11 @@ class Index:
     def _row_op(self, name, rows):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in rows)), self)
 
+    def _get_options_string(self):
+        if self.keys:
+            return '''{"options":{"keys":true}}'''
+        return ""
+
 
 class Field:
     """Fields are used to segment and define different functional characteristics within your entire index.
@@ -412,7 +420,7 @@ class Field:
         if isinstance(row_idkey, int) and isinstance(column_idkey, int):
             fmt = u"Set(%s, %s=%s%s)"
         elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"Set(%s, %s='%s'%s)"
+            fmt = u"Set('%s', %s='%s'%s)"
             validate_key(row_idkey)
             validate_key(column_idkey)
         else:
@@ -628,7 +636,7 @@ class Field:
 
     def _get_options_string(self):
         data = {}
-        if self.keys is not None:
+        if self.keys:
             data["keys"] = self.keys
         if self.time_quantum != TimeQuantum.NONE:
             data["type"] = "time"
