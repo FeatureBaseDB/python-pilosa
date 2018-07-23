@@ -111,7 +111,7 @@ class Client(object):
         :param bool column_attrs: Enables returning column data from row queries
         :param bool exclude_columns: Disables returning columns from row queries
         :param bool exclude_attrs: Disables returning attributes from row queries
-        :param list(int) shards: Returns data from a subset of slices
+        :param list(int) shards: Returns data from a subset of shards
         :return: Pilosa response
         :rtype: pilosa.Response
         """
