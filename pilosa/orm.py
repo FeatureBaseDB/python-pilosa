@@ -132,7 +132,7 @@ class Schema:
         If the index didn't exist in the schema, it is added to the schema.
 
         :param str name: Index name
-        :param bool keys: Whether the field uses string keys
+        :param bool keys: Whether the index uses string keys
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
@@ -170,7 +170,7 @@ class Index:
     You cannot perform cross-index queries. Column-level attributes are global to the Index.
     
     :param str name: Index name
-    :param bool keys: Whether the field uses string keys
+    :param bool keys: Whether the index uses string keys
 
     * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
