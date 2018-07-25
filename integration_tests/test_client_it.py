@@ -61,6 +61,9 @@ class ClientIT(unittest.TestCase):
 
         self.col_index = schema.index(self.index.name + "-opts")
         self.field = self.col_index.field("collab")
+
+        self.key_index = schema.index("key-index", keys=True)
+
         client.sync_schema(schema)
 
     def tearDown(self):
@@ -184,6 +187,15 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(3, len(items))
         item = items[0]
         self.assertEquals(3, item.count)
+
+    def test_keys(self):
+        client = self.get_client()
+        field = self.key_index.field("keys-test", keys=True)
+        client.ensure_field(field)
+
+        client.query(field.set("stringRow", "stringCol"))
+        response = client.query(field.row("stringRow"))
+        self.assertEqual(["stringCol"], response.result.row.keys)
 
     def test_ensure_index_exists(self):
         client = self.get_client()

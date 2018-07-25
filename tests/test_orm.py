@@ -253,7 +253,7 @@ class FieldTestCase(unittest.TestCase):
 
         qry2 = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
-            u"Set(some_id, collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            u"Set('some_id', collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
             qry2.serialize())
 
     def test_set_with_invalid_id_type(self):

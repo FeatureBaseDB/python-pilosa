@@ -4,7 +4,7 @@ DST_DIR = pilosa/internal
 .PHONY: build clean cover doc generate test test-all release upload
 
 cover:
-	py.test --cov=pilosa tests integration_tests
+	py.test --cov-report term-missing --cov=pilosa tests integration_tests
 
 doc:
 	cd doc && make html

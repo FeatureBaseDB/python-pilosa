@@ -111,7 +111,7 @@ class Client(object):
         :param bool column_attrs: Enables returning column data from row queries
         :param bool exclude_columns: Disables returning columns from row queries
         :param bool exclude_attrs: Disables returning attributes from row queries
-        :param list(int) slices: Returns data from a subset of slices
+        :param list(int) shards: Returns data from a subset of shards
         :return: Pilosa response
         :rtype: pilosa.Response
         """
@@ -134,8 +134,9 @@ class Client(object):
         :raises pilosa.IndexExistsError: if there already is a index with the given name
         """
         path = "/index/%s" % index.name
+        data = index._get_options_string()
         try:
-            self.__http_request("POST", path)
+            self.__http_request("POST", path, data=data)
         except PilosaServerError as e:
             if e.response.status == 409:
                 raise IndexExistsError
