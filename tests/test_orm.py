@@ -204,7 +204,12 @@ class IndexTestCase(unittest.TestCase):
         }
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
-            u"SetColumnAttrs(5, happy=true, quote=\"\\\"Don't worry, be happy\\\"\")",
+            u"SetColumnAttrs(5,happy=true,quote=\"\\\"Don't worry, be happy\\\"\")",
+            q.serialize())
+
+        q = projectIndex.set_column_attrs("some_id", attrs_map)
+        self.assertEquals(
+            u"SetColumnAttrs('some_id',happy=true,quote=\"\\\"Don't worry, be happy\\\"\")",
             q.serialize())
 
     def test_set_column_attributes_invalid_values(self):
@@ -213,6 +218,10 @@ class IndexTestCase(unittest.TestCase):
             "dt": datetime.now()
         }
         self.assertRaises(PilosaError, projectIndex.set_column_attrs, 5, attrs_map)
+
+    def test_get_options_string(self):
+        index = Index("my-index", keys=True)
+        self.assertEqual('{"options":{"keys":true}}', index._get_options_string())
 
 
 class FieldTestCase(unittest.TestCase):
@@ -246,64 +255,77 @@ class FieldTestCase(unittest.TestCase):
         self.assertRaises(ValidationError, sampleField.row, {})
 
     def test_set(self):
-        qry1 = collabField.set(5, 10)
+        qry = collabField.set(5, 10)
         self.assertEquals(
-             u"Set(10, collaboration=5)",
-            qry1.serialize())
+             u"Set(10,collaboration=5)",
+            qry.serialize())
 
-        qry2 = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        qry = collabField.set(5, "some_id")
         self.assertEquals(
-            u"Set('some_id', collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry2.serialize())
+             u"Set('some_id',collaboration=5)",
+            qry.serialize())
+
+        qry = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", 10)
+        self.assertEquals(
+             u"Set(10,collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            qry.serialize())
+
+        qry = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        self.assertEquals(
+            u"Set('some_id',collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            qry.serialize())
 
     def test_set_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.set, {}, 1)
         self.assertRaises(ValidationError, sampleField.set, 1, {})
-        self.assertRaises(ValidationError, sampleField.set, 1, "zero")
 
     def test_set_with_timestamp(self):
         timestamp = datetime(2017, 4, 24, 12, 14)
         qry = collabField.set(10, 20, timestamp)
         self.assertEquals(
-            u"Set(20, collaboration=10, 2017-04-24T12:14)",
+            u"Set(20,collaboration=10, 2017-04-24T12:14)",
             qry.serialize()
         )
 
     def test_clear(self):
-        qry1 = collabField.clear(5, 10)
+        qry = collabField.clear(5, 10)
         self.assertEquals(
-            "Clear(10, collaboration=5)",
-            qry1.serialize())
+            "Clear(10,collaboration=5)",
+            qry.serialize())
 
-        qry2 = collabField.clear(10, 20)
+        qry = collabField.clear(5, 'some_id')
         self.assertEquals(
-            "Clear(20, collaboration=10)",
-            qry2.serialize())
+            "Clear('some_id',collaboration=5)",
+            qry.serialize())
 
-        qry3 = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        qry = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", 10)
         self.assertEquals(
-            "Clear('some_id', collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry3.serialize())
+            "Clear(10,collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            qry.serialize())
+
+        qry = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
+        self.assertEquals(
+            "Clear('some_id',collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            qry.serialize())
 
     def test_clear_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.clear, {}, 1)
         self.assertRaises(ValidationError, sampleField.clear, 1, {})
-        self.assertRaises(ValidationError, sampleField.clear, 1, "zero")
 
     def test_topn(self):
         q1 = collabField.topn(27)
         self.assertEquals(
-            u"TopN(collaboration, n=27)",
+            u"TopN(collaboration,n=27)",
             q1.serialize())
 
         q2 = collabField.topn(10, collabField.row(3))
         self.assertEquals(
-            u"TopN(collaboration, Row(collaboration=3), n=10)",
+            u"TopN(collaboration,Row(collaboration=3),n=10)",
             q2.serialize())
 
         q3 = sampleField.topn(12, collabField.row(7), "category", 80, 81)
         self.assertEquals(
-            u"TopN(sample-field, Row(collaboration=7), n=12, field='category', filters=[80,81])",
+            u"TopN(sample-field,Row(collaboration=7),n=12,field='category',filters=[80,81])",
             q3.serialize())
 
     def test_range(self):
@@ -312,12 +334,12 @@ class FieldTestCase(unittest.TestCase):
 
         q1 = collabField.range(10, start, end)
         self.assertEquals(
-            u"Range(collaboration=10, 1970-01-01T00:00, 2000-02-02T03:04)",
+            u"Range(collaboration=10,1970-01-01T00:00,2000-02-02T03:04)",
             q1.serialize())
 
         q3 = collabField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
         self.assertEquals(
-            u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63', 1970-01-01T00:00, 2000-02-02T03:04)",
+            u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63',1970-01-01T00:00,2000-02-02T03:04)",
             q3.serialize())
 
     def test_set_row_attributes(self):
@@ -327,7 +349,7 @@ class FieldTestCase(unittest.TestCase):
         }
         q = collabField.set_row_attrs(5, attrs_map)
         self.assertEquals(
-            u'SetRowAttrs(collaboration, 5, active=true, quote="\\"Don\'t worry, be happy\\"")',
+            u'SetRowAttrs(collaboration,5,active=true,quote="\\"Don\'t worry, be happy\\"")',
             q.serialize())
 
     def test_field_lt(self):
@@ -391,7 +413,12 @@ class FieldTestCase(unittest.TestCase):
     def test_field_set_value(self):
         q = collabField.setvalue(10, 20)
         self.assertEquals(
-            "Set(10, collaboration=20)",
+            "Set(10,collaboration=20)",
+            q.serialize())
+
+        q = collabField.setvalue("some_id", 20)
+        self.assertEquals(
+            "Set('some_id',collaboration=20)",
             q.serialize())
 
     def test_get_options_string(self):

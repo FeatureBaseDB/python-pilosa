@@ -309,7 +309,7 @@ class Index:
         """
         return PQLQuery(u"Count(%s)" % row.serialize(), self)
 
-    def set_column_attrs(self, column_idkey, attrs):
+    def set_column_attrs(self, col, attrs):
         """Creates a SetColumnAttrs query.
         
         ``SetColumnAttrs`` associates arbitrary key/value pairs with a column in an index.
@@ -321,16 +321,15 @@ class Index:
         * bool
         * float
         
-        :param int column_idkey:
+        :param int col:
         :param dict attrs: column attributes
         :return: Pilosa query
         :rtype: pilosa.PQLQuery        
         """
-        fmt = id_key_format("Column", column_idkey,
-                            u"SetColumnAttrs(%s, %s)",
-                            u"SetColumnAttrs('%s, %s)")
+        col_str = idkey_as_str(col)
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(fmt % (column_idkey, attrs_str), self)
+        fmt = u"SetColumnAttrs(%s,%s)"
+        return PQLQuery(fmt % (col_str, attrs_str), self)
 
     def _row_op(self, name, rows):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in rows)), self)
@@ -406,47 +405,37 @@ class Field:
                             u"Row(%s='%s')")
         return PQLQuery(fmt % (self.name, row_idkey), self.index)
 
-    def set(self, row_idkey, column_idkey, timestamp=None):
+    def set(self, row, col, timestamp=None):
         """Creates a SetBit query.
         
         ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given field with the given column.
         
-        :param int row_idkey:
-        :param int column_idkey:
+        :param int row:
+        :param int col:
         :param pilosa.TimeStamp timestamp:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        if isinstance(row_idkey, int) and isinstance(column_idkey, int):
-            fmt = u"Set(%s, %s=%s%s)"
-        elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"Set('%s', %s='%s'%s)"
-            validate_key(row_idkey)
-            validate_key(column_idkey)
-        else:
-            raise ValidationError("Both Row and Columns must be integers or strings")
+        row_str = idkey_as_str(row)
+        col_str = idkey_as_str(col)
         ts = ", %s" % timestamp.strftime(_TIME_FORMAT) if timestamp else ''
-        return PQLQuery(fmt % (column_idkey, self.name, row_idkey, ts), self.index)
+        fmt = u"Set(%s,%s=%s%s)"
+        return PQLQuery(fmt % (col_str, self.name, row_str, ts), self.index)
 
-    def clear(self, row_idkey, column_idkey):
+    def clear(self, row, col):
         """Creates a ClearBit query.
         
         ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given field from the given column.
         
-        :param int row_idkey:
-        :param int column_idkey:
+        :param int row:
+        :param int col:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        if isinstance(row_idkey, int) and isinstance(column_idkey, int):
-            fmt = u"Clear(%s, %s=%s)"
-        elif isinstance(row_idkey, _basestring) and isinstance(column_idkey, _basestring):
-            fmt = u"Clear('%s', %s='%s')"
-            validate_key(row_idkey)
-            validate_key(column_idkey)
-        else:
-            raise ValidationError("Both Row and Columns must be integers or strings")
-        return PQLQuery(fmt % (column_idkey, self.name, row_idkey), self.index)
+        row_str = idkey_as_str(row)
+        col_str = idkey_as_str(col)
+        fmt = u"Clear(%s,%s=%s)"
+        return PQLQuery(fmt % (col_str, self.name, row_str), self.index)
 
     def topn(self, n, row=None, field="", *values):
         """Creates a TopN query.
@@ -468,29 +457,28 @@ class Field:
             validate_label(field)
             values_str = json.dumps(values, separators=(',', ': '))
             parts.extend(["field='%s'" % field, "filters=%s" % values_str])
-        qry = u"TopN(%s)" % ", ".join(parts)
+        qry = u"TopN(%s)" % ",".join(parts)
         return PQLQuery(qry, self.index)
 
-    def range(self, row_idkey, start, end):
+    def range(self, row, start, end):
         """Creates a Range query.
 
         Similar to ``Row``, but only returns columns which were set with timestamps between the given start and end timestamps.
 
         * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
 
-        :param int row_idkey:
+        :param int row:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
         """
-        fmt = id_key_format("Row", row_idkey,
-                            u"Range(%s=%s, %s, %s)",
-                            u"Range(%s='%s', %s, %s)")
+        row_str = idkey_as_str(row)
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        return PQLQuery(fmt % (self.name, row_idkey, start_str, end_str),
+        fmt = u"Range(%s=%s,%s,%s)"
+        return PQLQuery(fmt % (self.name, row_str, start_str, end_str),
                         self.index)
 
-    def set_row_attrs(self, row_idkey, attrs):
+    def set_row_attrs(self, row, attrs):
         """Creates a SetRowAttrs query.
         
         ``SetRowAttrs`` associates arbitrary key/value pairs with a row in a field.
@@ -502,16 +490,15 @@ class Field:
         * bool
         * float
         
-        :param int row_idkey:
+        :param int row:
         :param dict attrs: row attributes
         :return: Pilosa query
         :rtype: pilosa.PQLQuery        
         """
-        fmt = id_key_format("Row", row_idkey,
-                            u"SetRowAttrs(%s, %s, %s)",
-                            u"SetRowAttrs('%s', '%s', %s)")
+        row_str = idkey_as_str(row)
         attrs_str = _create_attributes_str(attrs)
-        return PQLQuery(fmt % (self.name, row_idkey, attrs_str), self.index)
+        fmt = u"SetRowAttrs(%s,%s,%s)"
+        return PQLQuery(fmt % (self.name, row_str, attrs_str), self.index)
 
     def lt(self, n):
         """Creates a Range query with less than (<) condition.
@@ -614,15 +601,16 @@ class Field:
         """
         return self._value_query("Max", row)
 
-    def setvalue(self, column_id, value):
+    def setvalue(self, col, value):
         """Creates a SetValue query.
 
-        :param column_id: column ID
+        :param col: column ID or key
         :param value: the value to assign to the field
         :return: a PQL query
         :rtype: PQLQuery
         """
-        q = u"Set(%d, %s=%d)" % (column_id, self.name, value)
+        col_str = idkey_as_str(col)
+        q = u"Set(%s,%s=%d)" % (col_str, self.name, value)
         return PQLQuery(q, self.index)
 
     def _binary_operation(self, op, n):
@@ -671,7 +659,7 @@ def _create_attributes_str(attrs):
             # TODO: make key use its own validator
             validate_label(k)
             kvs.append("%s=%s" % (k, json.dumps(v)))
-        return ", ".join(sorted(kvs))
+        return ",".join(sorted(kvs))
     except TypeError:
         raise PilosaError("Error while converting values")
 
@@ -697,3 +685,14 @@ def id_key_format(name, id_key, id_fmt, key_fmt):
         return key_fmt
     else:
         raise ValidationError("%s must be an integer or string" % name)
+
+
+def idkey_as_str(idkey):
+    if isinstance(idkey, int):
+        row_idkey_str = str(idkey)
+    elif isinstance(idkey, _basestring):
+        validate_key(idkey)
+        row_idkey_str = "'%s'" % idkey
+    else:
+        raise ValidationError("Rows/Columns must be integers or strings")
+    return row_idkey_str
