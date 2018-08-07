@@ -36,12 +36,59 @@ from collections import namedtuple
 
 from pilosa.exceptions import PilosaError
 
-__all__ = ("Columns", "csv_column_reader")
-
-Columns = namedtuple("Column", "row_id column_id timestamp")
+__all__ = ("Column", "csv_column_reader")
 
 
-def csv_column_reader(file_obj, timefunc=int):
+class Column:
+    
+    def __init__(self, row_id=0, column_id=0, row_key=0, column_key=0, timestamp=0):
+        self.row_id = row_id
+        self.column_id = column_id
+        self.row_key = row_key
+        self.column_key = column_key
+        self.timestamp = timestamp
+    
+    def __hash__(self):
+        return hash("%s:%s:%s:%s:%s" % (self.row_id, self.column_id,
+                                        self.row_key, self.column_key,
+                                        self.timestamp))
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if other is None or not isinstance(other, self.__class__):
+            return False
+        return self.row_id == other.row_id and \
+            self.column_id == other.column_id and \
+            self.row_key == other.row_key and \
+            self.column_key == other.column_key and \
+            self.timestamp == other.timestamp
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return u"Column(row_id=%s, column_id=%s, row_key='%s', column_key='%s', timestamp=%s" % \
+            (self.row_id, self.column_id, self.row_key, self.column_key, self.timestamp)
+
+
+def row_id_column_id(parts, timestamp):
+    return Column(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=timestamp)
+
+
+def row_id_column_key(parts, timestamp):
+    return Column(row_id=int(parts[0]), column_key=parts[1], timestamp=timestamp)
+
+
+def row_key_column_id(parts, timestamp):
+    return Column(row_key=parts[0], column_id=int(parts[1]), timestamp=timestamp)
+
+
+def row_key_column_key(parts, timestamp):
+    return Column(row_key=parts[0], column_key=parts[1], timestamp=timestamp)
+
+
+def csv_column_reader(file_obj, timefunc=int, formatfunc=row_id_column_id):
     """
     Reads columns from the given file-like object.
 
@@ -57,17 +104,14 @@ def csv_column_reader(file_obj, timefunc=int):
         if not line:
             continue
         parts = line.split(",")
-        if len(parts) == 2:
-            try:
-                bit = Columns(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=0)
-            except ValueError:
+        try:
+            if len(parts) == 2:
+                bit = formatfunc(parts, 0)
+            elif len(parts) == 3:
+                bit = formatfunc(parts, timefunc(parts[2]))
+            else:
                 raise PilosaError("Invalid CSV line: %s", line)
-        elif len(parts) == 3:
-            try:
-                bit = Columns(row_id=int(parts[0]), column_id=int(parts[1]), timestamp=timefunc(parts[2]))
-            except ValueError:
-                raise PilosaError("Invalid CSV line: %s", line)
-        else:
+        except ValueError:
             raise PilosaError("Invalid CSV line: %s", line)
         yield bit
 
@@ -83,4 +127,3 @@ def batch_columns(reader, batch_size):
             bit_groups.setdefault(bit.column_id // shard_width, []).append(bit)
         for shard_bit_group in bit_groups.items():
             yield shard_bit_group
-

@@ -39,7 +39,7 @@ from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
     decode_field_meta_options, _ImportRequest, _Node
 from pilosa.exceptions import PilosaURIError, PilosaError
-from pilosa.imports import Columns
+from pilosa.imports import Column
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +232,7 @@ class QueryRequestTestCase(unittest.TestCase):
 class ImportRequestTestCase(unittest.TestCase):
 
     def test_serialize(self):
-        ir = _ImportRequest("foo", "bar", 0, [Columns(row_id=1, column_id=2, timestamp=3)])
+        ir = _ImportRequest("foo", "bar", 0, [Column(row_id=1, column_id=2, timestamp=3)])
         bin = ir.to_protobuf(False)
         self.assertIsNotNone(bin)
         ir = internal.ImportRequest()
