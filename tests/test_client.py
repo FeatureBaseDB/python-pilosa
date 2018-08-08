@@ -231,8 +231,9 @@ class QueryRequestTestCase(unittest.TestCase):
 
 class ImportRequestTestCase(unittest.TestCase):
 
-    def test_serialize(self):
-        ir = _ImportRequest("foo", "bar", 0, [Column(row_id=1, column_id=2, timestamp=3)])
+    def test_serialize_row_id_column_id(self):
+        field = self.get_schema(False, False)
+        ir = _ImportRequest(field, 0, [Column(row_id=1, column_id=2, timestamp=3)])
         bin = ir.to_protobuf(False)
         self.assertIsNotNone(bin)
         ir = internal.ImportRequest()
@@ -241,7 +242,62 @@ class ImportRequestTestCase(unittest.TestCase):
         self.assertEquals("bar", ir.Field)
         self.assertEquals([1], ir.RowIDs)
         self.assertEquals([2], ir.ColumnIDs)
+        self.assertEquals([], ir.RowKeys)
+        self.assertEquals([], ir.ColumnKeys)
         self.assertEquals([3], ir.Timestamps)
+
+    def test_serialize_row_id_column_key(self):
+        field = self.get_schema(True, False)
+        ir = _ImportRequest(field, 0, [Column(row_id=1, column_key="two", timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([1], ir.RowIDs)
+        self.assertEquals([], ir.ColumnIDs)
+        self.assertEquals([], ir.RowKeys)
+        self.assertEquals(["two"], ir.ColumnKeys)
+        self.assertEquals([3], ir.Timestamps)
+
+    def test_serialize_row_key_column_id(self):
+        field = self.get_schema(False, True)
+        ir = _ImportRequest(field, 0, [Column(row_key="one", column_id=2, timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([], ir.RowIDs)
+        self.assertEquals([2], ir.ColumnIDs)
+        self.assertEquals(["one"], ir.RowKeys)
+        self.assertEquals([], ir.ColumnKeys)
+        self.assertEquals([3], ir.Timestamps)
+
+    def test_serialize_row_key_column_key(self):
+        field = self.get_schema(True, True)
+        ir = _ImportRequest(field, 0, [Column(row_key="one", column_key="two", timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([], ir.RowIDs)
+        self.assertEquals([], ir.ColumnIDs)
+        self.assertEquals(["one"], ir.RowKeys)
+        self.assertEquals(["two"], ir.ColumnKeys)
+        self.assertEquals([3], ir.Timestamps)
+
+    def get_schema(self, index_keys, field_keys):
+        from pilosa.orm import Schema, Index, Field
+        schema = Schema()
+        index = schema.index("foo", keys=index_keys)
+        field = index.field("bar", keys=field_keys)
+        return field
+
 
 
 class NodeTestCase(unittest.TestCase):
