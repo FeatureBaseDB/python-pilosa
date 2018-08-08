@@ -241,13 +241,13 @@ class ClientIT(unittest.TestCase):
         self.assertEqual(3, len(response.results))
         self.assertEqual(target, [result.row.columns[0] for result in response.results])
 
-    def test_csv_import2(self):
+    def test_csv_import_time_field(self):
         # Checks against encoding errors on Python 2.x
         text = u"""
             1,10,683793200
             5,20,683793300
-            3,41,683793385        
-            10,10485760,683793385        
+            3,41,683793385
+            10,10485760,683793385
         """
         reader = csv_column_reader(StringIO(text))
         client = self.get_client()
@@ -255,6 +255,15 @@ class ClientIT(unittest.TestCase):
         field = schema.index(self.index.name).field("importfield", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
         client.sync_schema(schema)
         client.import_field(field, reader)
+        bq = self.index.batch_query(
+            field.row(1),
+            field.row(5),
+            field.row(3),
+            field.row(10)
+        )
+        response = client.query(bq)
+        target = [10, 20, 41, 10485760]
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
 
     def test_schema(self):
         client = self.get_client()

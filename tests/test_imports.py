@@ -36,8 +36,10 @@ import datetime
 import unittest
 
 from pilosa.exceptions import PilosaError
-from pilosa.imports import csv_column_reader, batch_columns, Column, \
-    row_id_column_id, row_id_column_key, row_key_column_id, row_key_column_key
+from pilosa.imports import csv_column_reader, csv_field_value_reader, \
+    batch_columns, Column, FieldValue, \
+    csv_row_id_column_id, csv_row_id_column_key, csv_row_key_column_id, \
+    csv_row_key_column_key, csv_column_id_value, csv_column_key_value
 
 try:
     from io import StringIO
@@ -47,7 +49,7 @@ except ImportError:
 
 class ImportsTestCase(unittest.TestCase):
 
-    def test_csvbititerator_row_id_column_id(self):
+    def test_csv_column_reader_row_id_column_id(self):
         reader = csv_column_reader(StringIO(u"""
             1,10,683793200
             5,20,683793300
@@ -69,13 +71,13 @@ class ImportsTestCase(unittest.TestCase):
         self.assertEqual(shard3, 10)
         self.assertEqual(1, len(list(batch3)))
     
-    def test_csvbititerator_row_id_column_key(self):
+    def test_csv_column_reader_row_id_column_key(self):
         reader = csv_column_reader(StringIO(u"""
             1,ten,683793200
             5,twenty,683793300
             3,forty-one,683793385
             10,a-big-number,683793385
-        """), formatfunc=row_id_column_key)
+        """), formatfunc=csv_row_id_column_key)
 
         ls = list(reader)
         target = [
@@ -86,13 +88,13 @@ class ImportsTestCase(unittest.TestCase):
         ]
         self.assertEqual(target, ls)
 
-    def test_csvbititerator_row_key_column_id(self):
+    def test_csv_column_reader_row_key_column_id(self):
         reader = csv_column_reader(StringIO(u"""
             one,10,683793200
             five,20,683793300
             three,41,683793385
             ten,10485760,683793385
-        """), formatfunc=row_key_column_id)
+        """), formatfunc=csv_row_key_column_id)
 
         ls = list(reader)
         target = [
@@ -103,13 +105,13 @@ class ImportsTestCase(unittest.TestCase):
         ]
         self.assertEqual(target, ls)
 
-    def test_csvbititerator_row_key_column_key(self):
+    def test_csv_column_reader_row_key_column_key(self):
         reader = csv_column_reader(StringIO(u"""
             one,ten,683793200
             five,twenty,683793300
             three,forty-one,683793385
             ten,a-big-number,683793385
-        """), formatfunc=row_key_column_key)
+        """), formatfunc=csv_row_key_column_key)
 
         ls = list(reader)
         target = [
@@ -117,6 +119,45 @@ class ImportsTestCase(unittest.TestCase):
             Column(row_key="five", column_key="twenty", timestamp=683793300),
             Column(row_key="three", column_key="forty-one", timestamp=683793385),
             Column(row_key="ten", column_key="a-big-number", timestamp=683793385)
+        ]
+        self.assertEqual(target, ls)
+
+    def test_csv_field_value_reader_column_id(self):
+        reader = csv_field_value_reader(StringIO(u"""
+            1,10
+            5,20
+            3,41
+            10,10485760
+        """))
+        shard_bit_groups = list(batch_columns(reader, 2))
+        self.assertEqual(2, len(shard_bit_groups))
+
+        shard1, batch1 = shard_bit_groups[0]
+        self.assertEqual(shard1, 0)
+        self.assertEqual(2, len(list(batch1)))
+
+        shard2, batch2 = shard_bit_groups[1]
+        self.assertEqual(shard2, 0)
+        self.assertEqual(1, len(list(batch2)))
+
+        shard3, batch3 = shard_bit_groups[2]
+        self.assertEqual(shard3, 10)
+        self.assertEqual(1, len(list(batch3)))
+
+    def test_csv_field_value_column_key(self):
+        reader = csv_column_reader(StringIO(u"""
+            ten,1
+            twenty,5
+            forty-one,3
+            a-big-number,10
+        """), formatfunc=csv_column_key_value)
+
+        ls = list(reader)
+        target = [
+            FieldValue(column_key="ten", value=1),
+            FieldValue(column_key="twenty", value=5),
+            FieldValue(column_key="forty-one", value=3),
+            FieldValue(column_key="a-big-number", value=10)
         ]
         self.assertEqual(target, ls)
 
@@ -179,7 +220,7 @@ class ImportsTestCase(unittest.TestCase):
         c4 = Column(row_key="one", column_key="one-thousand", timestamp=123456)
         self.assertEqual(c3, c4)
         
-        targetRepr = "Column(row_id=1, column_id=100, row_key='0', column_key='0', timestamp=123456"
+        targetRepr = "Column(row_id=1, column_id=100, row_key='', column_key='', timestamp=123456)"
         self.assertEqual(targetRepr, repr(c1))
     
     def test_column_hash(self):
