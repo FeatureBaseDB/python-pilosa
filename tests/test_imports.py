@@ -138,11 +138,7 @@ class ImportsTestCase(unittest.TestCase):
 
         shard2, batch2 = shard_bit_groups[1]
         self.assertEqual(shard2, 0)
-        self.assertEqual(1, len(list(batch2)))
-
-        shard3, batch3 = shard_bit_groups[2]
-        self.assertEqual(shard3, 10)
-        self.assertEqual(1, len(list(batch3)))
+        self.assertEqual(2, len(list(batch2)))
 
     def test_csv_field_value_column_key(self):
         reader = csv_column_reader(StringIO(u"""
