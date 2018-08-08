@@ -291,6 +291,12 @@ class ImportRequestTestCase(unittest.TestCase):
         self.assertEquals(["two"], ir.ColumnKeys)
         self.assertEquals([3], ir.Timestamps)
 
+    def test_import_request_invalid_format(self):
+        field = self.get_schema(False, False)
+        ir = _ImportRequest(field, 0, [Column(row_key="one", column_key="two", timestamp=3)])
+        ir.format = None
+        self.assertRaises(PilosaError, ir.to_protobuf, False)
+
     def get_schema(self, index_keys, field_keys):
         from pilosa.orm import Schema, Index, Field
         schema = Schema()
