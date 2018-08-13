@@ -96,8 +96,11 @@ class FieldValue:
         return not self.__eq__(other)
 
     def __repr__(self):
-        return u"FieldValue(column_id=%s, column_key='%s', value=%s)" % \
-            (self.column_id, self.column_key, self.value)
+        if self.column_key:
+            return u"FieldValue(column_key='%s', value=%s)" % \
+                (self.column_key, self.value)
+        return u"FieldValue(column_id=%s, value=%s)" % \
+            (self.column_id, self.value)
 
 
 def csv_row_id_column_id(parts, timestamp):
@@ -170,12 +173,9 @@ def csv_field_value_reader(file_obj, formatfunc=csv_column_id_value):
         if not line:
             continue
         parts = line.split(",")
-        try:
-            if len(parts) == 2:
-                column = formatfunc(parts, 0)
-            else:
-                raise PilosaError("Invalid CSV line: %s", line)
-        except ValueError:
+        if len(parts) == 2:
+            column = formatfunc(parts, 0)
+        else:
             raise PilosaError("Invalid CSV line: %s", line)
         yield column
 

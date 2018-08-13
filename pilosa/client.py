@@ -261,9 +261,14 @@ class Client(object):
         return self.__http_request(method, path, data=data, headers=headers)
 
     def _import_data(self, field, shard, data):
-        # sort by row_id then by column_id
-        data.sort(key=lambda bit: (bit.row_id, bit.column_id))
-        nodes = self._fetch_fragment_nodes(field.index.name, shard)
+        if field.field_type != "int":
+            # sort by row_id then by column_id
+            if not field.index.keys:
+                data.sort(key=lambda col: (col.row_id, col.column_id))
+        if field.index.keys or field.keys:
+            nodes = [self._fetch_coordinator_node()]
+        else:
+            nodes = self._fetch_fragment_nodes(field.index.name, shard)
         # copy client params
         client_params = {}
         for k,v in self.__dict__.items():
@@ -292,6 +297,16 @@ class Client(object):
             node_dict = node_dict["uri"]
             nodes.append(_Node(node_dict["scheme"], node_dict["host"], node_dict.get("port", "")))
         return nodes
+
+    def _fetch_coordinator_node(self):
+        response = self.__http_request("GET", "/status")
+        content = response.data.decode("utf-8")
+        d = json.loads(content)
+        for node in d.get("nodes", []):
+            if node.get("isCoordinator"):
+                uri = node["uri"]
+                return _Node(uri["scheme"], uri["host"], uri["port"])
+        raise PilosaServerError(response)
 
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
@@ -572,9 +587,7 @@ class _ImportRequest:
         else:
             raise PilosaError("Invalid import format")
 
-        if return_bytearray:
-            return bytearray(request.SerializeToString())
-        return request.SerializeToString()
+        return bytearray(request.SerializeToString()) if return_bytearray else request.SerializeToString()
 
 
 class _ImportValueRequest:
@@ -587,6 +600,7 @@ class _ImportValueRequest:
         self.format = csv_column_key_value if field.index.keys else csv_column_id_value
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
+        request = internal.ImportValueRequest()
         request.Index = self.index_name
         request.Field = self.field_name
         request.Shard = self.shard
@@ -605,9 +619,7 @@ class _ImportValueRequest:
         else:
             raise PilosaError("Invalid import format")
 
-        if return_bytearray:
-            return bytearray(request.SerializeToString())
-        return request.SerializeToString()
+        return bytearray(request.SerializeToString()) if return_bytearray else request.SerializeToString()
 
 
 class PilosaServerError(PilosaError):

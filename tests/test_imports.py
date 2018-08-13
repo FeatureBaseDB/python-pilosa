@@ -173,6 +173,10 @@ class ImportsTestCase(unittest.TestCase):
             reader = csv_column_reader(StringIO(text))
             self.assertRaises(PilosaError, list, reader)
 
+        for test in invalid_inputs:
+            reader = csv_field_value_reader(StringIO(text))
+            self.assertRaises(PilosaError, list, reader)
+
     def test_csvbititerator_customtimefunc(self):
         class UtcTzinfo(datetime.tzinfo):
             ZERO = datetime.timedelta(0)
@@ -202,7 +206,15 @@ class ImportsTestCase(unittest.TestCase):
         self.assertEqual(rows[2], Column(row_id=3, column_id=41, timestamp=683793385))
         self.assertEqual(rows[3], Column(row_id=10, column_id=10485760, timestamp=683793385))
 
-    def test_column_equals(self):
+
+class ColumnTestCase(unittest.TestCase):
+
+    def test_hash(self):
+        c1 = Column(row_id=1, column_id=100, timestamp=123456)
+        c2 = Column(row_id=1, column_id=100, timestamp=123456)
+        self.assertEqual(hash(c1), hash(c2))
+
+    def test_equals(self):
         c1 = Column(row_id=1, column_id=100, timestamp=123456)        
         self.assertEqual(c1, c1)
         self.assertNotEqual(c1, True)
@@ -219,9 +231,25 @@ class ImportsTestCase(unittest.TestCase):
         targetRepr = "Column(row_id=1, column_id=100, row_key='', column_key='', timestamp=123456)"
         self.assertEqual(targetRepr, repr(c1))
     
-    def test_column_hash(self):
-        c1 = Column(row_id=1, column_id=100, timestamp=123456)
-        c2 = Column(row_id=1, column_id=100, timestamp=123456)
-        self.assertEqual(hash(c1), hash(c2))
 
+class FieldValueTestCase(unittest.TestCase):
 
+    def test_hash(self):
+        f1 = FieldValue(column_id=100, value=50)
+        f2 = FieldValue(column_id=100, value=50)
+        self.assertEqual(hash(f1), hash(f2))
+
+        f1 = FieldValue(column_key="foo", value=50)
+        f2 = FieldValue(column_key="foo", value=50)
+        self.assertEqual(hash(f1), hash(f2))
+
+    def test_equals(self):
+        f1 = FieldValue(column_id=100, value=50)
+        self.assertEqual(f1, f1)
+        self.assertNotEqual(f1, 100)
+
+    def test_string(self):
+        f1 = FieldValue(column_id=100, value=50)
+        self.assertEqual("FieldValue(column_id=100, value=50)", str(f1))
+        f2 = FieldValue(column_key="foo", value=100)
+        self.assertEqual("FieldValue(column_key='foo', value=100)", str(f2))
