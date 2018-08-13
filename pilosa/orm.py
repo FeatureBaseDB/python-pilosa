@@ -195,7 +195,7 @@ class Index:
 
     def _meta_eq(self, other):
         return self.name == other.name
-
+    
     def copy(self, fields=True):
         index = Index(self.name, keys=self.keys)
         if fields:
@@ -383,6 +383,14 @@ class Field:
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    @property
+    def field_type(self):
+        if self.time_quantum != TimeQuantum.NONE:
+            return "time"
+        if self.int_min != 0 or self.int_max != 0:
+            return "int"
+        return "set"
 
     def copy(self):
         return Field(self.index, self.name, self.time_quantum,

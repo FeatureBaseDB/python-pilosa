@@ -2,10 +2,12 @@
 
 If you have large amounts of data, it is more efficient to import it to Pilosa instead of several `Set` queries.
 
-This library supports importing columns in the CSV (comma separated values) format:
-```
-ROW_ID,COLUMN_ID
-```
+`pilosa.imports` module defines several format functions. Depending on the data, the following format is expected:
+* `row_id_column_id`: `ROW_ID,COLUMN_ID`
+* `row_id_column_key`: `ROW_ID,COLUMN_KEY`
+* `row_key_column_id`: `ROW_KEY,COLUMN_ID`
+* `row_key_column_key`: `ROW_KEY,COLUMN_KEY`
+
 
 Optionally, a timestamp with GMT time zone can be added:
 ```
@@ -15,10 +17,10 @@ ROW_ID,COLUMN_ID,TIMESTAMP
 Note that, each line corresponds to a single bit and the lines end with a new line (`\n` or `\r\n`).
 The target index and field must have been created before hand.
 
-Here's some sample code:
+Here's some sample code that uses `row_id_column_id` formatter:
 ```python
 import pilosa
-from pilosa.imports import csv_column_reader
+from pilosa.imports import csv_column_reader, row_id_column_id
 
 try:
     # python 2.7 and 3
@@ -33,7 +35,7 @@ text = u"""
     3,41,683793385
     10,10485760,683793385
 """
-reader = csv_column_reader(StringIO(text))
+reader = csv_column_reader(StringIO(text), row_id_column_id)
 client = pilosa.Client()
 schema = client.schema()
 index = schema.index("sample-index")
