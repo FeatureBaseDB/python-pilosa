@@ -8,3 +8,4 @@ build/
 README.rst
 .coveralls.yml
 doc/_build
+.pytest_cache

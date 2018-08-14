@@ -387,6 +387,15 @@ class ClientIT(unittest.TestCase):
             client = Client(server.uri)
             self.assertRaises(PilosaServerError, client.create_index, self.index)
 
+    def test_server_warning(self):
+        headers = [
+            ("warning", '''299 pilosa/2.0 "Deprecated PQL version: PQL v2 will remove support for SetBit() in Pilosa 2.1. Please update your client to support Set() (See https://docs.pilosa.com/pql#versioning)." "Sat, 25 Aug 2019 23:34:45 GMT""''')
+        ]
+        server = MockServer(200, headers=headers)
+        with server:
+            client = Client(server.uri)
+            client.query(self.field.row(1))
+
     @classmethod
     def random_index_name(cls):
         cls.counter += 1
