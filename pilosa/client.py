@@ -545,9 +545,7 @@ class _ImportRequest:
             row_ids.append(bit.row_id)
             column_ids.append(bit.column_id)
             timestamps.append(bit.timestamp)
-        if return_bytearray:
-            return bytearray(import_request.SerializeToString())
-        return import_request.SerializeToString()
+        return bytearray(import_request.SerializeToString()) if return_bytearray else import_request.SerializeToString()
 
 
 class PilosaServerError(PilosaError):
