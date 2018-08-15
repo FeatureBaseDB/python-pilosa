@@ -389,7 +389,7 @@ class ClientIT(unittest.TestCase):
 
     def test_server_warning(self):
         headers = [
-            ("warning", '''299 pilosa/2.0 "Deprecated PQL version: PQL v2 will remove support for SetBit() in Pilosa 2.1. Please update your client to support Set() (See https://docs.pilosa.com/pql#versioning)." "Sat, 25 Aug 2019 23:34:45 GMT""''')
+            ("warning", '''299 pilosa/2.0 "Deprecated PQL version: PQL v2 will remove support for SetBit() in Pilosa 2.1. Please update your client to support Set() (See https://docs.pilosa.com/pql#versioning)." "Sat, 25 Aug 2019 23:34:45 GMT"''')
         ]
         server = MockServer(200, headers=headers)
         with server:
