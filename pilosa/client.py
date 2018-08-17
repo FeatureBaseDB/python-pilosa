@@ -115,7 +115,12 @@ class Client(object):
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs, shards=shards)
+        serialized_query = query.serialize()
+        request = _QueryRequest(serialized_query.query,
+            column_attrs=column_attrs,
+            exclude_columns=exclude_columns,
+            exclude_row_attrs=exclude_attrs,
+            shards=shards)
         path = "/index/%s/query" % query.index.name
         try:
             headers = {

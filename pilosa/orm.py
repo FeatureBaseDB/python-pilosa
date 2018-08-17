@@ -164,6 +164,13 @@ class Schema:
         return result
 
 
+class SerializedQuery:
+
+    def __init__(self, query, has_keys):
+        self.query = query
+        self.has_keys = has_keys
+
+
 class Index:
     """The purpose of the Index is to represent a data namespace.
     
@@ -233,7 +240,10 @@ class Index:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        return PQLQuery(query, self)
+        q = PQLQuery(query, self)
+        # Raw queries are always assumed to include keys
+        q.query.has_keys = True
+        return q
 
     def batch_query(self, *queries):
         """Creates a batch query.
@@ -307,7 +317,7 @@ class Index:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
         """
-        return PQLQuery(u"Count(%s)" % row.serialize(), self)
+        return PQLQuery(u"Count(%s)" % row.serialize().query, self)
 
     def set_column_attrs(self, col, attrs):
         """Creates a SetColumnAttrs query.
@@ -332,7 +342,7 @@ class Index:
         return PQLQuery(fmt % (col_str, attrs_str), self)
 
     def _row_op(self, name, rows):
-        return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize() for b in rows)), self)
+        return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize().query for b in rows)), self)
 
     def _get_options_string(self):
         if self.keys:
@@ -451,7 +461,7 @@ class Field:
         """
         parts = [self.name]
         if row:
-            parts.append(row.serialize())
+            parts.append(row.serialize().query)
         parts.append("n=%d" % n)
         if field:
             validate_label(field)
@@ -618,7 +628,7 @@ class Field:
         return PQLQuery(q, self.index)
 
     def _value_query(self, op, row):
-        row_str = "%s, " % row.serialize() if row else ""
+        row_str = "%s, " % row.serialize().query if row else ""
         q = u"%s(%sfield='%s')" % (op, row_str, self.name)
         return PQLQuery(q, self.index)
 
@@ -645,11 +655,11 @@ class Field:
 class PQLQuery:
 
     def __init__(self, pql, index):
-        self.pql = pql
+        self.query = SerializedQuery(pql, False)
         self.index = index
 
     def serialize(self):
-        return self.pql
+        return self.query
 
 
 def _create_attributes_str(attrs):
@@ -674,7 +684,14 @@ class PQLBatchQuery:
         self.queries.extend(queries)
 
     def serialize(self):
-        return u''.join(q.serialize() for q in self.queries)
+        has_keys = self.index.keys
+        text_queries = []
+        for q in self.queries:
+            serialized_query = q.serialize()
+            has_keys = has_keys or serialized_query.has_keys
+            text_queries.append(serialized_query.query)
+        text = u''.join(text_queries)
+        return SerializedQuery(text, has_keys)
 
 
 def id_key_format(name, id_key, id_fmt, key_fmt):
