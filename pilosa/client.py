@@ -128,7 +128,10 @@ class Client(object):
                 'Content-Type': 'application/x-protobuf',
                 'Accept': 'application/x-protobuf',
             }
-            response = self.__http_request("POST", path, data=request.to_protobuf(), headers=headers)
+            response = self.__http_request("POST", path,
+                                            data=request.to_protobuf(),
+                                            headers=headers,
+                                            use_coordinator=serialized_query.has_keys)
             return QueryResponse._from_protobuf(response.data)
         except PilosaServerError as e:
             raise PilosaError(e.content)
@@ -322,12 +325,16 @@ class Client(object):
         path = "/index/%s/field/%s/import" % (import_request.index_name, import_request.field_name)
         self.__http_request("POST", path, data=data, headers=headers)
 
-    def __http_request(self, method, path, data=None, headers=None):
+    def __http_request(self, method, path, data=None, headers=None, use_coordinator=False):
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
-            uri = "%s%s" % (self.__get_address(), path)
+            if use_coordinator:
+                node = self._fetch_coordinator_node()
+                uri = "%s://%s:%s%s" % (node.scheme, node.host, node.port, path)
+            else:
+                uri = "%s%s" % (self.__get_address(), path)
             try:
                 self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
