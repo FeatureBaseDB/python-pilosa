@@ -15,7 +15,8 @@ before_install:
   - ./pilosa-master-linux-amd64/pilosa server --metric.diagnostics=false -d http_data &
 install: "pip install -r requirements/main.txt -r requirements/test.txt coveralls"
 script:
-  - PILOSA_BIND="https://:30101" LEGACY_MODE_OFF=true make test-all
+  - sleep 10
+  - PILOSA_BIND="https://:30101" make test-all
   - make cover
 after_success:
   coveralls
