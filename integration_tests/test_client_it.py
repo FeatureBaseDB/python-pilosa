@@ -187,6 +187,14 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(3, len(items))
         item = items[0]
         self.assertEquals(3, item.count)
+        
+        client.query(field.set_row_attrs(10, {"foo": "bar"}))
+        response = client.query(field.topn(5, None, "foo", "bar"))
+        items = response.result.count_items
+        self.assertEquals(1, len(items))
+        item = items[0]
+        self.assertEquals(3, item.count)
+        self.assertEquals(10, item.id)
 
     def test_keys(self):
         client = self.get_client()
