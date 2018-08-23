@@ -338,7 +338,7 @@ class ClientIT(unittest.TestCase):
         client = self.get_client()
         schema = client.schema()
         self.assertGreaterEqual(len(schema._indexes), 1)
-        self.assertGreaterEqual(len(list(schema._indexes.values())[0]._fields), 1)
+        self.assertGreaterEqual(len(schema._indexes[self.col_index.name]._fields), 1)
         field = self.index.field("schema-test-field",
                                  cache_type=CacheType.LRU,
                                  cache_size=9999)
