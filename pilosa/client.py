@@ -40,7 +40,8 @@ import threading
 import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
-from .imports import batch_columns
+from .imports import batch_columns, \
+    csv_row_id_column_id, csv_row_id_column_key, csv_row_key_column_id, csv_row_key_column_key, csv_column_id_value, csv_column_key_value
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum, Schema, CacheType
 from .response import QueryResponse
@@ -116,7 +117,12 @@ class Client(object):
         :return: Pilosa response
         :rtype: pilosa.Response
         """
-        request = _QueryRequest(query.serialize(), column_attrs=column_attrs, exclude_columns=exclude_columns, exclude_row_attrs=exclude_attrs, shards=shards)
+        serialized_query = query.serialize()
+        request = _QueryRequest(serialized_query.query,
+            column_attrs=column_attrs,
+            exclude_columns=exclude_columns,
+            exclude_row_attrs=exclude_attrs,
+            shards=shards)
         path = "/index/%s/query" % query.index.name
         try:
             headers = {
@@ -124,7 +130,10 @@ class Client(object):
                 "Accept": "application/x-protobuf",
                 "PQL-Version": PQL_VERSION,
             }
-            response = self.__http_request("POST", path, data=request.to_protobuf(), headers=headers)
+            response = self.__http_request("POST", path,
+                                            data=request.to_protobuf(),
+                                            headers=headers,
+                                            use_coordinator=serialized_query.has_keys)
             warning = response.getheader("warning")
             if warning:
                 self.logger.warning(warning)
@@ -246,9 +255,9 @@ class Client(object):
         """
         index_name = field.index.name
         field_name = field.name
-        import_columns = self._import_columns
+        import_columns = self._import_data
         for shard, columns in batch_columns(bit_reader, batch_size):
-            import_columns(index_name, field_name, shard, columns)
+            import_columns(field, shard, columns)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -264,10 +273,15 @@ class Client(object):
         """
         return self.__http_request(method, path, data=data, headers=headers)
 
-    def _import_columns(self, index_name, field_name, shard, columns):
-        # sort by row_id then by column_id
-        columns.sort(key=lambda bit: (bit.row_id, bit.column_id))
-        nodes = self._fetch_fragment_nodes(index_name, shard)
+    def _import_data(self, field, shard, data):
+        if field.field_type != "int":
+            # sort by row_id then by column_id
+            if not field.index.keys:
+                data.sort(key=lambda col: (col.row_id, col.column_id))
+        if field.index.keys or field.keys:
+            nodes = [self._fetch_coordinator_node()]
+        else:
+            nodes = self._fetch_fragment_nodes(field.index.name, shard)
         # copy client params
         client_params = {}
         for k,v in self.__dict__.items():
@@ -280,7 +294,11 @@ class Client(object):
             client_params[k] = v
         for node in nodes:
             client = Client(URI.address(node.url), **client_params)
-            client._import_node(_ImportRequest(index_name, field_name, shard, columns))
+            if field.field_type == "int":
+                req = _ImportValueRequest(field, shard, data)
+            else:
+                req = _ImportRequest(field, shard, data)
+            client._import_node(req)
 
     def _fetch_fragment_nodes(self, index_name, shard):
         path = "/internal/fragment/nodes?shard=%d&index=%s" % (shard, index_name)
@@ -293,6 +311,16 @@ class Client(object):
             nodes.append(_Node(node_dict["scheme"], node_dict["host"], node_dict.get("port", "")))
         return nodes
 
+    def _fetch_coordinator_node(self):
+        response = self.__http_request("GET", "/status")
+        content = response.data.decode("utf-8")
+        d = json.loads(content)
+        for node in d.get("nodes", []):
+            if node.get("isCoordinator"):
+                uri = node["uri"]
+                return _Node(uri["scheme"], uri["host"], uri["port"])
+        raise PilosaServerError(response)
+
     def _import_node(self, import_request):
         data = import_request.to_protobuf()
         headers = {
@@ -302,12 +330,16 @@ class Client(object):
         path = "/index/%s/field/%s/import" % (import_request.index_name, import_request.field_name)
         self.__http_request("POST", path, data=data, headers=headers)
 
-    def __http_request(self, method, path, data=None, headers=None):
+    def __http_request(self, method, path, data=None, headers=None, use_coordinator=False):
         if not self.__client:
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
-            uri = "%s%s" % (self.__get_address(), path)
+            if use_coordinator:
+                node = self._fetch_coordinator_node()
+                uri = "%s://%s:%s%s" % (node.scheme, node.host, node.port, path)
+            else:
+                uri = "%s%s" % (self.__get_address(), path)
             try:
                 self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
@@ -527,25 +559,84 @@ class _QueryRequest:
 
 class _ImportRequest:
 
-    def __init__(self, index_name, field_name, shard, columns):
-        self.index_name = index_name
-        self.field_name = field_name
+    def __init__(self, field, shard, columns):
+        self.index_name = field.index.name
+        self.field_name = field.name
         self.shard = shard
         self.columns = columns
+        if field.index.keys:
+            self.format = csv_row_key_column_key if field.keys else csv_row_id_column_key
+        else:
+            self.format = csv_row_key_column_id if field.keys else csv_row_id_column_id
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
-        import_request = internal.ImportRequest()
-        import_request.Index = self.index_name
-        import_request.Field = self.field_name
-        import_request.Shard = self.shard
-        row_ids = import_request.RowIDs
-        column_ids = import_request.ColumnIDs
-        timestamps = import_request.Timestamps
-        for bit in self.columns:
-            row_ids.append(bit.row_id)
-            column_ids.append(bit.column_id)
-            timestamps.append(bit.timestamp)
-        return bytearray(import_request.SerializeToString()) if return_bytearray else import_request.SerializeToString()
+        request = internal.ImportRequest()
+        request.Index = self.index_name
+        request.Field = self.field_name
+        request.Shard = self.shard
+        row_ids = request.RowIDs
+        column_ids = request.ColumnIDs
+        row_keys = request.RowKeys
+        column_keys = request.ColumnKeys
+        timestamps = request.Timestamps
+
+        row_format = self.format
+        if row_format == csv_row_id_column_id:
+            for bit in self.columns:
+                row_ids.append(bit.row_id)
+                column_ids.append(bit.column_id)
+                timestamps.append(bit.timestamp)
+        elif row_format == csv_row_id_column_key:
+            for bit in self.columns:
+                row_ids.append(bit.row_id)
+                column_keys.append(bit.column_key)
+                timestamps.append(bit.timestamp)
+        elif row_format == csv_row_key_column_id:
+            for bit in self.columns:
+                row_keys.append(bit.row_key)
+                column_ids.append(bit.column_id)
+                timestamps.append(bit.timestamp)
+        elif row_format == csv_row_key_column_key:
+            for bit in self.columns:
+                row_keys.append(bit.row_key)
+                column_keys.append(bit.column_key)
+                timestamps.append(bit.timestamp)
+        else:
+            raise PilosaError("Invalid import format")
+
+        return bytearray(request.SerializeToString()) if return_bytearray else request.SerializeToString()
+
+
+class _ImportValueRequest:
+
+    def __init__(self, field, shard, field_values):
+        self.index_name = field.index.name
+        self.field_name = field.name
+        self.shard = shard
+        self.field_values = field_values
+        self.format = csv_column_key_value if field.index.keys else csv_column_id_value
+
+    def to_protobuf(self, return_bytearray=_IS_PY2):
+        request = internal.ImportValueRequest()
+        request.Index = self.index_name
+        request.Field = self.field_name
+        request.Shard = self.shard
+        column_ids = request.ColumnIDs
+        column_keys = request.ColumnKeys
+        values = request.Values
+
+        if self.format == csv_column_id_value:
+            for field_value in self.field_values:
+                column_ids.append(field_value.column_id)
+                values.append(field_value.value)
+        elif self.format == csv_column_key_value:
+            for field_value in self.field_values:
+                column_keys.append(field_value.column_key)
+                values.append(field_value.value)
+        else:
+            raise PilosaError("Invalid import format")
+
+        return bytearray(request.SerializeToString()) if return_bytearray else request.SerializeToString()
 
 
 class PilosaServerError(PilosaError):

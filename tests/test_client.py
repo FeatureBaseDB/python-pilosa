@@ -37,9 +37,9 @@ import unittest
 import pilosa.internal.public_pb2 as internal
 from pilosa import TimeQuantum, CacheType
 from pilosa.client import Client, URI, Cluster, _QueryRequest, \
-    decode_field_meta_options, _ImportRequest, _Node
+    decode_field_meta_options, _ImportRequest, _ImportValueRequest, _Node
 from pilosa.exceptions import PilosaURIError, PilosaError
-from pilosa.imports import Columns
+from pilosa.imports import Column, FieldValue
 
 logger = logging.getLogger(__name__)
 
@@ -231,8 +231,9 @@ class QueryRequestTestCase(unittest.TestCase):
 
 class ImportRequestTestCase(unittest.TestCase):
 
-    def test_serialize(self):
-        ir = _ImportRequest("foo", "bar", 0, [Columns(row_id=1, column_id=2, timestamp=3)])
+    def test_serialize_row_id_column_id(self):
+        field = get_schema(False, False)
+        ir = _ImportRequest(field, 0, [Column(row_id=1, column_id=2, timestamp=3)])
         bin = ir.to_protobuf(False)
         self.assertIsNotNone(bin)
         ir = internal.ImportRequest()
@@ -241,7 +242,69 @@ class ImportRequestTestCase(unittest.TestCase):
         self.assertEquals("bar", ir.Field)
         self.assertEquals([1], ir.RowIDs)
         self.assertEquals([2], ir.ColumnIDs)
+        self.assertEquals([], ir.RowKeys)
+        self.assertEquals([], ir.ColumnKeys)
         self.assertEquals([3], ir.Timestamps)
+
+    def test_serialize_row_id_column_key(self):
+        field = get_schema(True, False)
+        ir = _ImportRequest(field, 0, [Column(row_id=1, column_key="two", timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([1], ir.RowIDs)
+        self.assertEquals([], ir.ColumnIDs)
+        self.assertEquals([], ir.RowKeys)
+        self.assertEquals(["two"], ir.ColumnKeys)
+        self.assertEquals([3], ir.Timestamps)
+
+    def test_serialize_row_key_column_id(self):
+        field = get_schema(False, True)
+        ir = _ImportRequest(field, 0, [Column(row_key="one", column_id=2, timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([], ir.RowIDs)
+        self.assertEquals([2], ir.ColumnIDs)
+        self.assertEquals(["one"], ir.RowKeys)
+        self.assertEquals([], ir.ColumnKeys)
+        self.assertEquals([3], ir.Timestamps)
+
+    def test_serialize_row_key_column_key(self):
+        field = get_schema(True, True)
+        ir = _ImportRequest(field, 0, [Column(row_key="one", column_key="two", timestamp=3)])
+        bin = ir.to_protobuf(False)
+        self.assertIsNotNone(bin)
+        ir = internal.ImportRequest()
+        ir.ParseFromString(bin)
+        self.assertEquals("foo", ir.Index)
+        self.assertEquals("bar", ir.Field)
+        self.assertEquals([], ir.RowIDs)
+        self.assertEquals([], ir.ColumnIDs)
+        self.assertEquals(["one"], ir.RowKeys)
+        self.assertEquals(["two"], ir.ColumnKeys)
+        self.assertEquals([3], ir.Timestamps)
+
+    def test_import_request_invalid_format(self):
+        field = get_schema(False, False)
+        ir = _ImportRequest(field, 0, [Column(row_key="one", column_key="two", timestamp=3)])
+        ir.format = None
+        self.assertRaises(PilosaError, ir.to_protobuf, False)
+
+
+class ImportValueRequestTestCase(unittest.TestCase):
+
+    def test_invalid_format(self):
+        field = get_schema(True, True)
+        ir = _ImportValueRequest(field, 0, [FieldValue(column_key="foo", value=3)])
+        ir.format = "invalid-format"
+        self.assertRaises(PilosaError, ir.to_protobuf, False)
 
 
 class NodeTestCase(unittest.TestCase):
@@ -251,6 +314,15 @@ class NodeTestCase(unittest.TestCase):
         self.assertEquals("https://foo.com", n1.url)
         n2 = _Node("https", "foo.com", 9999)
         self.assertEquals("https://foo.com:9999", n2.url)
+
+
+def get_schema(index_keys, field_keys):
+    from pilosa.orm import Schema, Index, Field
+    schema = Schema()
+    index = schema.index("foo", keys=index_keys)
+    field = index.field("bar", keys=field_keys)
+    return field
+
 
 
 if __name__ == '__main__':

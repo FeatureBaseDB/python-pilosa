@@ -43,7 +43,8 @@ except ImportError:
 from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum, Schema, CacheType
-from pilosa.imports import csv_column_reader
+from pilosa.imports import csv_column_reader, csv_field_value_reader, \
+    csv_column_id_value, csv_column_key_value, csv_row_key_column_id
 
 
 class ClientIT(unittest.TestCase):
@@ -51,25 +52,26 @@ class ClientIT(unittest.TestCase):
     counter = 0
 
     def setUp(self):
-        schema = Schema()
-        self.index = schema.index(self.random_index_name())
+        self.schema = Schema()
+        self.index = self.schema.index(self.random_index_name())
         client = self.get_client()
         self.index.field("another-field")
         self.index.field("test")
         self.index.field("count-test")
         self.index.field("topn_test")
 
-        self.col_index = schema.index(self.index.name + "-opts")
+        self.col_index = self.schema.index(self.index.name + "-opts")
         self.field = self.col_index.field("collab")
 
-        self.key_index = schema.index("key-index", keys=True)
+        self.key_index = self.schema.index("key-index", keys=True)
 
-        client.sync_schema(schema)
+        client.sync_schema(self.schema)
 
     def tearDown(self):
         client = self.get_client()
         client.delete_index(self.index)
         client.delete_index(self.col_index)
+        client.delete_index(self.key_index)
 
     def test_create_field_with_time_quantum(self):
         field = self.index.field("field-with-timequantum", time_quantum=TimeQuantum.YEAR)
@@ -249,13 +251,34 @@ class ClientIT(unittest.TestCase):
         self.assertEqual(3, len(response.results))
         self.assertEqual(target, [result.row.columns[0] for result in response.results])
 
-    def test_csv_import2(self):
-        # Checks against encoding errors on Python 2.x
+    def test_csv_import_row_keys(self):
+        client = self.get_client()
+        text = u"""
+            ten, 7
+            ten, 5
+            two, 3
+            seven, 1
+        """
+        reader = csv_column_reader(StringIO(text), formatfunc=csv_row_key_column_id)
+        field = self.index.field("importfield-keys", keys=True)
+        client.ensure_field(field)
+        client.import_field(field, reader)
+        bq = self.index.batch_query(
+            field.row("two"),
+            field.row("seven"),
+            field.row("ten"),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
+
+    def test_csv_import_time_field(self):
         text = u"""
             1,10,683793200
             5,20,683793300
-            3,41,683793385        
-            10,10485760,683793385        
+            3,41,683793385
+            10,10485760,683793385
         """
         reader = csv_column_reader(StringIO(text))
         client = self.get_client()
@@ -263,12 +286,59 @@ class ClientIT(unittest.TestCase):
         field = schema.index(self.index.name).field("importfield", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
         client.sync_schema(schema)
         client.import_field(field, reader)
+        bq = self.index.batch_query(
+            field.row(1),
+            field.row(5),
+            field.row(3),
+            field.row(10)
+        )
+        response = client.query(bq)
+        target = [10, 20, 41, 10485760]
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
+
+    def test_csv_value_import(self):
+        text = u"""
+            10, 7
+            7, 1
+        """
+        reader = csv_field_value_reader(StringIO(text), formatfunc=csv_column_id_value)
+        client = self.get_client()
+        field = self.index.field("import-value-field", int_max=100)
+        field2 = self.index.field("import-value-field-set")
+        client.sync_schema(self.schema)
+        bq = self.index.batch_query(
+            field2.set(1, 10),
+            field2.set(1, 7)
+        )
+        client.import_field(field, reader)
+        client.query(bq)
+        response = client.query(field.sum(field2.row(1)))
+        self.assertEqual(8, response.result.value)
+
+    def test_csv_value_import_column_keys(self):
+        text = u"""
+            ten, 7
+            seven, 1
+        """
+        reader = csv_field_value_reader(StringIO(text), formatfunc=csv_column_key_value)
+        client = self.get_client()
+        field = self.key_index.field("import-value-field-keys", int_max=100)
+        field2 = self.key_index.field("import-value-field-keys-set")
+        client.sync_schema(self.schema)
+        bq = self.key_index.batch_query(
+            field2.set(1, "ten"),
+            field2.set(1, "seven")
+        )
+        client.import_field(field, reader)
+        client.query(bq)
+        response = client.query(field.sum(field2.row(1)))
+        self.assertEqual(8, response.result.value)
 
     def test_schema(self):
         client = self.get_client()
         schema = client.schema()
         self.assertGreaterEqual(len(schema._indexes), 1)
-        self.assertGreaterEqual(len(list(schema._indexes.values())[0]._fields), 1)
+        self.assertGreaterEqual(len(schema._indexes[self.col_index.name]._fields), 1)
         field = self.index.field("schema-test-field",
                                  cache_type=CacheType.LRU,
                                  cache_size=9999)
@@ -375,6 +445,21 @@ class ClientIT(unittest.TestCase):
     def test_http_request(self):
         self.get_client().http_request("GET", "/status")
 
+    def test_fetch_coordinator_node(self):
+        client = self.get_client()
+        node = client._fetch_coordinator_node()
+        uri = URI.address(self.get_server_address())
+        self.assertEquals(uri.scheme, node.scheme)
+        self.assertEquals(uri.host, node.host)
+        self.assertEquals(uri.port, node.port)
+
+    def test_fetch_coordinator_node_failure(self):
+        server = MockServer(content=b'{"nodes":[]}')
+        with server:
+            client = Client(server.uri)
+            self.assertRaises(PilosaError, client._fetch_coordinator_node)
+
+
     def test_shards(self):
         shard_width = 1048576
         client = self.get_client()
@@ -411,12 +496,16 @@ class ClientIT(unittest.TestCase):
 
     @classmethod
     def get_client(cls):
+        server_address = cls.get_server_address()
+        return Client(server_address, tls_skip_verify=True)
+
+    @classmethod
+    def get_server_address(cls):
         import os
         server_address = os.environ.get("PILOSA_BIND", "")
         if not server_address:
             server_address = "http://:10101"
-        return Client(server_address, tls_skip_verify=True)
-
+        return server_address
 
 class MockServer(threading.Thread):
 
@@ -428,11 +517,15 @@ class MockServer(threading.Thread):
         self.content = content
         self.thread = None
         self.host = "localhost"
-        self.port = 15000
+        self.port = 0
         self.daemon = True
 
     def __enter__(self):
+        import time
         self.start()
+        while self.port == 0:
+            # sleep a bit until finding out the actual port
+            time.sleep(1)            
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._stop()
@@ -456,6 +549,7 @@ class MockServer(threading.Thread):
 
     def run(self):
         server = make_server(self.host, self.port, self._app())
+        self.port = server.server_port
         while not self._stopped():
             server.handle_request()
 

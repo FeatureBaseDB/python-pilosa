@@ -99,7 +99,7 @@ class IndexTestCase(unittest.TestCase):
         q = projectIndex.raw_query("No validation whatsoever for raw queries")
         self.assertEquals(
             "No validation whatsoever for raw queries",
-            q.serialize())
+            q.serialize().query)
 
     def test_union(self):
         b1 = sampleField.row(10)
@@ -110,17 +110,17 @@ class IndexTestCase(unittest.TestCase):
         q1 = sampleIndex.union(b1, b2)
         self.assertEquals(
             "Union(Row(sample-field=10), Row(sample-field=20))",
-            q1.serialize())
+            q1.serialize().query)
 
         q2 = sampleIndex.union(b1, b2, b3)
         self.assertEquals(
             "Union(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
-            q2.serialize())
+            q2.serialize().query)
 
         q3 = sampleIndex.union(b1, b4)
         self.assertEquals(
             "Union(Row(sample-field=10), Row(collaboration=2))",
-            q3.serialize())
+            q3.serialize().query)
 
     def test_intersect(self):
         b1 = sampleField.row(10)
@@ -131,17 +131,17 @@ class IndexTestCase(unittest.TestCase):
         q1 = sampleIndex.intersect(b1, b2)
         self.assertEquals(
             "Intersect(Row(sample-field=10), Row(sample-field=20))",
-            q1.serialize())
+            q1.serialize().query)
 
         q2 = sampleIndex.intersect(b1, b2, b3)
         self.assertEquals(
             "Intersect(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
-            q2.serialize())
+            q2.serialize().query)
 
         q3 = sampleIndex.intersect(b1, b4)
         self.assertEquals(
             "Intersect(Row(sample-field=10), Row(collaboration=2))",
-            q3.serialize())
+            q3.serialize().query)
 
     def test_difference(self):
         b1 = sampleField.row(10)
@@ -152,17 +152,17 @@ class IndexTestCase(unittest.TestCase):
         q1 = sampleIndex.difference(b1, b2)
         self.assertEquals(
             "Difference(Row(sample-field=10), Row(sample-field=20))",
-            q1.serialize())
+            q1.serialize().query)
 
         q2 = sampleIndex.difference(b1, b2, b3)
         self.assertEquals(
             "Difference(Row(sample-field=10), Row(sample-field=20), Row(sample-field=42))",
-            q2.serialize())
+            q2.serialize().query)
 
         q3 = sampleIndex.difference(b1, b4)
         self.assertEquals(
             "Difference(Row(sample-field=10), Row(collaboration=2))",
-            q3.serialize())
+            q3.serialize().query)
 
     def test_xor(self):
         b1 = sampleField.row(10)
@@ -171,15 +171,15 @@ class IndexTestCase(unittest.TestCase):
 
         self.assertEquals(
             "Xor(Row(sample-field=10), Row(sample-field=20))",
-            q1.serialize())
+            q1.serialize().query)
 
     def test_union0(self):
         q = sampleIndex.union()
-        self.assertEquals("Union()", q.serialize())
+        self.assertEquals("Union()", q.serialize().query)
 
     def test_union1(self):
         q = sampleIndex.union(sampleField.row(10))
-        self.assertEquals("Union(Row(sample-field=10))", q.serialize())
+        self.assertEquals("Union(Row(sample-field=10))", q.serialize().query)
 
     def test_intersect_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.intersect)
@@ -195,7 +195,7 @@ class IndexTestCase(unittest.TestCase):
         q = projectIndex.count(b)
         self.assertEquals(
             "Count(Row(collaboration=42))",
-            q.serialize())
+            q.serialize().query)
 
     def test_set_column_attributes(self):
         attrs_map = {
@@ -205,12 +205,12 @@ class IndexTestCase(unittest.TestCase):
         q = projectIndex.set_column_attrs(5, attrs_map)
         self.assertEquals(
             u"SetColumnAttrs(5,happy=true,quote=\"\\\"Don't worry, be happy\\\"\")",
-            q.serialize())
+            q.serialize().query)
 
         q = projectIndex.set_column_attrs("some_id", attrs_map)
         self.assertEquals(
             u"SetColumnAttrs('some_id',happy=true,quote=\"\\\"Don't worry, be happy\\\"\")",
-            q.serialize())
+            q.serialize().query)
 
     def test_set_column_attributes_invalid_values(self):
         attrs_map = {
@@ -244,12 +244,12 @@ class FieldTestCase(unittest.TestCase):
         qry1 = collabField.row(5)
         self.assertEquals(
             "Row(collaboration=5)",
-            qry1.serialize())
+            qry1.serialize().query)
 
         qry2 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
             "Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry2.serialize())
+            qry2.serialize().query)
 
     def test_row_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.row, {})
@@ -258,22 +258,22 @@ class FieldTestCase(unittest.TestCase):
         qry = collabField.set(5, 10)
         self.assertEquals(
              u"Set(10,collaboration=5)",
-            qry.serialize())
+            qry.serialize().query)
 
         qry = collabField.set(5, "some_id")
         self.assertEquals(
              u"Set('some_id',collaboration=5)",
-            qry.serialize())
+            qry.serialize().query)
 
         qry = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", 10)
         self.assertEquals(
              u"Set(10,collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry.serialize())
+            qry.serialize().query)
 
         qry = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
             u"Set('some_id',collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry.serialize())
+            qry.serialize().query)
 
     def test_set_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.set, {}, 1)
@@ -284,29 +284,29 @@ class FieldTestCase(unittest.TestCase):
         qry = collabField.set(10, 20, timestamp)
         self.assertEquals(
             u"Set(20,collaboration=10, 2017-04-24T12:14)",
-            qry.serialize()
+            qry.serialize().query
         )
 
     def test_clear(self):
         qry = collabField.clear(5, 10)
         self.assertEquals(
             "Clear(10,collaboration=5)",
-            qry.serialize())
+            qry.serialize().query)
 
         qry = collabField.clear(5, 'some_id')
         self.assertEquals(
             "Clear('some_id',collaboration=5)",
-            qry.serialize())
+            qry.serialize().query)
 
         qry = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", 10)
         self.assertEquals(
             "Clear(10,collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry.serialize())
+            qry.serialize().query)
 
         qry = collabField.clear("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
             "Clear('some_id',collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry.serialize())
+            qry.serialize().query)
 
     def test_clear_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.clear, {}, 1)
@@ -316,17 +316,17 @@ class FieldTestCase(unittest.TestCase):
         q1 = collabField.topn(27)
         self.assertEquals(
             u"TopN(collaboration,n=27)",
-            q1.serialize())
+            q1.serialize().query)
 
         q2 = collabField.topn(10, collabField.row(3))
         self.assertEquals(
             u"TopN(collaboration,Row(collaboration=3),n=10)",
-            q2.serialize())
+            q2.serialize().query)
 
         q3 = sampleField.topn(12, collabField.row(7), "category", 80, 81)
         self.assertEquals(
             u"TopN(sample-field,Row(collaboration=7),n=12,attrName='category',attrValues=[80,81])",
-            q3.serialize())
+            q3.serialize().query)
 
     def test_range(self):
         start = datetime(1970, 1, 1, 0, 0)
@@ -335,12 +335,12 @@ class FieldTestCase(unittest.TestCase):
         q1 = collabField.range(10, start, end)
         self.assertEquals(
             u"Range(collaboration=10,1970-01-01T00:00,2000-02-02T03:04)",
-            q1.serialize())
+            q1.serialize().query)
 
         q3 = collabField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
         self.assertEquals(
             u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63',1970-01-01T00:00,2000-02-02T03:04)",
-            q3.serialize())
+            q3.serialize().query)
 
     def test_set_row_attributes(self):
         attrs_map = {
@@ -350,76 +350,76 @@ class FieldTestCase(unittest.TestCase):
         q = collabField.set_row_attrs(5, attrs_map)
         self.assertEquals(
             u'SetRowAttrs(collaboration,5,active=true,quote="\\"Don\'t worry, be happy\\"")',
-            q.serialize())
+            q.serialize().query)
 
     def test_field_lt(self):
         q = collabField.lt(10)
         self.assertEquals(
             "Range(collaboration < 10)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_lte(self):
         q = collabField.lte(10)
         self.assertEquals(
             "Range(collaboration <= 10)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_gt(self):
         q = collabField.gt(10)
         self.assertEquals(
             "Range(collaboration > 10)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_gte(self):
         q = collabField.gte(10)
         self.assertEquals(
             "Range(collaboration >= 10)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_equals(self):
         q = collabField.equals(10)
         self.assertEquals(
             "Range(collaboration == 10)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_not_equals(self):
         q = collabField.not_equals(10)
         self.assertEquals(
             "Range(collaboration != 10)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_not_null(self):
         q = collabField.not_null()
         self.assertEquals(
             "Range(collaboration != null)",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_between(self):
         q = collabField.between(10, 20)
         self.assertEquals(
             "Range(collaboration >< [10,20])",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_sum(self):
         q = collabField.sum(collabField.row(10))
         self.assertEquals(
             "Sum(Row(collaboration=10), field='collaboration')",
-            q.serialize())
+            q.serialize().query)
         q = collabField.sum()
         self.assertEquals(
             "Sum(field='collaboration')",
-            q.serialize())
+            q.serialize().query)
 
     def test_field_set_value(self):
         q = collabField.setvalue(10, 20)
         self.assertEquals(
             "Set(10,collaboration=20)",
-            q.serialize())
+            q.serialize().query)
 
         q = collabField.setvalue("some_id", 20)
         self.assertEquals(
             "Set('some_id',collaboration=20)",
-            q.serialize())
+            q.serialize().query)
 
     def test_get_options_string(self):
         field = sampleIndex.field("stargazer_id",
