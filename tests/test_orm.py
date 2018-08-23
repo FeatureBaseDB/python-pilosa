@@ -325,7 +325,7 @@ class FieldTestCase(unittest.TestCase):
 
         q3 = sampleField.topn(12, collabField.row(7), "category", 80, 81)
         self.assertEquals(
-            u"TopN(sample-field,Row(collaboration=7),n=12,field='category',filters=[80,81])",
+            u"TopN(sample-field,Row(collaboration=7),n=12,attrName='category',attrValues=[80,81])",
             q3.serialize().query)
 
     def test_range(self):

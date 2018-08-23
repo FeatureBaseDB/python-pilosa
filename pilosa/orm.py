@@ -455,7 +455,7 @@ class Field:
         fmt = u"Clear(%s,%s=%s)"
         return PQLQuery(fmt % (col_str, self.name, row_str), self.index)
 
-    def topn(self, n, row=None, field="", *values):
+    def topn(self, n, row=None, name="", *values):
         """Creates a TopN query.
 
         ``TopN`` returns the id and count of the top n rows (by count of columns) in the field.
@@ -464,17 +464,17 @@ class Field:
 
         :param int n: number of items to return
         :param pilosa.PQLQuery row: a PQL Row query
-        :param field str field: field name
-        :param object values: filter values to be matched against the field
+        :param str name: only return rows which have the attribute specified by attribute name
+        :param object values: filter values to be matched against the attribute name
         """
         parts = [self.name]
         if row:
             parts.append(row.serialize().query)
         parts.append("n=%d" % n)
-        if field:
-            validate_label(field)
+        if name:
+            validate_label(name)
             values_str = json.dumps(values, separators=(',', ': '))
-            parts.extend(["field='%s'" % field, "filters=%s" % values_str])
+            parts.extend(["attrName='%s'" % name, "attrValues=%s" % values_str])
         qry = u"TopN(%s)" % ",".join(parts)
         return PQLQuery(qry, self.index)
 

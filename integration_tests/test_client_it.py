@@ -189,6 +189,14 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(3, len(items))
         item = items[0]
         self.assertEquals(3, item.count)
+        
+        client.query(field.set_row_attrs(10, {"foo": "bar"}))
+        response = client.query(field.topn(5, None, "foo", "bar"))
+        items = response.result.count_items
+        self.assertEquals(1, len(items))
+        item = items[0]
+        self.assertEquals(3, item.count)
+        self.assertEquals(10, item.id)
 
     def test_keys(self):
         client = self.get_client()
@@ -446,10 +454,10 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(uri.port, node.port)
 
     def test_fetch_coordinator_node_failure(self):
-        server = MockServer(content='{"nodes":[]}')
+        server = MockServer(content=b'{"nodes":[]}')
         with server:
             client = Client(server.uri)
-            self.assertRaises(PilosaServerError, client._fetch_coordinator_node)
+            self.assertRaises(PilosaError, client._fetch_coordinator_node)
 
 
     def test_shards(self):
@@ -471,6 +479,15 @@ class ClientIT(unittest.TestCase):
         with server:
             client = Client(server.uri)
             self.assertRaises(PilosaServerError, client.create_index, self.index)
+
+    def test_server_warning(self):
+        headers = [
+            ("warning", '''299 pilosa/2.0 "Deprecated PQL version: PQL v2 will remove support for SetBit() in Pilosa 2.1. Please update your client to support Set() (See https://docs.pilosa.com/pql#versioning)." "Sat, 25 Aug 2019 23:34:45 GMT"''')
+        ]
+        server = MockServer(200, headers=headers)
+        with server:
+            client = Client(server.uri)
+            client.query(self.field.row(1))
 
     @classmethod
     def random_index_name(cls):
@@ -500,11 +517,15 @@ class MockServer(threading.Thread):
         self.content = content
         self.thread = None
         self.host = "localhost"
-        self.port = 15000
+        self.port = 0
         self.daemon = True
 
     def __enter__(self):
+        import time
         self.start()
+        while self.port == 0:
+            # sleep a bit until finding out the actual port
+            time.sleep(1)            
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._stop()
@@ -528,6 +549,7 @@ class MockServer(threading.Thread):
 
     def run(self):
         server = make_server(self.host, self.port, self._app())
+        self.port = server.server_port
         while not self._stopped():
             server.handle_request()
 

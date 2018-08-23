@@ -50,6 +50,7 @@ from .version import VERSION
 __all__ = ("Client", "Cluster", "URI")
 
 _MAX_HOSTS = 10
+PQL_VERSION = "1.0"
 _IS_PY2 = sys.version_info.major == 2
 
 
@@ -125,13 +126,17 @@ class Client(object):
         path = "/index/%s/query" % query.index.name
         try:
             headers = {
-                'Content-Type': 'application/x-protobuf',
-                'Accept': 'application/x-protobuf',
+                "Content-Type": "application/x-protobuf",
+                "Accept": "application/x-protobuf",
+                "PQL-Version": PQL_VERSION,
             }
             response = self.__http_request("POST", path,
                                             data=request.to_protobuf(),
                                             headers=headers,
                                             use_coordinator=serialized_query.has_keys)
+            warning = response.getheader("warning")
+            if warning:
+                self.logger.warning(warning)
             return QueryResponse._from_protobuf(response.data)
         except PilosaServerError as e:
             raise PilosaError(e.content)
