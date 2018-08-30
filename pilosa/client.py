@@ -338,13 +338,15 @@ class Client(object):
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
-            uri = "%s%s" % (self.__get_address(), path)
+            uri = ""
             if use_coordinator:
                 with self.__coordinator_lock:
                     if self.__coordinator_uri is None:
                         node = self._fetch_coordinator_node()
                         uri = "%s://%s:%s%s" % (node.scheme, node.host, node.port, path)
                         self.__coordinator_uri = uri
+            else:
+                uri = "%s%s" % (self.__get_address(), path)
             try:
                 self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)

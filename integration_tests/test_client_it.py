@@ -392,7 +392,7 @@ class ClientIT(unittest.TestCase):
         server = MockServer(200, content=content, interpolate=True)
         with server:
             client = Client(server.uri)
-            self.assertRaises(PilosaError, client.query, self.key_index.set_column_attrs(0, {"foo": "bar"}))
+            self.assertRaises(PilosaError, client.query, self.key_index.set_column_attrs("foo", {"foo": "bar"}))
 
 
     def test_range(self):
