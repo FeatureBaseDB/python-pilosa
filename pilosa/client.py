@@ -41,7 +41,8 @@ import urllib3
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
 from .imports import batch_columns, \
-    csv_row_id_column_id, csv_row_id_column_key, csv_row_key_column_id, csv_row_key_column_key, csv_column_id_value, csv_column_key_value
+    csv_row_id_column_id, csv_row_id_column_key, csv_row_key_column_id, csv_row_key_column_key, csv_column_id_value, \
+    csv_column_key_value
 from .internal import public_pb2 as internal
 from .orm import TimeQuantum, Schema, CacheType
 from .response import QueryResponse
@@ -105,6 +106,8 @@ class Client(object):
         self.__current_host = None
         self.__client = None
         self.logger = logging.getLogger("pilosa")
+        self.__coordinator_lock = threading.RLock()
+        self.__coordinator_uri = None
 
     def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False, shards=None):
         """Runs the given query against the server with the given options.
@@ -335,19 +338,25 @@ class Client(object):
             self.__connect()
         # try at most 10 non-failed hosts; protect against broken cluster.remove_host
         for _ in range(_MAX_HOSTS):
+            uri = "%s%s" % (self.__get_address(), path)
             if use_coordinator:
-                node = self._fetch_coordinator_node()
-                uri = "%s://%s:%s%s" % (node.scheme, node.host, node.port, path)
-            else:
-                uri = "%s%s" % (self.__get_address(), path)
+                with self.__coordinator_lock:
+                    if self.__coordinator_uri is None:
+                        node = self._fetch_coordinator_node()
+                        uri = "%s://%s:%s%s" % (node.scheme, node.host, node.port, path)
+                        self.__coordinator_uri = uri
             try:
                 self.logger.debug("Request: %s %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
-                self.cluster.remove_host(self.__current_host)
-                self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
-                self.__current_host = None
+                if use_coordinator:
+                    self.__coordinator_uri = None
+                    self.logger.warning("Removed coordinator %s due to %s", self.__coordinator_uri, str(e))
+                else:
+                    self.cluster.remove_host(self.__current_host)
+                    self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
+                    self.__current_host = None
         else:
             raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
 
