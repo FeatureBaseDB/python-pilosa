@@ -385,6 +385,16 @@ class ClientIT(unittest.TestCase):
         client = Client(Cluster(*uris))
         self.assertRaises(PilosaError, client.query, self.field.row(5))
 
+    def test_failover_coordinator_fail(self):
+        content = """
+            {"state":"NORMAL","nodes":[{"id":"827c7196-8875-4467-bee2-3604a4346f2b","uri":{"scheme":"%(SCHEME)s","host":"nonexistent","port":%(PORT)s},"isCoordinator":true}],"localID":"827c7196-8875-4467-bee2-3604a4346f2b"}            
+        """
+        server = MockServer(200, content=content, interpolate=True)
+        with server:
+            client = Client(server.uri)
+            self.assertRaises(PilosaError, client.query, self.key_index.set_column_attrs("foo", {"foo": "bar"}))
+
+
     def test_range(self):
         from datetime import datetime
         client = self.get_client()
@@ -509,7 +519,7 @@ class ClientIT(unittest.TestCase):
 
 class MockServer(threading.Thread):
 
-    def __init__(self, status=200, headers=None, content=""):
+    def __init__(self, status=200, headers=None, content="", interpolate=False):
         super(MockServer, self).__init__()
         self.stop_event = threading.Event()
         self.status = "%s STATUS" % status
@@ -519,6 +529,7 @@ class MockServer(threading.Thread):
         self.host = "localhost"
         self.port = 0
         self.daemon = True
+        self.interpolate = interpolate
 
     def __enter__(self):
         import time
@@ -540,6 +551,12 @@ class MockServer(threading.Thread):
         def app(env, start_response):
             setup_testing_defaults(env)
             start_response(self.status, self.headers)
+            if self.interpolate:
+                return self.content % {
+                    "SCHEME": "http",
+                    "HOST": self.host,
+                    "PORT": self.port,
+                }
             return self.content
         return app
 

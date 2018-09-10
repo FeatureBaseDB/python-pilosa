@@ -339,7 +339,9 @@ class Index:
         col_str = idkey_as_str(col)
         attrs_str = _create_attributes_str(attrs)
         fmt = u"SetColumnAttrs(%s,%s)"
-        return PQLQuery(fmt % (col_str, attrs_str), self)
+        q = PQLQuery(fmt % (col_str, attrs_str), self)
+        q.query.has_keys = self.keys
+        return q
 
     def _row_op(self, name, rows):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize().query for b in rows)), self)
