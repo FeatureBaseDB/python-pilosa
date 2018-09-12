@@ -1,6 +1,6 @@
 ## Change Log
 
-* **v1.0.1** (2018-09-12)
+* **v1.0.3** (2018-09-12)
     * Compatible with Pilosa 1.0.
     * Added key import support.
 
