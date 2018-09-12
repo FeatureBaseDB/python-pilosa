@@ -1,5 +1,9 @@
 ## Change Log
 
+* **v1.0.1** (2018-09-12)
+    * Compatible with Pilosa 1.0.
+    * Added key import support.
+
 * **v1.0.0** (2018-06-28)
     * Compatible with Pilosa 1.0.
     * Added `shards` option to `client.query` which allows limiting a query to be run for the specified shards.
