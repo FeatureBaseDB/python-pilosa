@@ -190,6 +190,10 @@ class IndexTestCase(unittest.TestCase):
     def test_xor_invalid_row_count_fails(self):
         self.assertRaises(PilosaError, projectIndex.xor, sampleField.row(10))
 
+    def test_not_(self):
+        q = sampleIndex.not_(sampleField.row(10))
+        self.assertEquals("Not(Row(sample-field=10))", q.serialize().query)
+
     def test_count(self):
         b = collabField.row(42)
         q = projectIndex.count(b)
@@ -220,8 +224,12 @@ class IndexTestCase(unittest.TestCase):
         self.assertRaises(PilosaError, projectIndex.set_column_attrs, 5, attrs_map)
 
     def test_get_options_string(self):
+        index = Index("my-index")
+        self.assertEqual('', index._get_options_string())
         index = Index("my-index", keys=True)
-        self.assertEqual('{"options":{"keys":true}}', index._get_options_string())
+        self.assertEqual('{"options": {"keys": true}}', index._get_options_string())
+        index = Index("my-index", track_existence=True)
+        self.assertEqual('{"options": {"trackExistence": true}}', index._get_options_string())
 
 
 class FieldTestCase(unittest.TestCase):

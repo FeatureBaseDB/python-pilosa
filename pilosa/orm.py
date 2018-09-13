@@ -48,7 +48,7 @@ _basestring = globals()["__builtins__"].basestring if hasattr(globals()["__built
 
 class TimeQuantum:
     """Valid time quantum values for fields having support for that.
-    
+
     * See: `Data Model <https://www.pilosa.com/docs/data-model/>`_
     """
 
@@ -126,13 +126,14 @@ class Schema:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def index(self, name, keys=None):
+    def index(self, name, keys=False, track_existence=False):
         """Returns an index object with the given name and options.
 
         If the index didn't exist in the schema, it is added to the schema.
 
         :param str name: Index name
         :param bool keys: Whether the index uses string keys
+        :param bool track_existence: Enables keeping track of existence which is required for Not query
         :return: Index object
 
         * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
@@ -140,7 +141,7 @@ class Schema:
         """
         index = self._indexes.get(name)
         if index is None:
-            index = Index(name, keys=keys)
+            index = Index(name, keys=keys, track_existence=track_existence)
             self._indexes[name] = index
         return index
 
@@ -173,20 +174,22 @@ class SerializedQuery:
 
 class Index:
     """The purpose of the Index is to represent a data namespace.
-    
+
     You cannot perform cross-index queries. Column-level attributes are global to the Index.
-    
+
     :param str name: Index name
     :param bool keys: Whether the index uses string keys
+    :param bool track_existence: Enables keeping track of existence which is required for Not query
 
     * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
-    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
     """
 
-    def __init__(self, name, keys=False):
+    def __init__(self, name, keys=False, track_existence=False):
         validate_index_name(name)
         self.name = name
         self.keys = keys
+        self.track_existence = track_existence
         self._fields = {}
 
     def __eq__(self, other):
@@ -202,9 +205,9 @@ class Index:
 
     def _meta_eq(self, other):
         return self.name == other.name
-    
+
     def copy(self, fields=True):
-        index = Index(self.name, keys=self.keys)
+        index = Index(self.name, keys=self.keys, track_existence=self.track_existence)
         if fields:
             index._fields = dict((name, field.copy()) for name, field in self._fields.items())
         return index
@@ -213,7 +216,7 @@ class Index:
               cache_type=CacheType.DEFAULT, cache_size=0,
               int_min=0, int_max=0, keys=None):
         """Creates a field object with the specified name and defaults.
-        
+
         :param str name: field name
         :param pilosa.TimeQuantum time_quantum: Sets the time quantum for the field. If a Field has a time quantum, then Views are generated for each of the defined time segments.
         :param pilosa.CacheType cache_type: ``CacheType.DEFAULT``, ``CacheType.LRU`` or ``CacheType.RANKED``
@@ -233,9 +236,9 @@ class Index:
 
     def raw_query(self, query):
         """Creates a raw query.
-        
+
         Note that the query is not validated before sending to the server.
-        
+
         :param str query:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
@@ -247,7 +250,7 @@ class Index:
 
     def batch_query(self, *queries):
         """Creates a batch query.
-        
+
         :param pilosa.PQLQuery queries: the queries in the batch
         :return: Pilosa batch query
         :rtype: pilosa.PQLBatchQuery
@@ -258,9 +261,9 @@ class Index:
 
     def union(self, *rows):
         """Creates a ``Union`` query.
-        
+
         ``Union`` performs a logical OR on the results of each ROW_CALL query passed to it.
-        
+
         :param pilosa.PQLQuery rows: 0 or more row queries to union
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
@@ -271,7 +274,7 @@ class Index:
         """Creates an ``Intersect`` query.
 
         ``Intersect`` performs a logical AND on the results of each ROW_CALL query passed to it.
-        
+
         :param pilosa.PQLQuery rows: 1 or more row queries to intersect
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
@@ -286,7 +289,7 @@ class Index:
 
         ``Difference`` returns all of the columns from the first ROW_CALL argument passed to it,
         without the columns from each subsequent ROW_CALL.
-        
+
         :param pilosa.PQLQuery rows: 1 or more row queries to differentiate
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
@@ -308,11 +311,14 @@ class Index:
             raise PilosaError("Number of row queries should be greater than or equal to 2")
         return self._row_op("Xor", rows)
 
+    def not_(self, row):
+        return PQLQuery(u"Not(%s)" % row.serialize().query, self)
+
     def count(self, row):
         """Creates a Count query.
-        
+
         ``Count`` returns the number of set columns in the ROW_CALL passed in.
-        
+
         :param pilosa.PQLQuery row: the row query
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
@@ -321,20 +327,20 @@ class Index:
 
     def set_column_attrs(self, col, attrs):
         """Creates a SetColumnAttrs query.
-        
+
         ``SetColumnAttrs`` associates arbitrary key/value pairs with a column in an index.
-        
+
         Following object types are accepted:
-        
+
         * int
         * str
         * bool
         * float
-        
+
         :param int col:
         :param dict attrs: column attributes
         :return: Pilosa query
-        :rtype: pilosa.PQLQuery        
+        :rtype: pilosa.PQLQuery
         """
         col_str = idkey_as_str(col)
         attrs_str = _create_attributes_str(attrs)
@@ -347,21 +353,26 @@ class Index:
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize().query for b in rows)), self)
 
     def _get_options_string(self):
+        options = {}
         if self.keys:
-            return '''{"options":{"keys":true}}'''
+            options["keys"] = True
+        if self.track_existence:
+            options["trackExistence"] = True
+        if options:
+            return json.dumps({"options": options})
         return ""
 
 
 class Field:
     """Fields are used to segment and define different functional characteristics within your entire index.
-    
+
     You can think of a Field as a table-like data partition within your Index.
     Row-level attributes are namespaced at the Field level.
-    
+
     Do not create a Field object directly. Instead, use ``pilosa.Index.field`` method.
-        
+
     * See `Data Model <https://www.pilosa.com/docs/data-model/>`_
-    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_    
+    * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
     """
 
     def __init__(self, index, name, time_quantum,
@@ -411,11 +422,11 @@ class Field:
 
     def row(self, row_idkey):
         """Creates a Row query.
-        
+
         Row retrieves the indices of all the set columns in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
-        
+
         This variant of Row query uses the row label.
-        
+
         :param int row_idkey:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
@@ -427,9 +438,9 @@ class Field:
 
     def set(self, row, col, timestamp=None):
         """Creates a SetBit query.
-        
+
         ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given field with the given column.
-        
+
         :param int row:
         :param int col:
         :param pilosa.TimeStamp timestamp:
@@ -444,9 +455,9 @@ class Field:
 
     def clear(self, row, col):
         """Creates a ClearBit query.
-        
+
         ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given field from the given column.
-        
+
         :param int row:
         :param int col:
         :return: Pilosa query
@@ -500,20 +511,20 @@ class Field:
 
     def set_row_attrs(self, row, attrs):
         """Creates a SetRowAttrs query.
-        
+
         ``SetRowAttrs`` associates arbitrary key/value pairs with a row in a field.
-        
+
         Following object types are accepted:
-        
+
         * int
         * str
         * bool
         * float
-        
+
         :param int row:
         :param dict attrs: row attributes
         :return: Pilosa query
-        :rtype: pilosa.PQLQuery        
+        :rtype: pilosa.PQLQuery
         """
         row_str = idkey_as_str(row)
         attrs_str = _create_attributes_str(attrs)

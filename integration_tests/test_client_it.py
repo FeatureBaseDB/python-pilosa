@@ -189,7 +189,7 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(3, len(items))
         item = items[0]
         self.assertEquals(3, item.count)
-        
+
         client.query(field.set_row_attrs(10, {"foo": "bar"}))
         response = client.query(field.topn(5, None, "foo", "bar"))
         items = response.result.count_items
@@ -206,6 +206,25 @@ class ClientIT(unittest.TestCase):
         client.query(field.set("stringRow", "stringCol"))
         response = client.query(field.row("stringRow"))
         self.assertEqual(["stringCol"], response.result.row.keys)
+
+    def test_not_(self):
+        client = self.get_client()
+        schema = client.schema()
+        index = schema.index("not-test", track_existence=True)
+        field = index.field("f1")
+        client.sync_schema(schema)
+        try:
+            client.query(index.batch_query(
+                field.set(1, 10),
+                field.set(1, 11),
+                field.set(2, 11),
+                field.set(2, 12),
+                field.set(2, 13),
+            ))
+            resp = client.query(index.not_(field.row(1)))
+            self.assertEqual([12, 13], resp.result.row.columns)
+        finally:
+            client.delete_index(index)
 
     def test_ensure_index_exists(self):
         client = self.get_client()
@@ -387,7 +406,7 @@ class ClientIT(unittest.TestCase):
 
     def test_failover_coordinator_fail(self):
         content = """
-            {"state":"NORMAL","nodes":[{"id":"827c7196-8875-4467-bee2-3604a4346f2b","uri":{"scheme":"%(SCHEME)s","host":"nonexistent","port":%(PORT)s},"isCoordinator":true}],"localID":"827c7196-8875-4467-bee2-3604a4346f2b"}            
+            {"state":"NORMAL","nodes":[{"id":"827c7196-8875-4467-bee2-3604a4346f2b","uri":{"scheme":"%(SCHEME)s","host":"nonexistent","port":%(PORT)s},"isCoordinator":true}],"localID":"827c7196-8875-4467-bee2-3604a4346f2b"}
         """
         server = MockServer(200, content=content, interpolate=True)
         with server:
@@ -517,6 +536,7 @@ class ClientIT(unittest.TestCase):
             server_address = "http://:10101"
         return server_address
 
+
 class MockServer(threading.Thread):
 
     def __init__(self, status=200, headers=None, content="", interpolate=False):
@@ -536,7 +556,7 @@ class MockServer(threading.Thread):
         self.start()
         while self.port == 0:
             # sleep a bit until finding out the actual port
-            time.sleep(1)            
+            time.sleep(1)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._stop()
@@ -569,4 +589,3 @@ class MockServer(threading.Thread):
         self.port = server.server_port
         while not self._stopped():
             server.handle_request()
-
