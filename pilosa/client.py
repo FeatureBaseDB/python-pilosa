@@ -36,6 +36,7 @@ import logging
 import re
 import sys
 import threading
+from pyroaring import BitMap
 
 import urllib3
 
@@ -249,18 +250,15 @@ class Client(object):
                 for field_name, field in index._fields.items():
                     local_index._fields[field_name] = field
 
-    def import_field(self, field, bit_reader, batch_size=100000):
+    def import_field(self, field, bit_reader, batch_size=100000, fast_import=False):
         """Imports a field using the given bit reader
 
         :param field:
         :param bit_reader:
         :param batch_size:
         """
-        index_name = field.index.name
-        field_name = field.name
-        import_columns = self._import_data
         for shard, columns in batch_columns(bit_reader, batch_size):
-            import_columns(field, shard, columns)
+            self._import_data(field, shard, columns, fast_import)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -276,7 +274,7 @@ class Client(object):
         """
         return self.__http_request(method, path, data=data, headers=headers)
 
-    def _import_data(self, field, shard, data):
+    def _import_data(self, field, shard, data, fast_import):
         if field.field_type != "int":
             # sort by row_id then by column_id
             if not field.index.keys:
@@ -298,10 +296,13 @@ class Client(object):
         for node in nodes:
             client = Client(URI.address(node.url), **client_params)
             if field.field_type == "int":
-                req = _ImportValueRequest(field, shard, data)
+                client._import_node(_ImportValueRequest(field, shard, data))
             else:
                 req = _ImportRequest(field, shard, data)
-            client._import_node(req)
+                if fast_import and req.format == csv_row_id_column_id:
+                    client._import_node_fast(req)
+                else:
+                    client._import_node(req)
 
     def _fetch_fragment_nodes(self, index_name, shard):
         path = "/internal/fragment/nodes?shard=%d&index=%s" % (shard, index_name)
@@ -331,6 +332,16 @@ class Client(object):
             'Accept': 'application/x-protobuf',
         }
         path = "/index/%s/field/%s/import" % (import_request.index_name, import_request.field_name)
+        self.__http_request("POST", path, data=data, headers=headers)
+
+    def _import_node_fast(self, import_request):
+        data = import_request.to_bitmap()
+        headers = {
+            'Content-Type': 'application/x-binary',
+            'Accept': 'application/x-protobuf',
+        }
+        path = "/index/%s/field/%s/import-roaring/%d" % \
+               (import_request.index_name, import_request.field_name, import_request.shard)
         self.__http_request("POST", path, data=data, headers=headers)
 
     def __http_request(self, method, path, data=None, headers=None, use_coordinator=False):
@@ -616,6 +627,11 @@ class _ImportRequest:
             raise PilosaError("Invalid import format")
 
         return bytearray(request.SerializeToString()) if return_bytearray else request.SerializeToString()
+
+    def to_bitmap(self, return_bytearray=_IS_PY2):
+        shard_width = 1048576
+        bitmap = BitMap([b.row_id * shard_width + b.column_id % shard_width for b in self.columns])
+        return bytearray(bitmap.serialize()) if return_bytearray else bitmap.serialize()
 
 
 class _ImportValueRequest:

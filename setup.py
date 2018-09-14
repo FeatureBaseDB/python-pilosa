@@ -71,6 +71,6 @@ setup(
     packages=['pilosa', 'pilosa.internal'],
 
     setup_requires=['pytest-runner'],
-    install_requires=['urllib3', 'protobuf', 'semver'],
+    install_requires=['urllib3', 'protobuf', 'pyroaring'],
     tests_require=['pytest', 'mock', 'coverage', 'pytest-cov'],
 )
