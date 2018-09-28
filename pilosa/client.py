@@ -31,14 +31,15 @@
 # DAMAGE.
 #
 
+import io
 import json
 import logging
 import re
 import sys
 import threading
-from pyroaring import BitMap
 
 import urllib3
+from roaring import Bitmap
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
 from .imports import batch_columns, \
@@ -630,8 +631,13 @@ class _ImportRequest:
 
     def to_bitmap(self, return_bytearray=_IS_PY2):
         shard_width = 1048576
-        bitmap = BitMap([b.row_id * shard_width + b.column_id % shard_width for b in self.columns])
-        return bytearray(bitmap.serialize()) if return_bytearray else bitmap.serialize()
+        bitmap = Bitmap()
+        for b in self.columns:
+            bitmap.add(b.row_id * shard_width + b.column_id % shard_width)
+        bio = io.BytesIO()
+        bitmap.write_to(bio)
+        data = bio.getvalue()
+        return bytearray(data) if return_bytearray else data
 
 
 class _ImportValueRequest:
