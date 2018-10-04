@@ -360,6 +360,19 @@ class FieldTestCase(unittest.TestCase):
             u'SetRowAttrs(collaboration,5,active=true,quote="\\"Don\'t worry, be happy\\"")',
             q.serialize().query)
 
+    def test_store(self):
+        q = sampleField.store(collabField.row(5), 10)
+        self.assertEquals(
+            u"Store(Row(collaboration=5),sample-field=10)",
+            q.serialize().query
+        )
+
+        q = sampleField.store(collabField.row("five"), "ten")
+        self.assertEquals(
+            u"Store(Row(collaboration='five'),sample-field='ten')",
+            q.serialize().query
+        )
+
     def test_field_lt(self):
         q = collabField.lt(10)
         self.assertEquals(

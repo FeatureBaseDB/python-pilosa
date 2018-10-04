@@ -226,6 +226,25 @@ class ClientIT(unittest.TestCase):
         finally:
             client.delete_index(index)
 
+    def test_store(self):
+        client = self.get_client()
+        schema = client.schema()
+        index = schema.index("store-test", track_existence=True)
+        from_field = index.field("from-field")
+        to_field = index.field("to-field")
+        client.sync_schema(schema)
+        try:
+            client.query(index.batch_query(
+                from_field.set(10, 100),
+                from_field.set(10, 200),
+                to_field.store(from_field.row(10), 1),
+            ))
+            resp = client.query(to_field.row(1))
+            self.assertEqual([100, 200], resp.result.row.columns)
+        finally:
+            client.delete_index(index)
+
+
     def test_ensure_index_exists(self):
         client = self.get_client()
         index = Index(self.index.name + "-ensure")
