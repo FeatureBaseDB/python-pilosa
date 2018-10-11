@@ -531,6 +531,20 @@ class Field:
         fmt = u"SetRowAttrs(%s,%s,%s)"
         return PQLQuery(fmt % (self.name, row_str, attrs_str), self.index)
 
+    def store(self, row_query, row):
+        """Creates a Store query.
+
+        Store writes the result of the row query to the specified row. If the row already exists, it will be replaced. The destination field must be of field type set.
+
+        :param row_query:
+        :param row:
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
+        row_str = idkey_as_str(row)
+        fmt = u"Store(%s,%s=%s)"
+        return PQLQuery(fmt % (row_query.serialize().query, self.name, row_str), self.index)
+
     def lt(self, n):
         """Creates a Range query with less than (<) condition.
 

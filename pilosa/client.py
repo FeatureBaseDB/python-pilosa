@@ -54,6 +54,7 @@ _MAX_HOSTS = 10
 PQL_VERSION = "1.0"
 _IS_PY2 = sys.version_info.major == 2
 
+RESERVED_FIELDS = ("exists",)
 
 class Client(object):
     """Pilosa HTTP client
@@ -222,6 +223,8 @@ class Client(object):
         for index_info in self._read_schema():
             index = schema.index(index_info["name"])
             for field_info in index_info.get("fields") or []:
+                if field_info["name"] in RESERVED_FIELDS:
+                    continue
                 options = decode_field_meta_options(field_info)
                 index.field(field_info["name"], **options)
 
@@ -237,7 +240,8 @@ class Client(object):
             if index_name not in server_schema._indexes:
                 self.ensure_index(index)
             for field_name, field in index._fields.items():
-                self.ensure_field(field)
+                if field_name not in RESERVED_FIELDS:
+                    self.ensure_field(field)
 
         # find out remote - local schema
         diff_schema = server_schema._diff(schema)
@@ -247,7 +251,8 @@ class Client(object):
                 schema._indexes[index_name] = index
             else:
                 for field_name, field in index._fields.items():
-                    local_index._fields[field_name] = field
+                    if field_name not in RESERVED_FIELDS:
+                        local_index._fields[field_name] = field
 
     def import_field(self, field, bit_reader, batch_size=100000):
         """Imports a field using the given bit reader
