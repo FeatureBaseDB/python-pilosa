@@ -1,5 +1,9 @@
 ## Change Log
 
+* **master**
+    * Added `track_existence` index option.
+    * Added `not_` index method to support `Not` queries. The corrsponding index must be created with `track_existence=True`.  
+
 * **v1.0.3** (2018-09-12)
     * Compatible with Pilosa 1.0.
     * Added key import support.
