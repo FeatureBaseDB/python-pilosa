@@ -289,6 +289,28 @@ class ClientIT(unittest.TestCase):
         self.assertEqual(3, len(response.results))
         self.assertEqual(target, [result.row.columns[0] for result in response.results])
 
+    def test_csv_import_fast(self):
+        client = self.get_client()
+        text = u"""
+            10, 7
+            10, 5
+            2, 3
+            7, 1
+        """
+        reader = csv_column_reader(StringIO(text))
+        field = self.index.field("importfield-fast")
+        client.ensure_field(field)
+        client.import_field(field, reader, fast_import=True)
+        bq = self.index.batch_query(
+            field.row(2),
+            field.row(7),
+            field.row(10),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
+
     def test_csv_import_row_keys(self):
         client = self.get_client()
         text = u"""
@@ -431,7 +453,6 @@ class ClientIT(unittest.TestCase):
         with server:
             client = Client(server.uri)
             self.assertRaises(PilosaError, client.query, self.key_index.set_column_attrs("foo", {"foo": "bar"}))
-
 
     def test_range(self):
         from datetime import datetime
