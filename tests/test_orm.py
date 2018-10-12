@@ -223,6 +223,16 @@ class IndexTestCase(unittest.TestCase):
         }
         self.assertRaises(PilosaError, projectIndex.set_column_attrs, 5, attrs_map)
 
+    def test_options(self):
+        q = sampleIndex.options(collabField.row(5),
+                                column_attrs=True,
+                                exclude_columns=True,
+                                exclude_row_attrs=True,
+                                shards=[1, 3])
+        self.assertEquals(
+            "Options(Row(collaboration=5),columnAttrs=true,excludeColumns=true,excludeRowAttrs=true,shards=[1,3])",
+            q.serialize().query)
+
     def test_get_options_string(self):
         index = Index("my-index")
         self.assertEqual('', index._get_options_string())
@@ -249,15 +259,20 @@ class FieldTestCase(unittest.TestCase):
         self.assertNotEqual(sampleField, schema)
 
     def test_row(self):
-        qry1 = collabField.row(5)
+        q = collabField.row(5)
         self.assertEquals(
             "Row(collaboration=5)",
-            qry1.serialize().query)
+            q.serialize().query)
 
-        qry2 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
+        q = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63")
         self.assertEquals(
             "Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
-            qry2.serialize().query)
+            q.serialize().query)
+
+        q = collabField.row(True)
+        self.assertEquals(
+            "Row(collaboration=true)",
+            q.serialize().query)
 
     def test_row_with_invalid_id_type(self):
         self.assertRaises(ValidationError, sampleField.row, {})
@@ -281,6 +296,16 @@ class FieldTestCase(unittest.TestCase):
         qry = collabField.set("b7feb014-8ea7-49a8-9cd8-19709161ab63", "some_id")
         self.assertEquals(
             u"Set('some_id',collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63')",
+            qry.serialize().query)
+
+        qry = collabField.set(True, "some_id")
+        self.assertEquals(
+            u"Set('some_id',collaboration=true)",
+            qry.serialize().query)
+
+        qry = collabField.set(False, "some_id")
+        self.assertEquals(
+            u"Set('some_id',collaboration=false)",
             qry.serialize().query)
 
     def test_set_with_invalid_id_type(self):
@@ -373,6 +398,27 @@ class FieldTestCase(unittest.TestCase):
             q.serialize().query
         )
 
+    def test_clear_row(self):
+        q = collabField.clear_row(5)
+        self.assertEquals(
+            "ClearRow(collaboration=5)",
+            q.serialize().query
+        )
+
+        q = collabField.clear_row("five")
+        self.assertEquals(
+            "ClearRow(collaboration='five')",
+            q.serialize().query
+        )
+
+        q = collabField.clear_row(True)
+        self.assertEquals(
+            "ClearRow(collaboration=true)",
+            q.serialize().query
+        )
+
+        self.assertRaises(PilosaError, collabField.clear_row, None)
+
     def test_field_lt(self):
         q = collabField.lt(10)
         self.assertEquals(
@@ -447,7 +493,26 @@ class FieldTestCase(unittest.TestCase):
                                   time_quantum=TimeQuantum.DAY_HOUR,
                                   keys=True)
         target = '{"options": {"keys": true, "timeQuantum": "DH", "type": "time"}}'
-        self.assertEquals(target, field._get_options_string())
+        self.assertTrue(compare_string(target, field._get_options_string()))
+
+        field = sampleIndex.field("int_field", int_min=-10, int_max=10)
+        target = '{"options": {"min": -10, "max": 10, "type": "int"}}'
+        self.assertTrue(compare_string(target, field._get_options_string()))
+
+        field = sampleIndex.field("mutex_field",
+                                  cache_type=CacheType.RANKED, cache_size=1000,
+                                  mutex=True)
+        target = '{"options": {"cacheType": "ranked", "cacheSize": 1000, "type": "mutex"}}'
+        self.assertTrue(compare_string(target, field._get_options_string()))
+
+        field = sampleIndex.field("set_field",
+                                  cache_type=CacheType.RANKED, cache_size=1000)
+        target = '{"options": {"cacheType": "ranked", "cacheSize": 1000, "type": "set"}}'
+        self.assertTrue(compare_string(target, field._get_options_string()))
+
+        field = sampleIndex.field("bool_field", bool=True)
+        target = '{"options": {"type": "bool"}}'
+        self.assertTrue(compare_string(target, field._get_options_string()))
 
 
 class TimeQuantumTestCase(unittest.TestCase):
@@ -478,3 +543,7 @@ class RangeFieldTestCase(unittest.TestCase):
 
     def test_min_greater_equals_max_fails(self):
         self.assertRaises(ValidationError, sampleIndex.field, "intminmax", int_min=10, int_max=9)
+
+
+def compare_string(s1, s2):
+    return sorted(list(s1)) == sorted(list(s2))

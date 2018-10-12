@@ -305,7 +305,7 @@ class Client(object):
                 client._import_node(_ImportValueRequest(field, shard, data))
             else:
                 req = _ImportRequest(field, shard, data)
-                if fast_import and req.format == csv_row_id_column_id:
+                if fast_import and field.field_type == "set" and req.format == csv_row_id_column_id:
                     client._import_node_fast(req)
                 else:
                     client._import_node(req)

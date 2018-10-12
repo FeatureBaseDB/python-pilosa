@@ -207,6 +207,23 @@ class ClientIT(unittest.TestCase):
         response = client.query(field.row("stringRow"))
         self.assertEqual(["stringCol"], response.result.row.keys)
 
+    def test_mutex_field(self):
+        client = self.get_client()
+        field = self.index.field("mutex-field", mutex=True)
+        client.ensure_field(field)
+        client.query(field.set(1, 100))
+        response = client.query(field.row(1))
+        self.assertEqual([100], response.result.row.columns)
+
+        # setting another row removes the previous
+        client.query(field.set(42, 100))
+        response = client.query(self.index.batch_query(
+            field.row(1),
+            field.row(42)
+        ))
+        self.assertEqual([], response.results[0].row.columns)
+        self.assertEqual([100], response.results[1].row.columns)
+
     def test_not_(self):
         client = self.get_client()
         schema = client.schema()

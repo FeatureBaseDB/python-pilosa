@@ -214,7 +214,7 @@ class Index:
 
     def field(self, name, time_quantum=TimeQuantum.NONE,
               cache_type=CacheType.DEFAULT, cache_size=0,
-              int_min=0, int_max=0, keys=None):
+              int_min=0, int_max=0, keys=None, mutex=False, bool=False):
         """Creates a field object with the specified name and defaults.
 
         :param str name: field name
@@ -224,13 +224,15 @@ class Index:
         :param int int_min: Minimum for the integer field
         :param int int_max: Maximum for the integer field
         :param bool keys: Whether the field uses string keys
+        :param bool mutex: Whether the field is a mutex field
+        :param bool bool: Whether the field is a bool field
         :return: Pilosa field
         :rtype: pilosa.Field
         """
         field = self._fields.get(name)
         if field is None:
             field = Field(self, name, time_quantum,
-                          cache_type, cache_size, int_min, int_max, keys)
+                          cache_type, cache_size, int_min, int_max, keys, mutex, bool)
             self._fields[name] = field
         return field
 
@@ -349,6 +351,14 @@ class Index:
         q.query.has_keys = self.keys
         return q
 
+    def options(self, row_query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=None):
+        make_bool = lambda b: "true" if b else "false"
+        serialized_options = u"columnAttrs=%s,excludeColumns=%s,excludeRowAttrs=%s" % \
+                             (make_bool(column_attrs), make_bool(exclude_columns), make_bool(exclude_row_attrs))
+        if shards:
+            serialized_options = "%s,shards=[%s]" % (serialized_options, ",".join(str(s) for s in shards))
+        return PQLQuery("Options(%s,%s)" % (row_query.serialize().query, serialized_options), self.name)
+
     def _row_op(self, name, rows):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize().query for b in rows)), self)
 
@@ -376,7 +386,7 @@ class Field:
     """
 
     def __init__(self, index, name, time_quantum,
-                 cache_type, cache_size, int_min, int_max, keys):
+                 cache_type, cache_size, int_min, int_max, keys, mutex, bool):
         validate_field_name(name)
         if int_max < int_min:
             raise ValidationError("Max should be greater than min for int fields")
@@ -389,6 +399,8 @@ class Field:
         self.int_min = int_min
         self.int_max = int_max
         self.keys = keys
+        self.mutex = mutex
+        self.bool = bool
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -399,16 +411,17 @@ class Field:
         # Note that we skip comparing the fields of the indexes by using index._meta_eq
         # in order to avoid a call cycle
         return self.name == other.name and \
-               self.index._meta_eq(other.index) and \
-               self.time_quantum == other.time_quantum and \
-               self.cache_type == other.cache_type and \
-               self.cache_size == other.cache_size
+               self.index._meta_eq(other.index)
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     @property
     def field_type(self):
+        if self.mutex:
+            return "mutex"
+        if self.bool:
+            return "bool"
         if self.time_quantum != TimeQuantum.NONE:
             return "time"
         if self.int_min != 0 or self.int_max != 0:
@@ -418,7 +431,8 @@ class Field:
     def copy(self):
         return Field(self.index, self.name, self.time_quantum,
                      self.cache_type, self.cache_size,
-                     self.int_min, self.int_max, self.keys)
+                     self.int_min, self.int_max, self.keys,
+                     self.mutex, self.bool)
 
     def row(self, row_idkey):
         """Creates a Row query.
@@ -431,10 +445,9 @@ class Field:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
         """
-        fmt = id_key_format("Row ID/Key", row_idkey,
-                            u"Row(%s=%s)",
-                            u"Row(%s='%s')")
-        return PQLQuery(fmt % (self.name, row_idkey), self.index)
+        row_str = idkey_as_str(row_idkey)
+        fmt = u"Row(%s=%s)"
+        return PQLQuery(fmt % (self.name, row_str), self.index)
 
     def set(self, row, col, timestamp=None):
         """Creates a SetBit query.
@@ -544,6 +557,11 @@ class Field:
         row_str = idkey_as_str(row)
         fmt = u"Store(%s,%s=%s)"
         return PQLQuery(fmt % (row_query.serialize().query, self.name, row_str), self.index)
+
+    def clear_row(self, row):
+        row_str = idkey_as_str(row)
+        fmt = u"ClearRow(%s=%s)"
+        return PQLQuery(fmt %  (self.name, row_str), self.index)
 
     def lt(self, n):
         """Creates a Range query with less than (<) condition.
@@ -668,18 +686,18 @@ class Field:
         return PQLQuery(q, self.index)
 
     def _get_options_string(self):
-        data = {}
+        field_type = self.field_type
+        data = {
+            "type": field_type
+        }
         if self.keys:
             data["keys"] = self.keys
         if self.time_quantum != TimeQuantum.NONE:
-            data["type"] = "time"
             data["timeQuantum"] = str(self.time_quantum)
         elif self.int_min != 0 or self.int_max != 0:
-            data["type"] = "int"
             data["min"] = self.int_min
             data["max"] = self.int_max
-        else:
-            data["type"] = "set"
+        elif field_type in ["set", "mutex"]:
             if self.cache_type != CacheType.DEFAULT:
                 data["cacheType"] = str(self.cache_type)
             if self.cache_size > 0:
@@ -730,21 +748,22 @@ class PQLBatchQuery:
 
 
 def id_key_format(name, id_key, id_fmt, key_fmt):
-    if isinstance(id_key, int):
+    if isinstance(id_key, bool) or isinstance(id_key, int):
         return id_fmt
     elif isinstance(id_key, _basestring):
         validate_key(id_key)
         return key_fmt
     else:
-        raise ValidationError("%s must be an integer or string" % name)
+        raise ValidationError("%s must be an integer, boolean or string" % name)
 
 
-def idkey_as_str(idkey):
-    if isinstance(idkey, int):
-        row_idkey_str = str(idkey)
-    elif isinstance(idkey, _basestring):
-        validate_key(idkey)
-        row_idkey_str = "'%s'" % idkey
+def idkey_as_str(id_key):
+    if isinstance(id_key, bool):
+        return "true" if id_key else "false"
+    elif isinstance(id_key, int):
+        return str(id_key)
+    elif isinstance(id_key, _basestring):
+        validate_key(id_key)
+        return "'%s'" % id_key
     else:
-        raise ValidationError("Rows/Columns must be integers or strings")
-    return row_idkey_str
+        raise ValidationError("Rows/Columns must be integers, booleans or strings")
