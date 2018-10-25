@@ -47,9 +47,9 @@ _basestring = globals()["__builtins__"].basestring if hasattr(globals()["__built
 
 
 class TimeQuantum:
-    """Valid time quantum values for fields having support for that.
+    """Valid time quantum values.
 
-    * See: `Data Model <https://www.pilosa.com/docs/data-model/>`_
+    * See: `Data Model/Time Quantum <https://www.pilosa.com/docs/latest/data-model/#time-quantum/>`_
     """
 
     NONE = None
@@ -89,9 +89,16 @@ TimeQuantum.YEAR_MONTH_DAY_HOUR = TimeQuantum("YMDH")
 
 
 class CacheType:
+    """Cache type for set and mutex fields.
 
+    * See: `Data Model/Ranked <https://www.pilosa.com/docs/latest/data-model/#ranked/>`_
+    """
+
+    #: Use the default cache type for the server
     DEFAULT = None
+    #: The LRU cache maintains the most recently accessed Rows. See: `Data Model/LRU <https://www.pilosa.com/docs/latest/data-model/#lru/>`_
     LRU = None
+    #: Ranked Fields maintain a sorted cache of column counts by Row ID. `Data Model/Ranked <https://www.pilosa.com/docs/latest/data-model/#ranked/>`_
     RANKED = None
 
     def __init__(self, value):
@@ -241,6 +248,8 @@ class Index:
 
         Note that the query is not validated before sending to the server.
 
+        Raw queries may be less efficient than the corresponding ORM query, since they are only sent to the coordinator node.
+
         :param str query:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
@@ -252,6 +261,10 @@ class Index:
 
     def batch_query(self, *queries):
         """Creates a batch query.
+
+        Using batch queries is more efficient than sending each query individually.
+
+        If you are sending a large amount of ``Set`` or ``Clear`` queries, it is more efficient to import them instead of using a batch query.
 
         :param pilosa.PQLQuery queries: the queries in the batch
         :return: Pilosa batch query
@@ -269,6 +282,8 @@ class Index:
         :param pilosa.PQLQuery rows: 0 or more row queries to union
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Union <https://www.pilosa.com/docs/latest/query-language/#union/>`_
         """
         return self._row_op("Union", rows)
 
@@ -281,6 +296,8 @@ class Index:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
         :raise PilosaError: if the number of rows is less than 1
+
+        * See `Query Language/Intersect <https://www.pilosa.com/docs/latest/query-language/#intersect/>`_
         """
         if len(rows) < 1:
             raise PilosaError("Number of row queries should be greater than or equal to 1")
@@ -296,24 +313,40 @@ class Index:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
         :raise PilosaError: if the number of rows is less than 1
+
+        * See `Query Language/Difference <https://www.pilosa.com/docs/latest/query-language/#difference/>`_
         """
         if len(rows) < 1:
             raise PilosaError("Number of row queries should be greater than or equal to 1")
         return self._row_op("Difference", rows)
 
     def xor(self, *rows):
-        """Creates a ``Xor`` query.
+        """Creates an ``Xor`` query.
+
+        ``Xor`` performs a logical XOR on the results of each ROW_CALL query passed to it.
 
         :param pilosa.PQLQuery rows: 2 or more row queries to xor
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
         :raise PilosaError: if the number of rows is less than 2
+
+        * See `Query Language/Xor <https://www.pilosa.com/docs/latest/query-language/#xor/>`_
         """
         if len(rows) < 2:
             raise PilosaError("Number of row queries should be greater than or equal to 2")
         return self._row_op("Xor", rows)
 
     def not_(self, row):
+        """Creates a ``Not`` query.
+
+        ``Not`` returns the inverse of all of the bits from the ROW_CALL argument. The ``Not`` query requires that ``track_existence`` has been enabled on the Index (the default).
+
+        :param pilosa.PQLQuery row: a row query
+        :return: Pilosa row query
+        :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Not <https://www.pilosa.com/docs/latest/query-language/#not/>`_
+        """
         return PQLQuery(u"Not(%s)" % row.serialize().query, self)
 
     def count(self, row):
@@ -324,11 +357,13 @@ class Index:
         :param pilosa.PQLQuery row: the row query
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Count <https://www.pilosa.com/docs/latest/query-language/#count/>`_
         """
         return PQLQuery(u"Count(%s)" % row.serialize().query, self)
 
     def set_column_attrs(self, col, attrs):
-        """Creates a SetColumnAttrs query.
+        """Creates a ``SetColumnAttrs`` query.
 
         ``SetColumnAttrs`` associates arbitrary key/value pairs with a column in an index.
 
@@ -343,6 +378,8 @@ class Index:
         :param dict attrs: column attributes
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/SetColumnAttrs <https://www.pilosa.com/docs/latest/query-language/#setcolumnattrs/>`_
         """
         col_str = idkey_as_str(col)
         attrs_str = _create_attributes_str(attrs)
@@ -352,6 +389,24 @@ class Index:
         return q
 
     def options(self, row_query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=None):
+        """Creates an ``Options`` query.
+
+        Modifies the given query as follows:
+        * ``columnAttrs``: Include column attributes in the result (Default: false).
+        * ``excludeColumns``: Exclude column IDs from the result (Default: false).
+        * ``excludeRowAttrs``: Exclude row attributes from the result (Default: false).
+        * ``shards``: Run the query using only the data from the given shards. By default, the entire data set (i.e. data from all shards) is used.
+
+        :param bool column_attrs: Include column attributes in the result (Default: ``False``).
+        :param bool exclude_columns: Exclude column IDs from the result (Default: ``False``).
+        :param bool exclude_row_attrs: Exclude row attributes from the result (Default: ``False``).
+        :param bool shards: Run the query using only the data from the given shards. By default, the entire data set (i.e. data from all shards) is used.
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Options <https://www.pilosa.com/docs/latest/query-language/#options/>`_
+        """
+
         make_bool = lambda b: "true" if b else "false"
         serialized_options = u"columnAttrs=%s,excludeColumns=%s,excludeRowAttrs=%s" % \
                              (make_bool(column_attrs), make_bool(exclude_columns), make_bool(exclude_row_attrs))
@@ -444,21 +499,25 @@ class Field:
         :param int row_idkey:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Row <https://www.pilosa.com/docs/latest/query-language/#row/>`_
         """
         row_str = idkey_as_str(row_idkey)
         fmt = u"Row(%s=%s)"
         return PQLQuery(fmt % (self.name, row_str), self.index)
 
     def set(self, row, col, timestamp=None):
-        """Creates a SetBit query.
+        """Creates a Set query.
 
-        ``SetBit`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given field with the given column.
+        ``Set`` assigns a value of 1 to a bit in the binary matrix, thus associating the given row in the given field with the given column.
 
         :param int row:
         :param int col:
         :param pilosa.TimeStamp timestamp:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Set <https://www.pilosa.com/docs/latest/query-language/#set/>`_
         """
         row_str = idkey_as_str(row)
         col_str = idkey_as_str(col)
@@ -467,14 +526,16 @@ class Field:
         return PQLQuery(fmt % (col_str, self.name, row_str, ts), self.index)
 
     def clear(self, row, col):
-        """Creates a ClearBit query.
+        """Creates a Clear query.
 
-        ``ClearBit`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given field from the given column.
+        ``Clear`` assigns a value of 0 to a bit in the binary matrix, thus disassociating the given row in the given field from the given column.
 
         :param int row:
         :param int col:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Clear <https://www.pilosa.com/docs/latest/query-language/#clear/>`_
         """
         row_str = idkey_as_str(row)
         col_str = idkey_as_str(col)
@@ -492,6 +553,8 @@ class Field:
         :param pilosa.PQLQuery row: a PQL Row query
         :param str name: only return rows which have the attribute specified by attribute name
         :param object values: filter values to be matched against the attribute name
+
+        * See `Query Language/TopN <https://www.pilosa.com/docs/latest/query-language/#topn/>`_
         """
         parts = [self.name]
         if row:
@@ -514,6 +577,8 @@ class Field:
         :param int row:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         row_str = idkey_as_str(row)
         start_str = start.strftime(_TIME_FORMAT)
@@ -538,6 +603,8 @@ class Field:
         :param dict attrs: row attributes
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/SetRowAttrs <https://www.pilosa.com/docs/latest/query-language/#setrowattrs/>`_
         """
         row_str = idkey_as_str(row)
         attrs_str = _create_attributes_str(attrs)
@@ -547,18 +614,30 @@ class Field:
     def store(self, row_query, row):
         """Creates a Store query.
 
-        Store writes the result of the row query to the specified row. If the row already exists, it will be replaced. The destination field must be of field type set.
+        ``Store`` writes the result of the row query to the specified row. If the row already exists, it will be replaced. The destination field must be of field type set.
 
         :param row_query:
-        :param row:
+        :param row: ID or key of the target row
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
+
+        * See `Query Language/Store <https://www.pilosa.com/docs/latest/query-language/#store/>`_
         """
         row_str = idkey_as_str(row)
         fmt = u"Store(%s,%s=%s)"
         return PQLQuery(fmt % (row_query.serialize().query, self.name, row_str), self.index)
 
     def clear_row(self, row):
+        """Creates a ClearRow query.
+
+        ``ClearRow`` sets all bits to 0 in a given row of the binary matrix, thus disassociating the given row in the given field from all columns.
+
+        :param row: ID or key of the target row
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+
+        * See `Query Language/ClearRow <https://www.pilosa.com/docs/latest/query-language/#clearrow/>`_
+        """
         row_str = idkey_as_str(row)
         fmt = u"ClearRow(%s=%s)"
         return PQLQuery(fmt %  (self.name, row_str), self.index)
@@ -569,6 +648,8 @@ class Field:
         :param n: The value to compare
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         return self._binary_operation("<", n)
 
@@ -578,6 +659,8 @@ class Field:
         :param n: The value to compare
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         return self._binary_operation("<=", n)
 
@@ -587,6 +670,8 @@ class Field:
         :param n: The value to compare
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         return self._binary_operation(">", n)
 
@@ -596,6 +681,8 @@ class Field:
         :param n: The value to compare
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         return self._binary_operation(">=", n)
 
@@ -605,6 +692,8 @@ class Field:
         :param n: The value to compare
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         return self._binary_operation("==", n)
 
@@ -614,6 +703,8 @@ class Field:
         :param n: The value to compare
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         return self._binary_operation("!=", n)
 
@@ -622,6 +713,8 @@ class Field:
 
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         q = u"Range(%s != null)" % self.name
         return PQLQuery(q, self.index)
@@ -633,6 +726,8 @@ class Field:
         :param b: Closed range end
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
         """
         q = u"Range(%s >< [%d,%d])" % (self.name, a, b)
         return PQLQuery(q, self.index)
@@ -643,6 +738,8 @@ class Field:
         :param row: The row query to use.
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Sum <https://www.pilosa.com/docs/latest/query-language/#sum/>`_
         """
         return self._value_query("Sum", row)
 
@@ -652,6 +749,8 @@ class Field:
         :param row: The row query to use.
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Min <https://www.pilosa.com/docs/latest/query-language/#min/>`_
         """
         return self._value_query("Min", row)
 
@@ -661,6 +760,8 @@ class Field:
         :param row: The row query to use.
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/Max <https://www.pilosa.com/docs/latest/query-language/#max/>`_
         """
         return self._value_query("Max", row)
 
@@ -671,6 +772,8 @@ class Field:
         :param value: the value to assign to the field
         :return: a PQL query
         :rtype: PQLQuery
+
+        * See `Query Language/SetValue <https://www.pilosa.com/docs/latest/query-language/#setvalue/>`_
         """
         col_str = idkey_as_str(col)
         q = u"Set(%s,%s=%d)" % (col_str, self.name, value)
