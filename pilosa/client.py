@@ -70,10 +70,16 @@ class Client(object):
         # Create a Client instance
         client = pilosa.Client()
 
-        # Create an Index instance
-        index = pilosa.Index("repository")
+        # Load the schema from the Pilosa server
+        schema = client.schema()
 
+        # Create an Index instance
+        index = schema.Index("repository")
+
+        # Create a Field instance
         stargazer = index.field("stargazer")
+
+        # Execute a query
         response = client.query(stargazer.row(5))
 
         # Act on the result
@@ -88,6 +94,21 @@ class Client(object):
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
                  tls_skip_verify=False, tls_ca_certificate_path=""):
+        """Creates a Client.
+
+        :param object cluster_or_uri: A ``pilosa.Cluster`` or ``pilosa.URI` instance
+        :param int connect_timeout: The maximum amount of time in milliseconds to wait for a connection attempt to a server
+        to succeed
+        :param int socket_timeout: The maximum amount of time in milliseconds to wait between consecutive
+        read operations for a response from the server
+        :param int pool_size_per_route: Number of connections in the pool per server
+        :param int pool_size_total: Total number of connections in the pool
+        :param int retry_count: Number of connection trials
+        :param bool tls_skip_verify: Do not verify the TLS certificate of the server (Not recommended for production)
+        :param str tls_ca_certificate_path: Server's TLS certificate (Useful when using self-signed certificates)
+
+        * See `Pilosa Python Client/Server Interaction <https://github.com/pilosa/python-pilosa/blob/master/docs/server-interaction.md>`_.
+        """
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
         elif isinstance(cluster_or_uri, Cluster):
@@ -114,7 +135,7 @@ class Client(object):
 
     def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False, shards=None):
         """Runs the given query against the server with the given options.
-        
+
         :param pilosa.PqlQuery query: a PqlQuery object with a non-null index
         :param bool column_attrs: Enables returning column data from row queries
         :param bool exclude_columns: Disables returning columns from row queries
@@ -149,7 +170,7 @@ class Client(object):
 
     def create_index(self, index):
         """Creates an index on the server using the given Index object.
-        
+
         :param pilosa.Index index:
         :raises pilosa.IndexExistsError: if there already is a index with the given name
         """
@@ -164,7 +185,7 @@ class Client(object):
 
     def delete_index(self, index):
         """Deletes the given index on the server.
-        
+
         :param pilosa.Index index:
         :raises pilosa.PilosaError: if the index does not exist
         """
@@ -173,7 +194,7 @@ class Client(object):
 
     def create_field(self, field):
         """Creates a field on the server using the given Field object.
-        
+
         :param pilosa.Field field:
         :raises pilosa.FieldExistsError: if there already is a field with the given name
         """
@@ -189,7 +210,7 @@ class Client(object):
 
     def delete_field(self, field):
         """Deletes the given field on the server.
-        
+
         :param pilosa.Field field:
         :raises pilosa.PilosaError: if the field does not exist
         """
@@ -198,7 +219,7 @@ class Client(object):
 
     def ensure_index(self, index):
         """Creates an index on the server if it does not exist.
-        
+
         :param pilosa.Index index:
         """
         try:
@@ -208,7 +229,7 @@ class Client(object):
 
     def ensure_field(self, field):
         """Creates a field on the server if it does not exist.
-        
+
         :param pilosa.Field field:
         """
         try:
@@ -221,6 +242,11 @@ class Client(object):
         return json.loads(response.data.decode('utf-8')).get("indexes") or []
 
     def schema(self):
+        """Loads the schema from the server.
+
+        :return: a Schema instance.
+        :rtype: pilosa.Schema
+        """
         schema = Schema()
         for index_info in self._read_schema():
             index = schema.index(index_info["name"])
@@ -233,6 +259,12 @@ class Client(object):
         return schema
 
     def sync_schema(self, schema):
+        """Syncs the given schema with the server.
+
+        Loads new indexes/fields from the server and creates indexes/fields not existing on the server. Does not delete remote indexes/fields/
+
+        :param pilosa.Schema schema: Local schema to be synced
+        """
         server_schema = self.schema()
 
         # find out local - remote schema
@@ -259,9 +291,10 @@ class Client(object):
     def import_field(self, field, bit_reader, batch_size=100000, fast_import=False):
         """Imports a field using the given bit reader
 
-        :param field:
-        :param bit_reader:
-        :param batch_size:
+        :param pilosa.Field field: The field to import into
+        :param object bit_reader: An iterator that returns a bit on each call
+        :param int batch_size: Number of bits to read from the bit reader before posting them to the server
+        :param bool fast_import: Enables fast import for data with columnID/rowID bits
         """
         for shard, columns in batch_columns(bit_reader, batch_size):
             self._import_data(field, shard, columns, fast_import)
@@ -271,11 +304,11 @@ class Client(object):
 
         NOTE: This function is experimental and may be removed in later revisions.
 
-        :param method: HTTP method
-        :param path: Request path
-        :param data: Request body
+        :param str method: HTTP method
+        :param str path: Request path
+        :param bytes data: Request body
         :param headers: Request headers
-        :return HTTP response:
+        :return: HTTP response
 
         """
         return self.__http_request(method, path, data=data, headers=headers)
@@ -444,6 +477,8 @@ class URI:
     :param str scheme: is the scheme of the Pilosa Server, such as ``http`` or ``https``
     :param str host: is the hostname or IP address of the Pilosa server. IPv6 addresses should be enclosed in brackets, e.g., ``[fe00::0]``.
     :param int port: is the port of the Pilosa server
+
+    * See `Pilosa Python Client/Server Interaction <https://github.com/pilosa/python-pilosa/blob/master/docs/server-interaction.md>`_.
     """
     __PATTERN = re.compile("^(([+a-z]+):\\/\\/)?([0-9a-z.-]+|\\[[:0-9a-fA-F]+\\])?(:([0-9]+))?$")
 
@@ -455,7 +490,7 @@ class URI:
     @classmethod
     def address(cls, address):
         """ Creates a URI from an address.
-        
+
         :param str address: of the form ``${SCHEME}://${HOST}:{$PORT}``
         :return: a Pilosa URI
         :type: pilosa.URI
@@ -506,7 +541,7 @@ class URI:
 
 class Cluster:
     """Contains hosts in a Pilosa cluster.
-    
+
     :param hosts: URIs of hosts. Leaving out hosts creates the default cluster
     """
 
@@ -518,7 +553,7 @@ class Cluster:
 
     def add_host(self, uri):
         """Makes a host available.
-        
+
         :param pilosa.URI uri:
         """
         with self.__lock:
@@ -532,7 +567,7 @@ class Cluster:
 
     def remove_host(self, uri):
         """Makes a host unavailable.
-        
+
         :param pilosa.URI uri:
         """
         with self.__lock:
@@ -542,9 +577,9 @@ class Cluster:
 
     def get_host(self):
         """Returns the next host in the cluster.
-        
+
         :return: next host
-        :rtype: pilosa.URI         
+        :rtype: pilosa.URI
         """
         for host, ok in self.hosts:
             if not ok:
