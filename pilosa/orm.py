@@ -49,7 +49,7 @@ _basestring = globals()["__builtins__"].basestring if hasattr(globals()["__built
 class TimeQuantum:
     """Valid time quantum values.
 
-    * See: `Data Model/Time Quantum <https://www.pilosa.com/docs/latest/data-model/#time-quantum/>`_
+    * See: `Data Model/Time Quantum <https://www.pilosa.com/docs/latest/data-model/#time-quantum>`_
     """
 
     NONE = None
@@ -91,14 +91,14 @@ TimeQuantum.YEAR_MONTH_DAY_HOUR = TimeQuantum("YMDH")
 class CacheType:
     """Cache type for set and mutex fields.
 
-    * See: `Data Model/Ranked <https://www.pilosa.com/docs/latest/data-model/#ranked/>`_
+    * See: `Data Model/Ranked <https://www.pilosa.com/docs/latest/data-model/#ranked>`_
     """
 
     #: Use the default cache type for the server
     DEFAULT = None
-    #: The LRU cache maintains the most recently accessed Rows. See: `Data Model/LRU <https://www.pilosa.com/docs/latest/data-model/#lru/>`_
+    #: The LRU cache maintains the most recently accessed Rows. See: `Data Model/LRU <https://www.pilosa.com/docs/latest/data-model/#lru>`_
     LRU = None
-    #: Ranked Fields maintain a sorted cache of column counts by Row ID. `Data Model/Ranked <https://www.pilosa.com/docs/latest/data-model/#ranked/>`_
+    #: Ranked Fields maintain a sorted cache of column counts by Row ID. `Data Model/Ranked <https://www.pilosa.com/docs/latest/data-model/#ranked>`_
     RANKED = None
 
     def __init__(self, value):
@@ -283,7 +283,7 @@ class Index:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Union <https://www.pilosa.com/docs/latest/query-language/#union/>`_
+        * See `Query Language/Union <https://www.pilosa.com/docs/latest/query-language/#union>`_
         """
         return self._row_op("Union", rows)
 
@@ -297,7 +297,7 @@ class Index:
         :rtype: pilosa.PQLQuery
         :raise PilosaError: if the number of rows is less than 1
 
-        * See `Query Language/Intersect <https://www.pilosa.com/docs/latest/query-language/#intersect/>`_
+        * See `Query Language/Intersect <https://www.pilosa.com/docs/latest/query-language/#intersect>`_
         """
         if len(rows) < 1:
             raise PilosaError("Number of row queries should be greater than or equal to 1")
@@ -314,7 +314,7 @@ class Index:
         :rtype: pilosa.PQLQuery
         :raise PilosaError: if the number of rows is less than 1
 
-        * See `Query Language/Difference <https://www.pilosa.com/docs/latest/query-language/#difference/>`_
+        * See `Query Language/Difference <https://www.pilosa.com/docs/latest/query-language/#difference>`_
         """
         if len(rows) < 1:
             raise PilosaError("Number of row queries should be greater than or equal to 1")
@@ -330,7 +330,7 @@ class Index:
         :rtype: pilosa.PQLQuery
         :raise PilosaError: if the number of rows is less than 2
 
-        * See `Query Language/Xor <https://www.pilosa.com/docs/latest/query-language/#xor/>`_
+        * See `Query Language/Xor <https://www.pilosa.com/docs/latest/query-language/#xor>`_
         """
         if len(rows) < 2:
             raise PilosaError("Number of row queries should be greater than or equal to 2")
@@ -345,7 +345,7 @@ class Index:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Not <https://www.pilosa.com/docs/latest/query-language/#not/>`_
+        * See `Query Language/Not <https://www.pilosa.com/docs/latest/query-language/#not>`_
         """
         return PQLQuery(u"Not(%s)" % row.serialize().query, self)
 
@@ -358,7 +358,7 @@ class Index:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Count <https://www.pilosa.com/docs/latest/query-language/#count/>`_
+        * See `Query Language/Count <https://www.pilosa.com/docs/latest/query-language/#count>`_
         """
         return PQLQuery(u"Count(%s)" % row.serialize().query, self)
 
@@ -379,7 +379,7 @@ class Index:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/SetColumnAttrs <https://www.pilosa.com/docs/latest/query-language/#setcolumnattrs/>`_
+        * See `Query Language/SetColumnAttrs <https://www.pilosa.com/docs/latest/query-language/#setcolumnattrs>`_
         """
         col_str = idkey_as_str(col)
         attrs_str = _create_attributes_str(attrs)
@@ -404,7 +404,7 @@ class Index:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Options <https://www.pilosa.com/docs/latest/query-language/#options/>`_
+        * See `Query Language/Options <https://www.pilosa.com/docs/latest/query-language/#options>`_
         """
 
         make_bool = lambda b: "true" if b else "false"
@@ -500,7 +500,7 @@ class Field:
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Row <https://www.pilosa.com/docs/latest/query-language/#row/>`_
+        * See `Query Language/Row <https://www.pilosa.com/docs/latest/query-language/#row>`_
         """
         row_str = idkey_as_str(row_idkey)
         fmt = u"Row(%s=%s)"
@@ -517,7 +517,7 @@ class Field:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Set <https://www.pilosa.com/docs/latest/query-language/#set/>`_
+        * See `Query Language/Set <https://www.pilosa.com/docs/latest/query-language/#set>`_
         """
         row_str = idkey_as_str(row)
         col_str = idkey_as_str(col)
@@ -535,7 +535,7 @@ class Field:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Clear <https://www.pilosa.com/docs/latest/query-language/#clear/>`_
+        * See `Query Language/Clear <https://www.pilosa.com/docs/latest/query-language/#clear>`_
         """
         row_str = idkey_as_str(row)
         col_str = idkey_as_str(col)
@@ -554,7 +554,7 @@ class Field:
         :param str name: only return rows which have the attribute specified by attribute name
         :param object values: filter values to be matched against the attribute name
 
-        * See `Query Language/TopN <https://www.pilosa.com/docs/latest/query-language/#topn/>`_
+        * See `Query Language/TopN <https://www.pilosa.com/docs/latest/query-language/#topn>`_
         """
         parts = [self.name]
         if row:
@@ -578,7 +578,7 @@ class Field:
         :param datetime.datetime start: start timestamp
         :param datetime.datetime end: end timestamp
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         row_str = idkey_as_str(row)
         start_str = start.strftime(_TIME_FORMAT)
@@ -604,7 +604,7 @@ class Field:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/SetRowAttrs <https://www.pilosa.com/docs/latest/query-language/#setrowattrs/>`_
+        * See `Query Language/SetRowAttrs <https://www.pilosa.com/docs/latest/query-language/#setrowattrs>`_
         """
         row_str = idkey_as_str(row)
         attrs_str = _create_attributes_str(attrs)
@@ -621,7 +621,7 @@ class Field:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/Store <https://www.pilosa.com/docs/latest/query-language/#store/>`_
+        * See `Query Language/Store <https://www.pilosa.com/docs/latest/query-language/#store>`_
         """
         row_str = idkey_as_str(row)
         fmt = u"Store(%s,%s=%s)"
@@ -636,7 +636,7 @@ class Field:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
-        * See `Query Language/ClearRow <https://www.pilosa.com/docs/latest/query-language/#clearrow/>`_
+        * See `Query Language/ClearRow <https://www.pilosa.com/docs/latest/query-language/#clearrow>`_
         """
         row_str = idkey_as_str(row)
         fmt = u"ClearRow(%s=%s)"
@@ -649,7 +649,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         return self._binary_operation("<", n)
 
@@ -660,7 +660,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         return self._binary_operation("<=", n)
 
@@ -671,7 +671,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         return self._binary_operation(">", n)
 
@@ -682,7 +682,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         return self._binary_operation(">=", n)
 
@@ -693,7 +693,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         return self._binary_operation("==", n)
 
@@ -704,7 +704,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         return self._binary_operation("!=", n)
 
@@ -714,7 +714,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         q = u"Range(%s != null)" % self.name
         return PQLQuery(q, self.index)
@@ -727,7 +727,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range/>`_
+        * See `Query Language/Range <https://www.pilosa.com/docs/latest/query-language/#range>`_
         """
         q = u"Range(%s >< [%d,%d])" % (self.name, a, b)
         return PQLQuery(q, self.index)
@@ -739,7 +739,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Sum <https://www.pilosa.com/docs/latest/query-language/#sum/>`_
+        * See `Query Language/Sum <https://www.pilosa.com/docs/latest/query-language/#sum>`_
         """
         return self._value_query("Sum", row)
 
@@ -750,7 +750,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Min <https://www.pilosa.com/docs/latest/query-language/#min/>`_
+        * See `Query Language/Min <https://www.pilosa.com/docs/latest/query-language/#min>`_
         """
         return self._value_query("Min", row)
 
@@ -761,7 +761,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/Max <https://www.pilosa.com/docs/latest/query-language/#max/>`_
+        * See `Query Language/Max <https://www.pilosa.com/docs/latest/query-language/#max>`_
         """
         return self._value_query("Max", row)
 
@@ -773,7 +773,7 @@ class Field:
         :return: a PQL query
         :rtype: PQLQuery
 
-        * See `Query Language/SetValue <https://www.pilosa.com/docs/latest/query-language/#setvalue/>`_
+        * See `Query Language/SetValue <https://www.pilosa.com/docs/latest/query-language/#setvalue>`_
         """
         col_str = idkey_as_str(col)
         q = u"Set(%s,%s=%d)" % (col_str, self.name, value)

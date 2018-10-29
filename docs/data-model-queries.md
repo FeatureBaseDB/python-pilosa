@@ -109,6 +109,8 @@ Index:
 * `count(self, row)`
 * `set_column_attrs(self, column_id, attrs)`
 * `xor(self, *rows)`
+* `not_(self, row)`
+* `options(self, row_query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=[])`
 
 Field:
 
@@ -127,3 +129,5 @@ Field:
 * `min(self, row=None)`
 * `max(self, row=None)`
 * `setvalue(self, column_id, value)`
+* `store(self, row_query, row)`
+* `clear_row(self, row)`
