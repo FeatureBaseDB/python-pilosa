@@ -850,16 +850,6 @@ class PQLBatchQuery:
         return SerializedQuery(text, has_keys)
 
 
-def id_key_format(name, id_key, id_fmt, key_fmt):
-    if isinstance(id_key, bool) or isinstance(id_key, int):
-        return id_fmt
-    elif isinstance(id_key, _basestring):
-        validate_key(id_key)
-        return key_fmt
-    else:
-        raise ValidationError("%s must be an integer, boolean or string" % name)
-
-
 def idkey_as_str(id_key):
     if isinstance(id_key, bool):
         return "true" if id_key else "false"
