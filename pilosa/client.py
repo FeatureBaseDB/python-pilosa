@@ -639,9 +639,9 @@ class _ImportRequest:
             self.format = csv_row_key_column_id if field.keys else csv_row_id_column_id
         self._time_formats = {
             "Y": "%Y",
-            "M": "%m",
-            "D": "%d",
-            "H": "%H"
+            "M": "%Y%m",
+            "D": "%Y%m%d",
+            "H": "%Y%m%d%H"
         }
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
@@ -720,7 +720,7 @@ class _ImportRequest:
             bio = io.BytesIO()
             bitmap.write_to(bio)
             view = req.views.add()
-            view.Name = ""
+            view.Name = name
             view.Data = bio.getvalue()
         req.Clear = clear
         return req.SerializeToString()

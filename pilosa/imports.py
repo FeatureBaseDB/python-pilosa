@@ -40,14 +40,14 @@ __all__ = ("Column", "csv_column_reader")
 
 
 class Column:
-    
+
     def __init__(self, row_id=0, column_id=0, row_key="", column_key="", timestamp=0):
         self.row_id = row_id
         self.column_id = column_id
         self.row_key = row_key
         self.column_key = column_key
         self.timestamp = timestamp
-    
+
     def __hash__(self):
         return hash("%s:%s:%s:%s:%s" % (self.row_id, self.column_id,
                                         self.row_key, self.column_key,
@@ -63,7 +63,7 @@ class Column:
             self.row_key == other.row_key and \
             self.column_key == other.column_key and \
             self.timestamp == other.timestamp
-    
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
@@ -91,7 +91,7 @@ class FieldValue:
         return self.column_id == other.column_id and \
             self.column_key == other.column_key and \
             self.value == other.value
-    
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
