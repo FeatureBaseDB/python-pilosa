@@ -5,7 +5,6 @@ python:
   - "3.5"
   - "3.6"
   - "nightly"
-  - "pypy"
 sudo: required
 group: deprecated-2017Q2
 before_install:
