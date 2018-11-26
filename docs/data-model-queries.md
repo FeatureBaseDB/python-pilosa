@@ -47,7 +47,7 @@ query = repository.batch_query(
     repository.union(stargazer.row(100), stargazer.row(5)))
 ```
 
-The recommended way of creating query objects is, using dedicated methods attached to index and field objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, the query string is not validated before sending to the server:
+The recommended way of creating query objects is, using dedicated methods attached to index and field objects. But sometimes it would be desirable to send raw queries to Pilosa. You can use the `index.raw_query` method for that. Note that, the query string is not validated before sending to the server. Also, raw queries may be less efficient than the corresponding ORM query, since they are only sent to the coordinator node.
 
 ```python
 query = repository.raw_query("Row(stargazer=5)")

@@ -34,6 +34,7 @@ import threading
 import unittest
 from wsgiref.simple_server import make_server
 from wsgiref.util import setup_testing_defaults
+from datetime import datetime
 
 try:
     from io import StringIO
@@ -319,7 +320,7 @@ class ClientIT(unittest.TestCase):
         for result in response.results:
             self.assertEqual([], result.row.columns)
 
-    def test_csv_import_fast(self):
+    def test_csv_roaring_import(self):
         client = self.get_client()
         text = u"""
             10, 7
@@ -343,8 +344,47 @@ class ClientIT(unittest.TestCase):
 
         # test clear import
         reader = csv_column_reader(StringIO(text))
-        field = self.index.field("importfield-fast")
+        client.import_field(field, reader, fast_import=True, clear=True)
+        bq = self.index.batch_query(
+            field.row(2),
+            field.row(7),
+            field.row(10),
+        )
+        response = client.query(bq)
+        self.assertEqual(3, len(response.results))
+        for result in response.results:
+            self.assertEqual([], result.row.columns)
+
+    def test_csv_roaring_import_time_field(self):
+        client = self.get_client()
+        text = u"""
+            10, 7, 1542199376
+            10, 5, 1483273800
+            2, 3, 1520268300
+            7, 1, 1330965900
+        """
+        reader = csv_column_reader(StringIO(text))
+        field = self.index.field("importfield-fast-time", time_quantum=TimeQuantum.YEAR_MONTH_DAY_HOUR)
         client.ensure_field(field)
+        client.import_field(field, reader, fast_import=True)
+        bq = self.index.batch_query(
+            field.row(2),
+            field.row(7),
+            field.row(10),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
+
+        target = [5, 7]
+        start = datetime(2016, 1, 1, 0, 0)
+        end = datetime(2019, 1, 1, 0, 0, 0)
+        response = client.query(field.range(10, start, end))
+        self.assertEqual(target, response.result.row.columns)
+
+        # test clear import
+        reader = csv_column_reader(StringIO(text))
         client.import_field(field, reader, fast_import=True, clear=True)
         bq = self.index.batch_query(
             field.row(2),

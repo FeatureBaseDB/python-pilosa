@@ -37,6 +37,7 @@ import logging
 import re
 import sys
 import threading
+from datetime import datetime
 
 import urllib3
 from roaring import Bitmap
@@ -339,7 +340,7 @@ class Client(object):
                 client._import_node(_ImportValueRequest(field, shard, data), clear)
             else:
                 req = _ImportRequest(field, shard, data)
-                if fast_import and field.field_type == "set" and req.format == csv_row_id_column_id:
+                if fast_import and field.field_type in ["set", "bool", "time"] and req.format == csv_row_id_column_id:
                     client._import_node_fast(req, clear)
                 else:
                     client._import_node(req, clear)
@@ -376,14 +377,13 @@ class Client(object):
         self.__http_request("POST", path, data=data, headers=headers)
 
     def _import_node_fast(self, import_request, clear):
-        data = import_request.to_bitmap()
+        data = import_request.to_bitmap(clear)
         headers = {
-            'Content-Type': 'application/x-binary',
+            'Content-Type': 'application/x-protobuf',
             'Accept': 'application/x-protobuf',
         }
-        clear_str = "?clear=true" if clear else ""
-        path = "/index/%s/field/%s/import-roaring/%d%s" % \
-               (import_request.index_name, import_request.field_name, import_request.shard, clear_str)
+        path = "/index/%s/field/%s/import-roaring/%d" % \
+               (import_request.index_name, import_request.field_name, import_request.shard)
         self.__http_request("POST", path, data=data, headers=headers)
 
     def __http_request(self, method, path, data=None, headers=None, use_coordinator=False):
@@ -628,12 +628,21 @@ class _ImportRequest:
     def __init__(self, field, shard, columns):
         self.index_name = field.index.name
         self.field_name = field.name
+        self.field_time_quantum = ""
+        if field.time_quantum and field.time_quantum != TimeQuantum.NONE:
+            self.field_time_quantum = str(field.time_quantum)
         self.shard = shard
         self.columns = columns
         if field.index.keys:
             self.format = csv_row_key_column_key if field.keys else csv_row_id_column_key
         else:
             self.format = csv_row_key_column_id if field.keys else csv_row_id_column_id
+        self._time_formats = {
+            "Y": "%Y",
+            "M": "%Y%m",
+            "D": "%Y%m%d",
+            "H": "%Y%m%d%H"
+        }
 
     def to_protobuf(self, return_bytearray=_IS_PY2):
         request = internal.ImportRequest()
@@ -672,15 +681,49 @@ class _ImportRequest:
 
         return bytearray(request.SerializeToString()) if return_bytearray else request.SerializeToString()
 
-    def to_bitmap(self, return_bytearray=_IS_PY2):
+    def to_bitmap(self, clear, return_bytearray=_IS_PY2):
         shard_width = 1048576
+        if self.field_time_quantum:
+            data = self._field_time_to_roaring(shard_width, clear)
+        else:
+            data = self._field_set_to_roaring(shard_width, clear)
+        return bytearray(data) if return_bytearray else data
+
+    def _field_set_to_roaring(self, shard_width, clear):
         bitmap = Bitmap()
         for b in self.columns:
             bitmap.add(b.row_id * shard_width + b.column_id % shard_width)
-        bio = io.BytesIO()
-        bitmap.write_to(bio)
-        data = bio.getvalue()
-        return bytearray(data) if return_bytearray else data
+        bitmaps = {"": bitmap}
+        return self._make_roaring_request(bitmaps, clear)
+
+    def _field_time_to_roaring(self, shard_width, clear):
+        standard = Bitmap()
+        bitmaps = {"": standard}
+        time_quantum = self.field_time_quantum
+        time_formats = self._time_formats
+        for b in self.columns:
+            bit = b.row_id * shard_width + b.column_id % shard_width
+            standard.add(bit)
+            for c in time_quantum:
+                fmt = time_formats.get(c, "")
+                view_name = datetime.utcfromtimestamp(b.timestamp).strftime(fmt)
+                bmp = bitmaps.get(view_name)
+                if not bmp:
+                    bmp = Bitmap()
+                    bitmaps[view_name] = bmp
+                bmp.add(bit)
+        return self._make_roaring_request(bitmaps, clear)
+
+    def _make_roaring_request(self, bitmaps, clear):
+        req = internal.ImportRoaringRequest()
+        for name, bitmap in bitmaps.items():
+            bio = io.BytesIO()
+            bitmap.write_to(bio)
+            view = req.views.add()
+            view.Name = name
+            view.Data = bio.getvalue()
+        req.Clear = clear
+        return req.SerializeToString()
 
 
 class _ImportValueRequest:
