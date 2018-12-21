@@ -1,6 +1,6 @@
 # Python Client for Pilosa
 
-<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-1.0-blue.svg"></a>
+<a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-1.2-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
 <a href="https://travis-ci.org/pilosa/python-pilosa"><img src="https://api.travis-ci.org/pilosa/python-pilosa.svg?branch=master"></a>
@@ -16,7 +16,8 @@ See: [CHANGELOG](https://github.com/pilosa/python-pilosa/blob/master/CHANGELOG.m
 
 ## Requirements
 
-* Python 2.7 and higher or Python 3.4 and higher.
+* **Compatible with Pilosa 1.2**
+* Requires Python 2.7 and higher or Python 3.4 and higher.
 
 ## Install
 
