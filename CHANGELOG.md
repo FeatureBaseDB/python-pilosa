@@ -1,8 +1,14 @@
 ## Change Log
 
-* **master**
+* **v1.2.0** (2018-12-21)
+    * **Compatible with Pilosa 1.2**
     * Added `track_existence` index option.
-    * Added `not_` index method to support `Not` queries. The corrsponding index must be created with `track_existence=True`.  
+    * Added `not_` index method to support `Not` queries. The corresponding index must be created with `track_existence=True`.  
+    * Added mutex and bool fields.
+    * Added `field.clear_row`, `field.store` and `index.options` calls.
+    * Added support for roaring importing `RowIDColumnID` with timestamp data.
+    * Added support for clear imports. Pass `clear=True` to `client.import_field` to use it.
+    * Disabled support for PyPy. Let us know if you depend on it.
 
 * **v1.0.3** (2018-09-12)
     * Compatible with Pilosa 1.0.
