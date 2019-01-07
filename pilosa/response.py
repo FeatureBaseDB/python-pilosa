@@ -39,7 +39,9 @@ __all__ = ("RowResult", "CountResultItem", "QueryResult", "ColumnItem", "QueryRe
 
 
 QUERYRESULT_NONE, QUERYRESULT_ROW, QUERYRESULT_PAIRS, \
-QUERYRESULT_VAL_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL = range(6)
+QUERYRESULT_VAL_COUNT, QUERYRESULT_INT, QUERYRESULT_BOOL, \
+QUERYRESULT_ROW_IDS,\
+QUERYRESULT_GROUP_COUNTS, QUERYRESULT_ROW_IDENTIFIERS = range(9)
 
 
 class RowResult:
@@ -70,18 +72,32 @@ class CountResultItem:
         self.count = count
 
 
+class RowIdentifiersResult:
+
+    def __init__(self, ids=None, keys=None):
+        self.ids = ids or []
+        self.keys = keys or []
+
+    @classmethod
+    def from_internal(cls, obj):
+        return cls(list(obj.Rows), list(obj.Keys))
+
+
 class QueryResult:
     """Represents one of the results in the response.
     
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_        
     """
 
-    def __init__(self, row=None, count_items=None, count=0, value=0, changed=False):
+    def __init__(self, row=None, count_items=None, count=0, value=0,
+                 changed=False, group_counts=None, row_identifiers=None):
         self.row = row or RowResult()
         self.count_items = count_items or []
         self.count = count
         self.value = value
         self.changed = changed
+        self.group_counts = group_counts or []
+        self.row_identifiers = row_identifiers or RowIdentifiersResult()
 
     @classmethod
     def from_internal(cls, obj):
@@ -90,6 +106,8 @@ class QueryResult:
         count = 0
         value = 0
         changed = False
+        group_counts = []
+        row_identifiers = None
 
         if obj.Type == QUERYRESULT_ROW:
             row = RowResult.from_internal(obj.Row)
@@ -105,10 +123,14 @@ class QueryResult:
             value = obj.ValCount.Val
         elif obj.Type == QUERYRESULT_NONE:
             pass
+        elif obj.Type == QUERYRESULT_GROUP_COUNTS:
+            group_counts = _group_counts_from_internal(obj.GroupCounts)
+        elif obj.Type == QUERYRESULT_ROW_IDENTIFIERS:
+            row_identifiers = RowIdentifiersResult.from_internal(obj.RowIdentifiers)
         else:
             raise PilosaError("Unknown type: %s" % obj.Type)
 
-        return cls(row, count_items, count, value, changed)
+        return cls(row, count_items, count, value, changed, group_counts, row_identifiers)
 
 
 class ColumnItem:
@@ -125,6 +147,26 @@ class ColumnItem:
     @classmethod
     def _from_internal(cls, obj):
         return cls(obj.ID, _convert_protobuf_attrs_to_dict(obj.Attrs))
+
+
+class FieldRow:
+
+    def __init__(self, field_name, id_key):
+        self.field_name = field_name
+        self.id_key = id_key
+
+    @classmethod
+    def _from_internal(cls, obj):
+        if obj.RowKey:
+            return cls(obj.Field, obj.RowKey)
+        return cls(obj.Field, obj.RowID)
+
+
+class GroupCount:
+
+    def __init__(self, groups, count):
+        self.groups = groups
+        self.count = count
 
 
 class QueryResponse(object):
@@ -173,3 +215,14 @@ def _convert_protobuf_attrs_to_dict(attrs):
     except (IndexError, TypeError):
         raise PilosaError("Invalid protobuf attribute type: %s" % attr.Type)
     return d
+
+
+def _group_counts_from_internal(items):
+    group_counts = []
+    for item in items:
+        groups = []
+        for f in item.Group:
+            field_row = FieldRow(f.Field, f.RowKey) if f.RowKey else FieldRow(f.Field, f.RowKey)
+            groups.append(field_row)
+        group_counts.append(GroupCount(groups, item.Count))
+    return group_counts

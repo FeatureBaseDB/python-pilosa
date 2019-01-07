@@ -412,7 +412,13 @@ class Index:
                              (make_bool(column_attrs), make_bool(exclude_columns), make_bool(exclude_row_attrs))
         if shards:
             serialized_options = "%s,shards=[%s]" % (serialized_options, ",".join(str(s) for s in shards))
-        return PQLQuery("Options(%s,%s)" % (row_query.serialize().query, serialized_options), self.name)
+        return PQLQuery("Options(%s,%s)" % (row_query.serialize().query, serialized_options), self)
+
+    def group_by(self, *rows_queries):
+        if len(rows_queries) < 1:
+            raise PilosaError("Number of rows queries should be greater than or equal to 1")
+        queries = [q.serialize().query for q in rows_queries]
+        return PQLQuery(u"GroupBy(%s)" % u",".join(queries), self)
 
     def _row_op(self, name, rows):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize().query for b in rows)), self)
@@ -778,6 +784,16 @@ class Field:
         col_str = idkey_as_str(col)
         q = u"Set(%s,%s=%d)" % (col_str, self.name, value)
         return PQLQuery(q, self.index)
+
+    def rows(self, prev_row=None, limit=0, column=None):
+        parts = [u"field=%s" % self.name]
+        if prev_row:
+            parts.append(u"previous=%s" % idkey_as_str(prev_row))
+        if limit > 0:
+            parts.append(u"limit=%d" % limit)
+        if column:
+            parts.append(u"column=%s" % idkey_as_str(column))
+        return PQLQuery(u"Rows(%s)" % u",".join(parts), self.index)
 
     def _binary_operation(self, op, n):
         q = u"Range(%s %s %d)" % (self.name, op, n)
