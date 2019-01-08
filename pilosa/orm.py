@@ -414,11 +414,28 @@ class Index:
             serialized_options = "%s,shards=[%s]" % (serialized_options, ",".join(str(s) for s in shards))
         return PQLQuery("Options(%s,%s)" % (row_query.serialize().query, serialized_options), self)
 
-    def group_by(self, *rows_queries):
+    def group_by(self, *rows_queries, **kwargs):
+        """Creates a ``GroupBy`` query.
+
+        :param *PQLQuery rows_queries: List of at least one ``Rows`` queries.
+        :param int limit: (Optional) limits the number of results returned.
+        :param PQLQuery filter: (Optional) takes any type of `Row` query (e.g. Row, Union,
+ Intersect, etc.) which will be intersected with each result prior to returning
+ the count. This is analagous to a WHERE clause applied to a relational GROUP BY
+ query.
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
         if len(rows_queries) < 1:
             raise PilosaError("Number of rows queries should be greater than or equal to 1")
-        queries = [q.serialize().query for q in rows_queries]
-        return PQLQuery(u"GroupBy(%s)" % u",".join(queries), self)
+        q = [u",".join(q.serialize().query for q in rows_queries)]
+        limit = kwargs.get("limit")
+        if limit is not None:
+            q.append("limit=%s" % limit)
+        filter = kwargs.get("filter")
+        if filter is not None:
+            q.append("filter=%s" % filter.serialize().query)
+        return PQLQuery(u"GroupBy(%s)" % u",".join(q), self)
 
     def _row_op(self, name, rows):
         return PQLQuery(u"%s(%s)" % (name, u", ".join(b.serialize().query for b in rows)), self)
@@ -786,6 +803,18 @@ class Field:
         return PQLQuery(q, self.index)
 
     def rows(self, prev_row=None, limit=0, column=None):
+        """Creates a ``Rows`` query.
+
+        :param *PQLQuery prev_row: (Optional) If given, rows prior to and including the specified row ID or
+key will not be returned.
+        :param int limit: (Optional) If given, the number of rowIDs returned will be less than or equal to
+``limit``.
+        :param int column: If given, only rows which have a set bit
+in the given column will be returned.
+        :return: Pilosa query
+        :rtype: pilosa.PQLQuery
+        """
+
         parts = [u"field=%s" % self.name]
         if prev_row:
             parts.append(u"previous=%s" % idkey_as_str(prev_row))

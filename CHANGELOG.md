@@ -1,9 +1,12 @@
 ## Change Log
 
+* **master**
+    * Added `field.rows` and `index.group_by` calls.
+
 * **v1.2.0** (2018-12-21)
     * **Compatible with Pilosa 1.2**
     * Added `track_existence` index option.
-    * Added `not_` index method to support `Not` queries. The corresponding index must be created with `track_existence=True`.  
+    * Added `not_` index method to support `Not` queries. The corresponding index must be created with `track_existence=True`.
     * Added mutex and bool fields.
     * Added `field.clear_row`, `field.store` and `index.options` calls.
     * Added support for roaring importing `RowIDColumnID` with timestamp data.

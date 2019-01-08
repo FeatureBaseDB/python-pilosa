@@ -103,31 +103,33 @@ Please check [Pilosa documentation](https://www.pilosa.com/docs) for PQL details
 
 Index:
 
-* `union(self, *rows)`
-* `intersect(self, *rows)`
-* `difference(self, *rows)`
-* `count(self, row)`
-* `set_column_attrs(self, column_id, attrs)`
-* `xor(self, *rows)`
-* `not_(self, row)`
-* `options(self, row_query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=[])`
+* `union(*rows)`
+* `intersect(*rows)`
+* `difference(*rows)`
+* `count(row)`
+* `set_column_attrs(column_id, attrs)`
+* `xor(*rows)`
+* `not_(row)`
+* `options(row_query, column_attrs=False, exclude_columns=False, exclude_row_attrs=False, shards=[])`
+* `group_by(*rows_queries, limit=0, filter=None)`
 
 Field:
 
-* `row(self, row_id)`
-* `set(self, row_id, column_id, timestamp=None)`
-* `clear(self, row_id, column_id)`
-* `topn(self, n, row=None, field="", *values)`
-* `range(self, row_id, start, end)`
-* `set_row_attrs(self, row_id, attrs)`
-* `lt(self, n)`
-* `lte(self, n)`
-* `gt(self, n)`
-* `gte(self, n)`
-* `between(self, a, b)`
-* `sum(self, row=None)`
-* `min(self, row=None)`
-* `max(self, row=None)`
-* `setvalue(self, column_id, value)`
-* `store(self, row_query, row)`
-* `clear_row(self, row)`
+* `row(row_id)`
+* `set(row_id, column_id, timestamp=None)`
+* `clear(row_id, column_id)`
+* `topn(n, row=None, field="", *values)`
+* `range(row_id, start, end)`
+* `set_row_attrs(row_id, attrs)`
+* `lt(n)`
+* `lte(n)`
+* `gt(n)`
+* `gte(n)`
+* `between(a, b)`
+* `sum(row=None)`
+* `min(row=None)`
+* `max(row=None)`
+* `setvalue(column_id, value)`
+* `store(row_query, row)`
+* `clear_row(row)`
+* `rows(prev_row=None, limit=0, column=None)`
