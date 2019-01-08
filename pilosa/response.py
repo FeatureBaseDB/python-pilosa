@@ -155,11 +155,22 @@ class FieldRow:
         self.field_name = field_name
         self.id_key = id_key
 
-    @classmethod
-    def _from_internal(cls, obj):
-        if obj.RowKey:
-            return cls(obj.Field, obj.RowKey)
-        return cls(obj.Field, obj.RowID)
+    def __hash__(self):
+        return hash((self.field_name, self.id_key))
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if other is None or not isinstance(other, self.__class__):
+            return False
+        return self.field_name == other.field_name and \
+            self.id_key == other.id_key
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return u"FieldRow(%s,%s)" % (self.field_name,self.id_key)
 
 
 class GroupCount:
@@ -167,6 +178,23 @@ class GroupCount:
     def __init__(self, groups, count):
         self.groups = groups
         self.count = count
+
+    def __hash__(self):
+        return hash((self.groups, self.count))
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if other is None or not isinstance(other, self.__class__):
+            return False
+        return self.groups == other.groups and \
+            self.count == other.count
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return u"GroupCount(%s,%s)" % (self.groups,self.count)
 
 
 class QueryResponse(object):
@@ -222,7 +250,7 @@ def _group_counts_from_internal(items):
     for item in items:
         groups = []
         for f in item.Group:
-            field_row = FieldRow(f.Field, f.RowKey) if f.RowKey else FieldRow(f.Field, f.RowKey)
+            field_row = FieldRow(f.Field, f.RowKey) if f.RowKey else FieldRow(f.Field, f.RowID)
             groups.append(field_row)
         group_counts.append(GroupCount(groups, item.Count))
     return group_counts

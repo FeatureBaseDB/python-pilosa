@@ -44,7 +44,7 @@ except ImportError:
 from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum, Schema, CacheType
-from pilosa.response import GroupCount
+from pilosa.response import GroupCount, FieldRow
 from pilosa.imports import csv_column_reader, csv_field_value_reader, \
     csv_column_id_value, csv_column_key_value, csv_row_key_column_id
 
@@ -605,7 +605,11 @@ class ClientIT(unittest.TestCase):
             field.set(2, 200),
         ))
         resp = client.query(index.group_by(field.rows()))
-
+        target = [
+            GroupCount([FieldRow("groupbyfield", 1)], 2),
+            GroupCount([FieldRow("groupbyfield", 2)], 1),
+        ]
+        self.assertEqual(target, resp.result.group_counts)
 
 
     def test_exclude_attrs_columns(self):
