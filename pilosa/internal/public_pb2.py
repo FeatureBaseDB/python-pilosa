@@ -16,10 +16,10 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='public.proto',
-  package='',
+  package='internal',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0cpublic.proto\":\n\x03Row\x12\x0f\n\x07\x43olumns\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x03 \x03(\t\x12\x14\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x05.Attr\",\n\x0eRowIdentifiers\x12\x0c\n\x04Rows\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x02 \x03(\t\".\n\x04Pair\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"(\n\x08\x46ieldRow\x12\r\n\x05\x46ield\x18\x01 \x01(\t\x12\r\n\x05RowID\x18\x02 \x01(\x04\"5\n\nGroupCount\x12\x18\n\x05Group\x18\x01 \x03(\x0b\x32\t.FieldRow\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"&\n\x08ValCount\x12\x0b\n\x03Val\x18\x01 \x01(\x03\x12\r\n\x05\x43ount\x18\x02 \x01(\x03\"9\n\x03\x42it\x12\r\n\x05RowID\x18\x01 \x01(\x04\x12\x10\n\x08\x43olumnID\x18\x02 \x01(\x04\x12\x11\n\tTimestamp\x18\x03 \x01(\x03\">\n\rColumnAttrSet\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\x14\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x05.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"\x1f\n\x07\x41ttrMap\x12\x14\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x05.Attr\"\x83\x01\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Shards\x18\x02 \x03(\x04\x12\x13\n\x0b\x43olumnAttrs\x18\x03 \x01(\x08\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\x12\x17\n\x0f\x45xcludeRowAttrs\x18\x06 \x01(\x08\x12\x16\n\x0e\x45xcludeColumns\x18\x07 \x01(\x08\"c\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12\x1d\n\x07Results\x18\x02 \x03(\x0b\x32\x0c.QueryResult\x12&\n\x0e\x43olumnAttrSets\x18\x03 \x03(\x0b\x32\x0e.ColumnAttrSet\"\xd8\x01\n\x0bQueryResult\x12\x0c\n\x04Type\x18\x06 \x01(\r\x12\x11\n\x03Row\x18\x01 \x01(\x0b\x32\x04.Row\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x14\n\x05Pairs\x18\x03 \x03(\x0b\x32\x05.Pair\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\x12\x1b\n\x08ValCount\x18\x05 \x01(\x0b\x32\t.ValCount\x12\x0e\n\x06RowIDs\x18\x07 \x03(\x04\x12 \n\x0bGroupCounts\x18\x08 \x03(\x0b\x32\x0b.GroupCount\x12\'\n\x0eRowIdentifiers\x18\t \x01(\x0b\x32\x0f.RowIdentifiers\"\x98\x01\n\rImportRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\r\n\x05Shard\x18\x03 \x01(\x04\x12\x0e\n\x06RowIDs\x18\x04 \x03(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x0f\n\x07RowKeys\x18\x07 \x03(\t\x12\x12\n\nColumnKeys\x18\x08 \x03(\t\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\"x\n\x12ImportValueRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\r\n\x05Shard\x18\x03 \x01(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x12\n\nColumnKeys\x18\x07 \x03(\t\x12\x0e\n\x06Values\x18\x06 \x03(\x03\"6\n\x18ImportRoaringRequestView\x12\x0c\n\x04Name\x18\x01 \x01(\t\x12\x0c\n\x04\x44\x61ta\x18\x02 \x01(\x0c\"O\n\x14ImportRoaringRequest\x12\r\n\x05\x43lear\x18\x01 \x01(\x08\x12(\n\x05views\x18\x02 \x03(\x0b\x32\x19.ImportRoaringRequestViewb\x06proto3')
+  serialized_pb=_b('\n\x0cpublic.proto\x12\x08internal\"C\n\x03Row\x12\x0f\n\x07\x43olumns\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x03 \x03(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\",\n\x0eRowIdentifiers\x12\x0c\n\x04Rows\x18\x01 \x03(\x04\x12\x0c\n\x04Keys\x18\x02 \x03(\t\".\n\x04Pair\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"8\n\x08\x46ieldRow\x12\r\n\x05\x46ield\x18\x01 \x01(\t\x12\r\n\x05RowID\x18\x02 \x01(\x04\x12\x0e\n\x06RowKey\x18\x03 \x01(\t\">\n\nGroupCount\x12!\n\x05Group\x18\x01 \x03(\x0b\x32\x12.internal.FieldRow\x12\r\n\x05\x43ount\x18\x02 \x01(\x04\"&\n\x08ValCount\x12\x0b\n\x03Val\x18\x01 \x01(\x03\x12\r\n\x05\x43ount\x18\x02 \x01(\x03\"G\n\rColumnAttrSet\x12\n\n\x02ID\x18\x01 \x01(\x04\x12\x0b\n\x03Key\x18\x03 \x01(\t\x12\x1d\n\x05\x41ttrs\x18\x02 \x03(\x0b\x32\x0e.internal.Attr\"o\n\x04\x41ttr\x12\x0b\n\x03Key\x18\x01 \x01(\t\x12\x0c\n\x04Type\x18\x02 \x01(\x04\x12\x13\n\x0bStringValue\x18\x03 \x01(\t\x12\x10\n\x08IntValue\x18\x04 \x01(\x03\x12\x11\n\tBoolValue\x18\x05 \x01(\x08\x12\x12\n\nFloatValue\x18\x06 \x01(\x01\"(\n\x07\x41ttrMap\x12\x1d\n\x05\x41ttrs\x18\x01 \x03(\x0b\x32\x0e.internal.Attr\"\x83\x01\n\x0cQueryRequest\x12\r\n\x05Query\x18\x01 \x01(\t\x12\x0e\n\x06Shards\x18\x02 \x03(\x04\x12\x13\n\x0b\x43olumnAttrs\x18\x03 \x01(\x08\x12\x0e\n\x06Remote\x18\x05 \x01(\x08\x12\x17\n\x0f\x45xcludeRowAttrs\x18\x06 \x01(\x08\x12\x16\n\x0e\x45xcludeColumns\x18\x07 \x01(\x08\"u\n\rQueryResponse\x12\x0b\n\x03\x45rr\x18\x01 \x01(\t\x12&\n\x07Results\x18\x02 \x03(\x0b\x32\x15.internal.QueryResult\x12/\n\x0e\x43olumnAttrSets\x18\x03 \x03(\x0b\x32\x17.internal.ColumnAttrSet\"\x85\x02\n\x0bQueryResult\x12\x0c\n\x04Type\x18\x06 \x01(\r\x12\x1a\n\x03Row\x18\x01 \x01(\x0b\x32\r.internal.Row\x12\t\n\x01N\x18\x02 \x01(\x04\x12\x1d\n\x05Pairs\x18\x03 \x03(\x0b\x32\x0e.internal.Pair\x12\x0f\n\x07\x43hanged\x18\x04 \x01(\x08\x12$\n\x08ValCount\x18\x05 \x01(\x0b\x32\x12.internal.ValCount\x12\x0e\n\x06RowIDs\x18\x07 \x03(\x04\x12)\n\x0bGroupCounts\x18\x08 \x03(\x0b\x32\x14.internal.GroupCount\x12\x30\n\x0eRowIdentifiers\x18\t \x01(\x0b\x32\x18.internal.RowIdentifiers\"\x98\x01\n\rImportRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\r\n\x05Shard\x18\x03 \x01(\x04\x12\x0e\n\x06RowIDs\x18\x04 \x03(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x0f\n\x07RowKeys\x18\x07 \x03(\t\x12\x12\n\nColumnKeys\x18\x08 \x03(\t\x12\x12\n\nTimestamps\x18\x06 \x03(\x03\"x\n\x12ImportValueRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\r\n\x05Shard\x18\x03 \x01(\x04\x12\x11\n\tColumnIDs\x18\x05 \x03(\x04\x12\x12\n\nColumnKeys\x18\x07 \x03(\t\x12\x0e\n\x06Values\x18\x06 \x03(\x03\"B\n\x14TranslateKeysRequest\x12\r\n\x05Index\x18\x01 \x01(\t\x12\r\n\x05\x46ield\x18\x02 \x01(\t\x12\x0c\n\x04Keys\x18\x03 \x03(\t\"$\n\x15TranslateKeysResponse\x12\x0b\n\x03IDs\x18\x03 \x03(\x04\"6\n\x18ImportRoaringRequestView\x12\x0c\n\x04Name\x18\x01 \x01(\t\x12\x0c\n\x04\x44\x61ta\x18\x02 \x01(\x0c\"X\n\x14ImportRoaringRequest\x12\r\n\x05\x43lear\x18\x01 \x01(\x08\x12\x31\n\x05views\x18\x02 \x03(\x0b\x32\".internal.ImportRoaringRequestViewb\x06proto3')
 )
 
 
@@ -27,27 +27,27 @@ DESCRIPTOR = _descriptor.FileDescriptor(
 
 _ROW = _descriptor.Descriptor(
   name='Row',
-  full_name='Row',
+  full_name='internal.Row',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Columns', full_name='Row.Columns', index=0,
+      name='Columns', full_name='internal.Row.Columns', index=0,
       number=1, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Keys', full_name='Row.Keys', index=1,
+      name='Keys', full_name='internal.Row.Keys', index=1,
       number=3, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Attrs', full_name='Row.Attrs', index=2,
+      name='Attrs', full_name='internal.Row.Attrs', index=2,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -65,27 +65,27 @@ _ROW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=16,
-  serialized_end=74,
+  serialized_start=26,
+  serialized_end=93,
 )
 
 
 _ROWIDENTIFIERS = _descriptor.Descriptor(
   name='RowIdentifiers',
-  full_name='RowIdentifiers',
+  full_name='internal.RowIdentifiers',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Rows', full_name='RowIdentifiers.Rows', index=0,
+      name='Rows', full_name='internal.RowIdentifiers.Rows', index=0,
       number=1, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Keys', full_name='RowIdentifiers.Keys', index=1,
+      name='Keys', full_name='internal.RowIdentifiers.Keys', index=1,
       number=2, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -103,34 +103,34 @@ _ROWIDENTIFIERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=76,
-  serialized_end=120,
+  serialized_start=95,
+  serialized_end=139,
 )
 
 
 _PAIR = _descriptor.Descriptor(
   name='Pair',
-  full_name='Pair',
+  full_name='internal.Pair',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='ID', full_name='Pair.ID', index=0,
+      name='ID', full_name='internal.Pair.ID', index=0,
       number=1, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Key', full_name='Pair.Key', index=1,
+      name='Key', full_name='internal.Pair.Key', index=1,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Count', full_name='Pair.Count', index=2,
+      name='Count', full_name='internal.Pair.Count', index=2,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -148,29 +148,36 @@ _PAIR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=122,
-  serialized_end=168,
+  serialized_start=141,
+  serialized_end=187,
 )
 
 
 _FIELDROW = _descriptor.Descriptor(
   name='FieldRow',
-  full_name='FieldRow',
+  full_name='internal.FieldRow',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Field', full_name='FieldRow.Field', index=0,
+      name='Field', full_name='internal.FieldRow.Field', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='RowID', full_name='FieldRow.RowID', index=1,
+      name='RowID', full_name='internal.FieldRow.RowID', index=1,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='RowKey', full_name='internal.FieldRow.RowKey', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -186,27 +193,27 @@ _FIELDROW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=170,
-  serialized_end=210,
+  serialized_start=189,
+  serialized_end=245,
 )
 
 
 _GROUPCOUNT = _descriptor.Descriptor(
   name='GroupCount',
-  full_name='GroupCount',
+  full_name='internal.GroupCount',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Group', full_name='GroupCount.Group', index=0,
+      name='Group', full_name='internal.GroupCount.Group', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Count', full_name='GroupCount.Count', index=1,
+      name='Count', full_name='internal.GroupCount.Count', index=1,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -224,27 +231,27 @@ _GROUPCOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=212,
-  serialized_end=265,
+  serialized_start=247,
+  serialized_end=309,
 )
 
 
 _VALCOUNT = _descriptor.Descriptor(
   name='ValCount',
-  full_name='ValCount',
+  full_name='internal.ValCount',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Val', full_name='ValCount.Val', index=0,
+      name='Val', full_name='internal.ValCount.Val', index=0,
       number=1, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Count', full_name='ValCount.Count', index=1,
+      name='Count', full_name='internal.ValCount.Count', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -262,79 +269,34 @@ _VALCOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=267,
-  serialized_end=305,
-)
-
-
-_BIT = _descriptor.Descriptor(
-  name='Bit',
-  full_name='Bit',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='RowID', full_name='Bit.RowID', index=0,
-      number=1, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='ColumnID', full_name='Bit.ColumnID', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='Timestamp', full_name='Bit.Timestamp', index=2,
-      number=3, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=307,
-  serialized_end=364,
+  serialized_start=311,
+  serialized_end=349,
 )
 
 
 _COLUMNATTRSET = _descriptor.Descriptor(
   name='ColumnAttrSet',
-  full_name='ColumnAttrSet',
+  full_name='internal.ColumnAttrSet',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='ID', full_name='ColumnAttrSet.ID', index=0,
+      name='ID', full_name='internal.ColumnAttrSet.ID', index=0,
       number=1, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Key', full_name='ColumnAttrSet.Key', index=1,
+      name='Key', full_name='internal.ColumnAttrSet.Key', index=1,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Attrs', full_name='ColumnAttrSet.Attrs', index=2,
+      name='Attrs', full_name='internal.ColumnAttrSet.Attrs', index=2,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -352,55 +314,55 @@ _COLUMNATTRSET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=366,
-  serialized_end=428,
+  serialized_start=351,
+  serialized_end=422,
 )
 
 
 _ATTR = _descriptor.Descriptor(
   name='Attr',
-  full_name='Attr',
+  full_name='internal.Attr',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Key', full_name='Attr.Key', index=0,
+      name='Key', full_name='internal.Attr.Key', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Type', full_name='Attr.Type', index=1,
+      name='Type', full_name='internal.Attr.Type', index=1,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='StringValue', full_name='Attr.StringValue', index=2,
+      name='StringValue', full_name='internal.Attr.StringValue', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='IntValue', full_name='Attr.IntValue', index=3,
+      name='IntValue', full_name='internal.Attr.IntValue', index=3,
       number=4, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='BoolValue', full_name='Attr.BoolValue', index=4,
+      name='BoolValue', full_name='internal.Attr.BoolValue', index=4,
       number=5, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='FloatValue', full_name='Attr.FloatValue', index=5,
+      name='FloatValue', full_name='internal.Attr.FloatValue', index=5,
       number=6, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
@@ -418,20 +380,20 @@ _ATTR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=430,
-  serialized_end=541,
+  serialized_start=424,
+  serialized_end=535,
 )
 
 
 _ATTRMAP = _descriptor.Descriptor(
   name='AttrMap',
-  full_name='AttrMap',
+  full_name='internal.AttrMap',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Attrs', full_name='AttrMap.Attrs', index=0,
+      name='Attrs', full_name='internal.AttrMap.Attrs', index=0,
       number=1, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -449,55 +411,55 @@ _ATTRMAP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=543,
-  serialized_end=574,
+  serialized_start=537,
+  serialized_end=577,
 )
 
 
 _QUERYREQUEST = _descriptor.Descriptor(
   name='QueryRequest',
-  full_name='QueryRequest',
+  full_name='internal.QueryRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Query', full_name='QueryRequest.Query', index=0,
+      name='Query', full_name='internal.QueryRequest.Query', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Shards', full_name='QueryRequest.Shards', index=1,
+      name='Shards', full_name='internal.QueryRequest.Shards', index=1,
       number=2, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ColumnAttrs', full_name='QueryRequest.ColumnAttrs', index=2,
+      name='ColumnAttrs', full_name='internal.QueryRequest.ColumnAttrs', index=2,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Remote', full_name='QueryRequest.Remote', index=3,
+      name='Remote', full_name='internal.QueryRequest.Remote', index=3,
       number=5, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ExcludeRowAttrs', full_name='QueryRequest.ExcludeRowAttrs', index=4,
+      name='ExcludeRowAttrs', full_name='internal.QueryRequest.ExcludeRowAttrs', index=4,
       number=6, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ExcludeColumns', full_name='QueryRequest.ExcludeColumns', index=5,
+      name='ExcludeColumns', full_name='internal.QueryRequest.ExcludeColumns', index=5,
       number=7, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
@@ -515,34 +477,34 @@ _QUERYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=577,
-  serialized_end=708,
+  serialized_start=580,
+  serialized_end=711,
 )
 
 
 _QUERYRESPONSE = _descriptor.Descriptor(
   name='QueryResponse',
-  full_name='QueryResponse',
+  full_name='internal.QueryResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Err', full_name='QueryResponse.Err', index=0,
+      name='Err', full_name='internal.QueryResponse.Err', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Results', full_name='QueryResponse.Results', index=1,
+      name='Results', full_name='internal.QueryResponse.Results', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ColumnAttrSets', full_name='QueryResponse.ColumnAttrSets', index=2,
+      name='ColumnAttrSets', full_name='internal.QueryResponse.ColumnAttrSets', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -560,76 +522,76 @@ _QUERYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=710,
-  serialized_end=809,
+  serialized_start=713,
+  serialized_end=830,
 )
 
 
 _QUERYRESULT = _descriptor.Descriptor(
   name='QueryResult',
-  full_name='QueryResult',
+  full_name='internal.QueryResult',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Type', full_name='QueryResult.Type', index=0,
+      name='Type', full_name='internal.QueryResult.Type', index=0,
       number=6, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Row', full_name='QueryResult.Row', index=1,
+      name='Row', full_name='internal.QueryResult.Row', index=1,
       number=1, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='N', full_name='QueryResult.N', index=2,
+      name='N', full_name='internal.QueryResult.N', index=2,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Pairs', full_name='QueryResult.Pairs', index=3,
+      name='Pairs', full_name='internal.QueryResult.Pairs', index=3,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Changed', full_name='QueryResult.Changed', index=4,
+      name='Changed', full_name='internal.QueryResult.Changed', index=4,
       number=4, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ValCount', full_name='QueryResult.ValCount', index=5,
+      name='ValCount', full_name='internal.QueryResult.ValCount', index=5,
       number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='RowIDs', full_name='QueryResult.RowIDs', index=6,
+      name='RowIDs', full_name='internal.QueryResult.RowIDs', index=6,
       number=7, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='GroupCounts', full_name='QueryResult.GroupCounts', index=7,
+      name='GroupCounts', full_name='internal.QueryResult.GroupCounts', index=7,
       number=8, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='RowIdentifiers', full_name='QueryResult.RowIdentifiers', index=8,
+      name='RowIdentifiers', full_name='internal.QueryResult.RowIdentifiers', index=8,
       number=9, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
@@ -647,69 +609,69 @@ _QUERYRESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=812,
-  serialized_end=1028,
+  serialized_start=833,
+  serialized_end=1094,
 )
 
 
 _IMPORTREQUEST = _descriptor.Descriptor(
   name='ImportRequest',
-  full_name='ImportRequest',
+  full_name='internal.ImportRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Index', full_name='ImportRequest.Index', index=0,
+      name='Index', full_name='internal.ImportRequest.Index', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Field', full_name='ImportRequest.Field', index=1,
+      name='Field', full_name='internal.ImportRequest.Field', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Shard', full_name='ImportRequest.Shard', index=2,
+      name='Shard', full_name='internal.ImportRequest.Shard', index=2,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='RowIDs', full_name='ImportRequest.RowIDs', index=3,
+      name='RowIDs', full_name='internal.ImportRequest.RowIDs', index=3,
       number=4, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ColumnIDs', full_name='ImportRequest.ColumnIDs', index=4,
+      name='ColumnIDs', full_name='internal.ImportRequest.ColumnIDs', index=4,
       number=5, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='RowKeys', full_name='ImportRequest.RowKeys', index=5,
+      name='RowKeys', full_name='internal.ImportRequest.RowKeys', index=5,
       number=7, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ColumnKeys', full_name='ImportRequest.ColumnKeys', index=6,
+      name='ColumnKeys', full_name='internal.ImportRequest.ColumnKeys', index=6,
       number=8, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Timestamps', full_name='ImportRequest.Timestamps', index=7,
+      name='Timestamps', full_name='internal.ImportRequest.Timestamps', index=7,
       number=6, type=3, cpp_type=2, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -727,55 +689,55 @@ _IMPORTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1031,
-  serialized_end=1183,
+  serialized_start=1097,
+  serialized_end=1249,
 )
 
 
 _IMPORTVALUEREQUEST = _descriptor.Descriptor(
   name='ImportValueRequest',
-  full_name='ImportValueRequest',
+  full_name='internal.ImportValueRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Index', full_name='ImportValueRequest.Index', index=0,
+      name='Index', full_name='internal.ImportValueRequest.Index', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Field', full_name='ImportValueRequest.Field', index=1,
+      name='Field', full_name='internal.ImportValueRequest.Field', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Shard', full_name='ImportValueRequest.Shard', index=2,
+      name='Shard', full_name='internal.ImportValueRequest.Shard', index=2,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ColumnIDs', full_name='ImportValueRequest.ColumnIDs', index=3,
+      name='ColumnIDs', full_name='internal.ImportValueRequest.ColumnIDs', index=3,
       number=5, type=4, cpp_type=4, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='ColumnKeys', full_name='ImportValueRequest.ColumnKeys', index=4,
+      name='ColumnKeys', full_name='internal.ImportValueRequest.ColumnKeys', index=4,
       number=7, type=9, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Values', full_name='ImportValueRequest.Values', index=5,
+      name='Values', full_name='internal.ImportValueRequest.Values', index=5,
       number=6, type=3, cpp_type=2, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -793,27 +755,103 @@ _IMPORTVALUEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1185,
-  serialized_end=1305,
+  serialized_start=1251,
+  serialized_end=1371,
 )
 
 
-_IMPORTROARINGREQUESTVIEW = _descriptor.Descriptor(
-  name='ImportRoaringRequestView',
-  full_name='ImportRoaringRequestView',
+_TRANSLATEKEYSREQUEST = _descriptor.Descriptor(
+  name='TranslateKeysRequest',
+  full_name='internal.TranslateKeysRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Name', full_name='ImportRoaringRequestView.Name', index=0,
+      name='Index', full_name='internal.TranslateKeysRequest.Index', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='Data', full_name='ImportRoaringRequestView.Data', index=1,
+      name='Field', full_name='internal.TranslateKeysRequest.Field', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='Keys', full_name='internal.TranslateKeysRequest.Keys', index=2,
+      number=3, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1373,
+  serialized_end=1439,
+)
+
+
+_TRANSLATEKEYSRESPONSE = _descriptor.Descriptor(
+  name='TranslateKeysResponse',
+  full_name='internal.TranslateKeysResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='IDs', full_name='internal.TranslateKeysResponse.IDs', index=0,
+      number=3, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1441,
+  serialized_end=1477,
+)
+
+
+_IMPORTROARINGREQUESTVIEW = _descriptor.Descriptor(
+  name='ImportRoaringRequestView',
+  full_name='internal.ImportRoaringRequestView',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='Name', full_name='internal.ImportRoaringRequestView.Name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='Data', full_name='internal.ImportRoaringRequestView.Data', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -831,27 +869,27 @@ _IMPORTROARINGREQUESTVIEW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1307,
-  serialized_end=1361,
+  serialized_start=1479,
+  serialized_end=1533,
 )
 
 
 _IMPORTROARINGREQUEST = _descriptor.Descriptor(
   name='ImportRoaringRequest',
-  full_name='ImportRoaringRequest',
+  full_name='internal.ImportRoaringRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='Clear', full_name='ImportRoaringRequest.Clear', index=0,
+      name='Clear', full_name='internal.ImportRoaringRequest.Clear', index=0,
       number=1, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='views', full_name='ImportRoaringRequest.views', index=1,
+      name='views', full_name='internal.ImportRoaringRequest.views', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
@@ -869,8 +907,8 @@ _IMPORTROARINGREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1363,
-  serialized_end=1442,
+  serialized_start=1535,
+  serialized_end=1623,
 )
 
 _ROW.fields_by_name['Attrs'].message_type = _ATTR
@@ -891,7 +929,6 @@ DESCRIPTOR.message_types_by_name['Pair'] = _PAIR
 DESCRIPTOR.message_types_by_name['FieldRow'] = _FIELDROW
 DESCRIPTOR.message_types_by_name['GroupCount'] = _GROUPCOUNT
 DESCRIPTOR.message_types_by_name['ValCount'] = _VALCOUNT
-DESCRIPTOR.message_types_by_name['Bit'] = _BIT
 DESCRIPTOR.message_types_by_name['ColumnAttrSet'] = _COLUMNATTRSET
 DESCRIPTOR.message_types_by_name['Attr'] = _ATTR
 DESCRIPTOR.message_types_by_name['AttrMap'] = _ATTRMAP
@@ -900,6 +937,8 @@ DESCRIPTOR.message_types_by_name['QueryResponse'] = _QUERYRESPONSE
 DESCRIPTOR.message_types_by_name['QueryResult'] = _QUERYRESULT
 DESCRIPTOR.message_types_by_name['ImportRequest'] = _IMPORTREQUEST
 DESCRIPTOR.message_types_by_name['ImportValueRequest'] = _IMPORTVALUEREQUEST
+DESCRIPTOR.message_types_by_name['TranslateKeysRequest'] = _TRANSLATEKEYSREQUEST
+DESCRIPTOR.message_types_by_name['TranslateKeysResponse'] = _TRANSLATEKEYSRESPONSE
 DESCRIPTOR.message_types_by_name['ImportRoaringRequestView'] = _IMPORTROARINGREQUESTVIEW
 DESCRIPTOR.message_types_by_name['ImportRoaringRequest'] = _IMPORTROARINGREQUEST
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -907,119 +946,126 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 Row = _reflection.GeneratedProtocolMessageType('Row', (_message.Message,), dict(
   DESCRIPTOR = _ROW,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:Row)
+  # @@protoc_insertion_point(class_scope:internal.Row)
   ))
 _sym_db.RegisterMessage(Row)
 
 RowIdentifiers = _reflection.GeneratedProtocolMessageType('RowIdentifiers', (_message.Message,), dict(
   DESCRIPTOR = _ROWIDENTIFIERS,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:RowIdentifiers)
+  # @@protoc_insertion_point(class_scope:internal.RowIdentifiers)
   ))
 _sym_db.RegisterMessage(RowIdentifiers)
 
 Pair = _reflection.GeneratedProtocolMessageType('Pair', (_message.Message,), dict(
   DESCRIPTOR = _PAIR,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:Pair)
+  # @@protoc_insertion_point(class_scope:internal.Pair)
   ))
 _sym_db.RegisterMessage(Pair)
 
 FieldRow = _reflection.GeneratedProtocolMessageType('FieldRow', (_message.Message,), dict(
   DESCRIPTOR = _FIELDROW,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:FieldRow)
+  # @@protoc_insertion_point(class_scope:internal.FieldRow)
   ))
 _sym_db.RegisterMessage(FieldRow)
 
 GroupCount = _reflection.GeneratedProtocolMessageType('GroupCount', (_message.Message,), dict(
   DESCRIPTOR = _GROUPCOUNT,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:GroupCount)
+  # @@protoc_insertion_point(class_scope:internal.GroupCount)
   ))
 _sym_db.RegisterMessage(GroupCount)
 
 ValCount = _reflection.GeneratedProtocolMessageType('ValCount', (_message.Message,), dict(
   DESCRIPTOR = _VALCOUNT,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:ValCount)
+  # @@protoc_insertion_point(class_scope:internal.ValCount)
   ))
 _sym_db.RegisterMessage(ValCount)
-
-Bit = _reflection.GeneratedProtocolMessageType('Bit', (_message.Message,), dict(
-  DESCRIPTOR = _BIT,
-  __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:Bit)
-  ))
-_sym_db.RegisterMessage(Bit)
 
 ColumnAttrSet = _reflection.GeneratedProtocolMessageType('ColumnAttrSet', (_message.Message,), dict(
   DESCRIPTOR = _COLUMNATTRSET,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:ColumnAttrSet)
+  # @@protoc_insertion_point(class_scope:internal.ColumnAttrSet)
   ))
 _sym_db.RegisterMessage(ColumnAttrSet)
 
 Attr = _reflection.GeneratedProtocolMessageType('Attr', (_message.Message,), dict(
   DESCRIPTOR = _ATTR,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:Attr)
+  # @@protoc_insertion_point(class_scope:internal.Attr)
   ))
 _sym_db.RegisterMessage(Attr)
 
 AttrMap = _reflection.GeneratedProtocolMessageType('AttrMap', (_message.Message,), dict(
   DESCRIPTOR = _ATTRMAP,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:AttrMap)
+  # @@protoc_insertion_point(class_scope:internal.AttrMap)
   ))
 _sym_db.RegisterMessage(AttrMap)
 
 QueryRequest = _reflection.GeneratedProtocolMessageType('QueryRequest', (_message.Message,), dict(
   DESCRIPTOR = _QUERYREQUEST,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:QueryRequest)
+  # @@protoc_insertion_point(class_scope:internal.QueryRequest)
   ))
 _sym_db.RegisterMessage(QueryRequest)
 
 QueryResponse = _reflection.GeneratedProtocolMessageType('QueryResponse', (_message.Message,), dict(
   DESCRIPTOR = _QUERYRESPONSE,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:QueryResponse)
+  # @@protoc_insertion_point(class_scope:internal.QueryResponse)
   ))
 _sym_db.RegisterMessage(QueryResponse)
 
 QueryResult = _reflection.GeneratedProtocolMessageType('QueryResult', (_message.Message,), dict(
   DESCRIPTOR = _QUERYRESULT,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:QueryResult)
+  # @@protoc_insertion_point(class_scope:internal.QueryResult)
   ))
 _sym_db.RegisterMessage(QueryResult)
 
 ImportRequest = _reflection.GeneratedProtocolMessageType('ImportRequest', (_message.Message,), dict(
   DESCRIPTOR = _IMPORTREQUEST,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:ImportRequest)
+  # @@protoc_insertion_point(class_scope:internal.ImportRequest)
   ))
 _sym_db.RegisterMessage(ImportRequest)
 
 ImportValueRequest = _reflection.GeneratedProtocolMessageType('ImportValueRequest', (_message.Message,), dict(
   DESCRIPTOR = _IMPORTVALUEREQUEST,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:ImportValueRequest)
+  # @@protoc_insertion_point(class_scope:internal.ImportValueRequest)
   ))
 _sym_db.RegisterMessage(ImportValueRequest)
+
+TranslateKeysRequest = _reflection.GeneratedProtocolMessageType('TranslateKeysRequest', (_message.Message,), dict(
+  DESCRIPTOR = _TRANSLATEKEYSREQUEST,
+  __module__ = 'public_pb2'
+  # @@protoc_insertion_point(class_scope:internal.TranslateKeysRequest)
+  ))
+_sym_db.RegisterMessage(TranslateKeysRequest)
+
+TranslateKeysResponse = _reflection.GeneratedProtocolMessageType('TranslateKeysResponse', (_message.Message,), dict(
+  DESCRIPTOR = _TRANSLATEKEYSRESPONSE,
+  __module__ = 'public_pb2'
+  # @@protoc_insertion_point(class_scope:internal.TranslateKeysResponse)
+  ))
+_sym_db.RegisterMessage(TranslateKeysResponse)
 
 ImportRoaringRequestView = _reflection.GeneratedProtocolMessageType('ImportRoaringRequestView', (_message.Message,), dict(
   DESCRIPTOR = _IMPORTROARINGREQUESTVIEW,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:ImportRoaringRequestView)
+  # @@protoc_insertion_point(class_scope:internal.ImportRoaringRequestView)
   ))
 _sym_db.RegisterMessage(ImportRoaringRequestView)
 
 ImportRoaringRequest = _reflection.GeneratedProtocolMessageType('ImportRoaringRequest', (_message.Message,), dict(
   DESCRIPTOR = _IMPORTROARINGREQUEST,
   __module__ = 'public_pb2'
-  # @@protoc_insertion_point(class_scope:ImportRoaringRequest)
+  # @@protoc_insertion_point(class_scope:internal.ImportRoaringRequest)
   ))
 _sym_db.RegisterMessage(ImportRoaringRequest)
 

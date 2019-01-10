@@ -80,8 +80,7 @@ class FieldValue:
         self.value = value
 
     def __hash__(self):
-        return hash("%s:%s:%s" % \
-            (self.column_id, self.column_key, self.value))
+        return hash((self.column_id, self.column_key, self.value))
 
     def __eq__(self, other):
         if id(self) == id(other):

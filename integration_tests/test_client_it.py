@@ -44,6 +44,7 @@ except ImportError:
 from pilosa.client import Client, URI, Cluster, PilosaServerError
 from pilosa.exceptions import PilosaError
 from pilosa.orm import Index, TimeQuantum, Schema, CacheType
+from pilosa.response import GroupCount, FieldRow
 from pilosa.imports import csv_column_reader, csv_field_value_reader, \
     csv_column_id_value, csv_column_key_value, csv_row_key_column_id
 
@@ -578,6 +579,38 @@ class ClientIT(unittest.TestCase):
         response = client.query(field.lt(15))
         self.assertEquals(1, len(response.results))
         self.assertEquals(10, response.result.row.columns[0])
+
+    def test_rows(self):
+        client = self.get_client()
+        index = self.index
+        field = index.field("rowsfield")
+        client.ensure_field(field)
+        client.query(index.batch_query(
+            field.set(1, 100),
+            field.set(1, 200),
+            field.set(2, 200),
+        ))
+        resp = client.query(field.rows())
+        target = [1, 2]
+        self.assertEqual(target, resp.result.row_identifiers.ids)
+
+    def test_group_by(self):
+        client = self.get_client()
+        index = self.index
+        field = index.field("groupbyfield")
+        client.ensure_field(field)
+        client.query(index.batch_query(
+            field.set(1, 100),
+            field.set(1, 200),
+            field.set(2, 200),
+        ))
+        resp = client.query(index.group_by(field.rows()))
+        target = [
+            GroupCount([FieldRow("groupbyfield", 1)], 2),
+            GroupCount([FieldRow("groupbyfield", 2)], 1),
+        ]
+        self.assertEqual(target, resp.result.group_counts)
+
 
     def test_exclude_attrs_columns(self):
         client = self.get_client()
