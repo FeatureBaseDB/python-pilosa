@@ -381,7 +381,7 @@ class ClientIT(unittest.TestCase):
         target = [5, 7]
         start = datetime(2016, 1, 1, 0, 0)
         end = datetime(2019, 1, 1, 0, 0, 0)
-        response = client.query(field.range(10, start, end))
+        response = client.query(field.row(10, from_=start, to=end))
         self.assertEqual(target, response.result.row.columns)
 
         # test clear import
@@ -550,7 +550,7 @@ class ClientIT(unittest.TestCase):
             field.set(10, 100, timestamp=datetime(2018, 1, 1, 0, 0)),
             field.set(10, 100, timestamp=datetime(2019, 1, 1, 0, 0)),
         ))
-        response = client.query(field.range(10, start=datetime(2017, 5, 1, 0, 0), end=datetime(2018, 5, 1, 0, 0)))
+        response = client.query(field.row(10, from_=datetime(2017, 5, 1, 0, 0), to=datetime(2018, 5, 1, 0, 0)))
         self.assertEqual([100], response.result.row.columns)
 
     def test_range_field(self):

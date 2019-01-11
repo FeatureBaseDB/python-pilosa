@@ -375,6 +375,20 @@ class FieldTestCase(unittest.TestCase):
             u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63',1970-01-01T00:00,2000-02-02T03:04)",
             q3.serialize().query)
 
+    def test_row_range(self):
+        start = datetime(1970, 1, 1, 0, 0)
+        end = datetime(2000, 2, 2, 3, 4)
+
+        q1 = collabField.row(10, from_=start, to=end)
+        self.assertEquals(
+            u"Row(collaboration=10,from='1970-01-01T00:00',to='2000-02-02T03:04')",
+            q1.serialize().query)
+
+        q3 = collabField.row("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
+        self.assertEquals(
+            u"Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63',from='1970-01-01T00:00',to='2000-02-02T03:04')",
+            q3.serialize().query)
+
     def test_set_row_attributes(self):
         attrs_map = {
             "quote": '''"Don't worry, be happy"''',

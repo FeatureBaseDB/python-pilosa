@@ -2,6 +2,7 @@
 
 * **master**
     * Added `field.rows` and `index.group_by` calls.
+    * Deprecated `field.range` method. Use `field.row` with `from_` and/or `to` keywords instead.
 
 * **v1.2.0** (2018-12-21)
     * **Compatible with Pilosa 1.2**

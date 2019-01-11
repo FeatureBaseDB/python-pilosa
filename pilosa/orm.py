@@ -512,19 +512,22 @@ class Field:
                      self.int_min, self.int_max, self.keys,
                      self.mutex, self.bool)
 
-    def row(self, row_idkey):
+    def row(self, row_idkey, from_=None, to=None):
         """Creates a Row query.
 
         Row retrieves the indices of all the set columns in a row or column based on whether the row label or column label is given in the query. It also retrieves any attributes set on that row or column.
 
-        This variant of Row query uses the row label.
-
         :param int row_idkey:
+        :param datetime from_: (Optional) start of the time range
+        :param datetime end_: (Optional) end of the time range
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
 
         * See `Query Language/Row <https://www.pilosa.com/docs/latest/query-language/#row>`_
         """
+        if from_ or to:
+            # this is a row range query
+            return self._row_range(row_idkey, from_, to)
         row_str = idkey_as_str(row_idkey)
         fmt = u"Row(%s=%s)"
         return PQLQuery(fmt % (self.name, row_str), self.index)
@@ -536,7 +539,7 @@ class Field:
 
         :param int row:
         :param int col:
-        :param pilosa.TimeStamp timestamp:
+        :param datetime timestamp:
         :return: Pilosa query
         :rtype: pilosa.PQLQuery
 
@@ -593,6 +596,8 @@ class Field:
     def range(self, row, start, end):
         """Creates a Range query.
 
+        *Deprecated at Pilosa 1.3. Use `rowRange` instead.*
+
         Similar to ``Row``, but only returns columns which were set with timestamps between the given start and end timestamps.
 
         * see: `Range Query <https://www.pilosa.com/docs/query-language/#range>`_
@@ -609,6 +614,18 @@ class Field:
         fmt = u"Range(%s=%s,%s,%s)"
         return PQLQuery(fmt % (self.name, row_str, start_str, end_str),
                         self.index)
+
+    def _row_range(self, row, start, end):
+        """Creates a Row query with timestamps."""
+        row_str = idkey_as_str(row)
+        start_str = start.strftime(_TIME_FORMAT)
+        end_str = end.strftime(_TIME_FORMAT)
+        parts = ['%s=%s' % (self.name, row_str)]
+        if start:
+            parts.append("from='%s'" % start_str)
+        if end:
+            parts.append("to='%s'" % end_str)
+        return PQLQuery(u"Row(%s)" % ','.join(parts), self.index)
 
     def set_row_attrs(self, row, attrs):
         """Creates a SetRowAttrs query.
