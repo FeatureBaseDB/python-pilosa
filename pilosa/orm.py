@@ -606,7 +606,7 @@ class Field:
         row_str = idkey_as_str(row)
         start_str = start.strftime(_TIME_FORMAT)
         end_str = end.strftime(_TIME_FORMAT)
-        fmt = u"Range(%s=%s,%s,%s)"
+        fmt = u"Row(%s=%s,from='%s',to='%s')"
         return PQLQuery(fmt % (self.name, row_str, start_str, end_str),
                         self.index)
 

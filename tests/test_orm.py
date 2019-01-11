@@ -367,12 +367,12 @@ class FieldTestCase(unittest.TestCase):
 
         q1 = collabField.range(10, start, end)
         self.assertEquals(
-            u"Range(collaboration=10,1970-01-01T00:00,2000-02-02T03:04)",
+            u"Row(collaboration=10,from='1970-01-01T00:00',to='2000-02-02T03:04')",
             q1.serialize().query)
 
         q3 = collabField.range("b7feb014-8ea7-49a8-9cd8-19709161ab63", start, end)
         self.assertEquals(
-            u"Range(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63',1970-01-01T00:00,2000-02-02T03:04)",
+            u"Row(collaboration='b7feb014-8ea7-49a8-9cd8-19709161ab63',from='1970-01-01T00:00',to='2000-02-02T03:04')",
             q3.serialize().query)
 
     def test_set_row_attributes(self):
