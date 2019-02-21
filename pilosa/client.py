@@ -94,7 +94,7 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_skip_verify=False, tls_ca_certificate_path=""):
+                 tls_skip_verify=False, tls_ca_certificate_path="", use_manual_address=False):
         """Creates a Client.
 
         :param object cluster_or_uri: A ``pilosa.Cluster`` or ``pilosa.URI` instance
@@ -107,20 +107,11 @@ class Client(object):
         :param int retry_count: Number of connection trials
         :param bool tls_skip_verify: Do not verify the TLS certificate of the server (Not recommended for production)
         :param str tls_ca_certificate_path: Server's TLS certificate (Useful when using self-signed certificates)
+        :param bool use_manual_address: Forces the client to use only the manual server address
 
         * See `Pilosa Python Client/Server Interaction <https://github.com/pilosa/python-pilosa/blob/master/docs/server-interaction.md>`_.
         """
-        if cluster_or_uri is None:
-            self.cluster = Cluster(URI())
-        elif isinstance(cluster_or_uri, Cluster):
-            self.cluster = cluster_or_uri.copy()
-        elif isinstance(cluster_or_uri, URI):
-            self.cluster = Cluster(cluster_or_uri)
-        elif isinstance(cluster_or_uri, str):
-            self.cluster = Cluster(URI.address(cluster_or_uri))
-        else:
-            raise PilosaError("Invalid cluster_or_uri: %s" % cluster_or_uri)
-
+        self.use_manual_address = use_manual_address
         self.connect_timeout = connect_timeout / 1000.0
         self.socket_timeout = socket_timeout / 1000.0
         self.pool_size_per_route = pool_size_per_route
@@ -133,6 +124,26 @@ class Client(object):
         self.logger = logging.getLogger("pilosa")
         self.__coordinator_lock = threading.RLock()
         self.__coordinator_uri = None
+
+        if cluster_or_uri is None:
+            self.cluster = Cluster(URI())
+        elif isinstance(cluster_or_uri, Cluster):
+            self.cluster = cluster_or_uri.copy()
+        elif isinstance(cluster_or_uri, URI):
+            if use_manual_address:
+                self.__coordinator_uri = cluster_or_uri
+                self.__current_host = cluster_or_uri
+            else:
+                self.cluster = Cluster(cluster_or_uri)
+        elif isinstance(cluster_or_uri, str):
+            uri = URI.address(cluster_or_uri)
+            if use_manual_address:
+                self.__coordinator_uri = uri
+                self.__current_host = uri
+            else:
+                self.cluster = Cluster(uri)
+        else:
+            raise PilosaError("Invalid cluster_or_uri: %s" % cluster_or_uri)
 
     def query(self, query, column_attrs=False, exclude_columns=False, exclude_attrs=False, shards=None):
         """Runs the given query against the server with the given options.
@@ -320,10 +331,13 @@ class Client(object):
             # sort by row_id then by column_id
             if not field.index.keys:
                 data.sort(key=lambda col: (col.row_id, col.column_id))
-        if field.index.keys or field.keys:
-            nodes = [self._fetch_coordinator_node()]
+        if self.use_manual_address:
+            nodes = [_Node.from_uri(self.__current_host)]
         else:
-            nodes = self._fetch_fragment_nodes(field.index.name, shard)
+            if field.index.keys or field.keys:
+                nodes = [self._fetch_coordinator_node()]
+            else:
+                nodes = self._fetch_fragment_nodes(field.index.name, shard)
         # copy client params
         client_params = {}
         for k,v in self.__dict__.items():
@@ -405,13 +419,14 @@ class Client(object):
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:
-                if use_coordinator:
-                    self.__coordinator_uri = None
-                    self.logger.warning("Removed coordinator %s due to %s", self.__coordinator_uri, str(e))
-                else:
-                    self.cluster.remove_host(self.__current_host)
-                    self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
-                    self.__current_host = None
+                if not self.use_manual_address:
+                    if use_coordinator:
+                        self.__coordinator_uri = None
+                        self.logger.warning("Removed coordinator %s due to %s", self.__coordinator_uri, str(e))
+                    else:
+                        self.cluster.remove_host(self.__current_host)
+                        self.logger.warning("Removed %s from the cluster due to %s", self.__current_host, str(e))
+                        self.__current_host = None
         else:
             raise PilosaError("Tried %s hosts, still failing" % _MAX_HOSTS)
 
@@ -775,6 +790,9 @@ class _Node(object):
         self.host = host
         self.port = port
 
+    @classmethod
+    def from_uri(cls, uri):
+        return cls(uri.scheme, uri.host, uri.port)
 
     @property
     def url(self):
