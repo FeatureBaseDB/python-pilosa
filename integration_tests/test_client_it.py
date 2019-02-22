@@ -32,9 +32,9 @@
 #
 import threading
 import unittest
+from datetime import datetime
 from wsgiref.simple_server import make_server
 from wsgiref.util import setup_testing_defaults
-from datetime import datetime
 
 try:
     from io import StringIO
@@ -321,6 +321,41 @@ class ClientIT(unittest.TestCase):
         for result in response.results:
             self.assertEqual([], result.row.columns)
 
+    def test_csv_import_manual_address(self):
+        client = self.get_client_manual_address()
+        text = u"""
+            10, 7
+            10, 5
+            2, 3
+            7, 1
+        """
+        reader = csv_column_reader(StringIO(text))
+        field = self.index.field("importfield")
+        client.ensure_field(field)
+        client.import_field(field, reader)
+        bq = self.index.batch_query(
+            field.row(2),
+            field.row(7),
+            field.row(10),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
+
+        # test clear import
+        reader = csv_column_reader(StringIO(text))
+        client.import_field(field, reader, clear=True)
+        bq = self.index.batch_query(
+            field.row(2),
+            field.row(7),
+            field.row(10),
+        )
+        response = client.query(bq)
+        self.assertEqual(3, len(response.results))
+        for result in response.results:
+            self.assertEqual([], result.row.columns)
+
     def test_csv_roaring_import(self):
         client = self.get_client()
         text = u"""
@@ -399,6 +434,28 @@ class ClientIT(unittest.TestCase):
 
     def test_csv_import_row_keys(self):
         client = self.get_client()
+        text = u"""
+            ten, 7
+            ten, 5
+            two, 3
+            seven, 1
+        """
+        reader = csv_column_reader(StringIO(text), formatfunc=csv_row_key_column_id)
+        field = self.index.field("importfield-keys", keys=True)
+        client.ensure_field(field)
+        client.import_field(field, reader)
+        bq = self.index.batch_query(
+            field.row("two"),
+            field.row("seven"),
+            field.row("ten"),
+        )
+        response = client.query(bq)
+        target = [3, 1, 5]
+        self.assertEqual(3, len(response.results))
+        self.assertEqual(target, [result.row.columns[0] for result in response.results])
+
+    def test_csv_import_row_keys_manual_address(self):
+        client = self.get_client_manual_address()
         text = u"""
             ten, 7
             ten, 5
@@ -685,6 +742,11 @@ class ClientIT(unittest.TestCase):
     def get_client(cls):
         server_address = cls.get_server_address()
         return Client(server_address, tls_skip_verify=True)
+
+    @classmethod
+    def get_client_manual_address(cls):
+        server_address = cls.get_server_address()
+        return Client(server_address, tls_skip_verify=True, use_manual_address=True)
 
     @classmethod
     def get_server_address(cls):
