@@ -32,7 +32,6 @@
 #
 
 import itertools
-from collections import namedtuple
 
 from pilosa.exceptions import PilosaError
 
@@ -179,8 +178,7 @@ def csv_field_value_reader(file_obj, formatfunc=csv_column_id_value):
         yield column
 
 
-def batch_columns(reader, batch_size):
-    shard_width = 1048576
+def batch_columns(reader, batch_size, shard_width):
     while 1:
         batch = list(itertools.islice(reader, batch_size))
         if not batch:

@@ -58,6 +58,8 @@ PQL_VERSION = "1.0"
 _IS_PY2 = sys.version_info.major == 2
 
 RESERVED_FIELDS = ("exists",)
+DEFAULT_SHARD_WIDTH = 1048576
+
 
 class Client(object):
     """Pilosa HTTP client
@@ -261,7 +263,11 @@ class Client(object):
         """
         schema = Schema()
         for index_info in self._read_schema():
-            index = schema.index(index_info["name"])
+            index_options = index_info.get("options", {})
+            index = schema.index(index_info["name"],
+                                 keys=index_options.get("keys", False),
+                                 track_existence=index_options.get("trackExistence", False),
+                                 shard_width=index_info.get("shardWidth", 0))
             for field_info in index_info.get("fields") or []:
                 if field_info["name"] in RESERVED_FIELDS:
                     continue
@@ -309,7 +315,8 @@ class Client(object):
         :param bool fast_import: Enables fast import for data with columnID/rowID bits
         :param clear: clear bits instead of setting them
         """
-        for shard, columns in batch_columns(bit_reader, batch_size):
+        shard_width = field.index.shard_width or DEFAULT_SHARD_WIDTH
+        for shard, columns in batch_columns(bit_reader, batch_size, shard_width):
             self._import_data(field, shard, columns, fast_import, clear)
 
     def http_request(self, method, path, data=None, headers=None):

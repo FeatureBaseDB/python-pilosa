@@ -133,7 +133,7 @@ class Schema:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def index(self, name, keys=False, track_existence=False):
+    def index(self, name, keys=False, track_existence=False, shard_width=0):
         """Returns an index object with the given name and options.
 
         If the index didn't exist in the schema, it is added to the schema.
@@ -148,9 +148,13 @@ class Schema:
         """
         index = self._indexes.get(name)
         if index is None:
-            index = Index(name, keys=keys, track_existence=track_existence)
+            index = Index(name, keys=keys, track_existence=track_existence, shard_width=shard_width)
             self._indexes[name] = index
         return index
+
+    def has_index(self, name):
+        """Checks whether the schema has the given index."""
+        return name in self._indexes
 
     def _diff(self, other):
         result = Schema()
@@ -192,11 +196,12 @@ class Index:
     * See `Query Language <https://www.pilosa.com/docs/query-language/>`_
     """
 
-    def __init__(self, name, keys=False, track_existence=False):
+    def __init__(self, name, keys=False, track_existence=False, shard_width=0):
         validate_index_name(name)
         self.name = name
         self.keys = keys
         self.track_existence = track_existence
+        self.shard_width = shard_width
         self._fields = {}
 
     def __eq__(self, other):
@@ -242,6 +247,10 @@ class Index:
                           cache_type, cache_size, int_min, int_max, keys, mutex, bool)
             self._fields[name] = field
         return field
+
+    def has_field(self, name):
+        """Checks whether the field exists in the index."""
+        return name in self._fields
 
     def raw_query(self, query):
         """Creates a raw query.
@@ -519,7 +528,7 @@ class Field:
 
         :param int row_idkey:
         :param datetime from_: (Optional) start of the time range
-        :param datetime end_: (Optional) end of the time range
+        :param datetime to: (Optional) end of the time range
         :return: Pilosa row query
         :rtype: pilosa.PQLQuery
 

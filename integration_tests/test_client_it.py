@@ -75,6 +75,24 @@ class ClientIT(unittest.TestCase):
         client.delete_index(self.col_index)
         client.delete_index(self.key_index)
 
+    def test_create_index(self):
+        index_name = "some-index"
+        client = self.get_client()
+        schema = Schema()
+        index = schema.index(index_name, track_existence=True, keys=True)
+        client.sync_schema(schema)
+        try:
+            schema = client.schema()
+            self.assertTrue(schema.has_index(index_name))
+            index = schema.index(index_name)
+            self.assertTrue(index.keys)
+            self.assertTrue(index.track_existence)
+            self.assertNotEqual(0, index.shard_width)
+
+        finally:
+            client.delete_index(index)
+
+
     def test_create_field_with_time_quantum(self):
         field = self.index.field("field-with-timequantum", time_quantum=TimeQuantum.YEAR)
         client = self.get_client()

@@ -76,6 +76,12 @@ class SchemaTestCase(unittest.TestCase):
         schema = Schema()
         self.assertNotEqual(schema, projectIndex)
 
+    def test_has_index(self):
+        schema = Schema()
+        schema.index("some-index")
+        self.assertTrue(schema.has_index("some-index"))
+        self.assertFalse(schema.has_index("another-index"))
+
 
 class IndexTestCase(unittest.TestCase):
 
@@ -87,6 +93,12 @@ class IndexTestCase(unittest.TestCase):
 
         index = schema.index("sample-index2")
         self.assertEqual("sample-index2", index.name)
+
+    def test_has_field(self):
+        index = schema.index("sample-index")
+        index.field("some-field")
+        self.assertTrue(index.has_field("some-field"))
+        self.assertFalse(index.has_field("another-field"))
 
     def test_same_equals(self):
         self.assertEqual(projectIndex, projectIndex)

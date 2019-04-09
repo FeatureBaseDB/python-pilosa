@@ -38,8 +38,8 @@ import unittest
 from pilosa.exceptions import PilosaError
 from pilosa.imports import csv_column_reader, csv_field_value_reader, \
     batch_columns, Column, FieldValue, \
-    csv_row_id_column_id, csv_row_id_column_key, csv_row_key_column_id, \
-    csv_row_key_column_key, csv_column_id_value, csv_column_key_value
+    csv_row_id_column_key, csv_row_key_column_id, \
+    csv_row_key_column_key, csv_column_key_value
 
 try:
     from io import StringIO
@@ -56,7 +56,8 @@ class ImportsTestCase(unittest.TestCase):
             3,41,683793385        
             10,10485760,683793385        
         """))
-        shard_bit_groups = list(batch_columns(reader, 2))
+        from pilosa.client import DEFAULT_SHARD_WIDTH
+        shard_bit_groups = list(batch_columns(reader, 2, DEFAULT_SHARD_WIDTH))
         self.assertEqual(3, len(shard_bit_groups))
 
         shard1, batch1 = shard_bit_groups[0]
@@ -129,7 +130,8 @@ class ImportsTestCase(unittest.TestCase):
             3,41
             10,10485760
         """))
-        shard_bit_groups = list(batch_columns(reader, 2))
+        from pilosa.client import DEFAULT_SHARD_WIDTH
+        shard_bit_groups = list(batch_columns(reader, 2, DEFAULT_SHARD_WIDTH))
         self.assertEqual(2, len(shard_bit_groups))
 
         shard1, batch1 = shard_bit_groups[0]
