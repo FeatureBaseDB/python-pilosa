@@ -1,9 +1,12 @@
 ## Change Log
 
-* **master**
+* **v1.2.1** (2019-04-11)
+    * **Compatible with Pilosa 1.2**
     * Added `field.rows` and `index.group_by` calls.
-    * Deprecated `field.range` method. Use `field.row` with `from_` and/or `to` keywords instead.
     * Added `use_manual_address` client option.
+    * Added `schema.has_index` and `index.has_field` methods.
+    * Added support for shard width per index. 
+    * Deprecated `field.range` method. Use `field.row` with `from_` and/or `to` keywords instead.
 
 * **v1.2.0** (2018-12-21)
     * **Compatible with Pilosa 1.2**
