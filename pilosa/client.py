@@ -40,6 +40,7 @@ import threading
 from datetime import datetime
 
 import urllib3
+from opentracing.tracer import Tracer
 from roaring import Bitmap
 
 from .exceptions import PilosaError, PilosaURIError, IndexExistsError, FieldExistsError
@@ -96,7 +97,8 @@ class Client(object):
 
     def __init__(self, cluster_or_uri=None, connect_timeout=30000, socket_timeout=300000,
                  pool_size_per_route=10, pool_size_total=100, retry_count=3,
-                 tls_skip_verify=False, tls_ca_certificate_path="", use_manual_address=False):
+                 tls_skip_verify=False, tls_ca_certificate_path="", use_manual_address=False,
+                 tracer=None):
         """Creates a Client.
 
         :param object cluster_or_uri: A ``pilosa.Cluster`` or ``pilosa.URI` instance
@@ -110,6 +112,7 @@ class Client(object):
         :param bool tls_skip_verify: Do not verify the TLS certificate of the server (Not recommended for production)
         :param str tls_ca_certificate_path: Server's TLS certificate (Useful when using self-signed certificates)
         :param bool use_manual_address: Forces the client to use only the manual server address
+        :param opentracing.tracer.Tracer tracer: Set the OpenTracing tracer. See: https://opentracing.io
 
         * See `Pilosa Python Client/Server Interaction <https://github.com/pilosa/python-pilosa/blob/master/docs/server-interaction.md>`_.
         """
@@ -126,6 +129,7 @@ class Client(object):
         self.logger = logging.getLogger("pilosa")
         self.__coordinator_lock = threading.RLock()
         self.__coordinator_uri = None
+        self.tracer = tracer or Tracer()
 
         if cluster_or_uri is None:
             self.cluster = Cluster(URI())
@@ -160,27 +164,29 @@ class Client(object):
         """
         serialized_query = query.serialize()
         request = _QueryRequest(serialized_query.query,
-            column_attrs=column_attrs,
-            exclude_columns=exclude_columns,
-            exclude_row_attrs=exclude_attrs,
-            shards=shards)
+                                column_attrs=column_attrs,
+                                exclude_columns=exclude_columns,
+                                exclude_row_attrs=exclude_attrs,
+                                shards=shards)
         path = "/index/%s/query" % query.index.name
-        try:
-            headers = {
-                "Content-Type": "application/x-protobuf",
-                "Accept": "application/x-protobuf",
-                "PQL-Version": PQL_VERSION,
-            }
-            response = self.__http_request("POST", path,
-                                            data=request.to_protobuf(),
-                                            headers=headers,
-                                            use_coordinator=serialized_query.has_keys)
-            warning = response.getheader("warning")
-            if warning:
-                self.logger.warning(warning)
-            return QueryResponse._from_protobuf(response.data)
-        except PilosaServerError as e:
-            raise PilosaError(e.content)
+        span = self.tracer.start_span("Client.Query")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            try:
+                headers = {
+                    "Content-Type": "application/x-protobuf",
+                    "Accept": "application/x-protobuf",
+                    "PQL-Version": PQL_VERSION,
+                }
+                response = self.__http_request("POST", path,
+                                                data=request.to_protobuf(),
+                                                headers=headers,
+                                                use_coordinator=serialized_query.has_keys)
+                warning = response.getheader("warning")
+                if warning:
+                    self.logger.warning(warning)
+                return QueryResponse._from_protobuf(response.data)
+            except PilosaServerError as e:
+                raise PilosaError(e.content)
 
     def create_index(self, index):
         """Creates an index on the server using the given Index object.
@@ -190,12 +196,14 @@ class Client(object):
         """
         path = "/index/%s" % index.name
         data = index._get_options_string()
-        try:
-            self.__http_request("POST", path, data=data)
-        except PilosaServerError as e:
-            if e.response.status == 409:
-                raise IndexExistsError
-            raise
+        span = self.tracer.start_span("Client.CreateIndex")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            try:
+                self.__http_request("POST", path, data=data)
+            except PilosaServerError as e:
+                if e.response.status == 409:
+                    raise IndexExistsError
+                raise
 
     def delete_index(self, index):
         """Deletes the given index on the server.
@@ -204,7 +212,9 @@ class Client(object):
         :raises pilosa.PilosaError: if the index does not exist
         """
         path = "/index/%s" % index.name
-        self.__http_request("DELETE", path)
+        span = self.tracer.start_span("Client.DeleteIndex")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            self.__http_request("DELETE", path)
 
     def create_field(self, field):
         """Creates a field on the server using the given Field object.
@@ -214,12 +224,14 @@ class Client(object):
         """
         data = field._get_options_string()
         path = "/index/%s/field/%s" % (field.index.name, field.name)
-        try:
-            self.__http_request("POST", path, data=data)
-        except PilosaServerError as e:
-            if e.response.status == 409:
-                raise FieldExistsError
-            raise
+        span = self.tracer.start_span("Client.CreateField")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            try:
+                self.__http_request("POST", path, data=data)
+            except PilosaServerError as e:
+                if e.response.status == 409:
+                    raise FieldExistsError
+                raise
 
 
     def delete_field(self, field):
@@ -229,7 +241,9 @@ class Client(object):
         :raises pilosa.PilosaError: if the field does not exist
         """
         path = "/index/%s/field/%s" % (field.index.name, field.name)
-        self.__http_request("DELETE", path)
+        span = self.tracer.start_span("Client.DeleteField")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            self.__http_request("DELETE", path)
 
     def ensure_index(self, index):
         """Creates an index on the server if it does not exist.
@@ -262,17 +276,19 @@ class Client(object):
         :rtype: pilosa.Schema
         """
         schema = Schema()
-        for index_info in self._read_schema():
-            index_options = index_info.get("options", {})
-            index = schema.index(index_info["name"],
-                                 keys=index_options.get("keys", False),
-                                 track_existence=index_options.get("trackExistence", False),
-                                 shard_width=index_info.get("shardWidth", 0))
-            for field_info in index_info.get("fields") or []:
-                if field_info["name"] in RESERVED_FIELDS:
-                    continue
-                options = decode_field_meta_options(field_info)
-                index.field(field_info["name"], **options)
+        span = self.tracer.start_span("Client.Schema")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            for index_info in self._read_schema():
+                index_options = index_info.get("options", {})
+                index = schema.index(index_info["name"],
+                                     keys=index_options.get("keys", False),
+                                     track_existence=index_options.get("trackExistence", False),
+                                     shard_width=index_info.get("shardWidth", 0))
+                for field_info in index_info.get("fields") or []:
+                    if field_info["name"] in RESERVED_FIELDS:
+                        continue
+                    options = decode_field_meta_options(field_info)
+                    index.field(field_info["name"], **options)
 
         return schema
 
@@ -283,28 +299,30 @@ class Client(object):
 
         :param pilosa.Schema schema: Local schema to be synced
         """
-        server_schema = self.schema()
+        span = self.tracer.start_span("Client.SyncSchema")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            server_schema = self.schema()
 
-        # find out local - remote schema
-        diff_schema = schema._diff(server_schema)
-        # create indexes and fields which doesn't exist on the server side
-        for index_name, index in diff_schema._indexes.items():
-            if index_name not in server_schema._indexes:
-                self.ensure_index(index)
-            for field_name, field in index._fields.items():
-                if field_name not in RESERVED_FIELDS:
-                    self.ensure_field(field)
-
-        # find out remote - local schema
-        diff_schema = server_schema._diff(schema)
-        for index_name, index in diff_schema._indexes.items():
-            local_index = schema._indexes.get(index_name)
-            if local_index is None:
-                schema._indexes[index_name] = index
-            else:
+            # find out local - remote schema
+            diff_schema = schema._diff(server_schema)
+            # create indexes and fields which doesn't exist on the server side
+            for index_name, index in diff_schema._indexes.items():
+                if index_name not in server_schema._indexes:
+                    self.ensure_index(index)
                 for field_name, field in index._fields.items():
                     if field_name not in RESERVED_FIELDS:
-                        local_index._fields[field_name] = field
+                        self.ensure_field(field)
+
+            # find out remote - local schema
+            diff_schema = server_schema._diff(schema)
+            for index_name, index in diff_schema._indexes.items():
+                local_index = schema._indexes.get(index_name)
+                if local_index is None:
+                    schema._indexes[index_name] = index
+                else:
+                    for field_name, field in index._fields.items():
+                        if field_name not in RESERVED_FIELDS:
+                            local_index._fields[field_name] = field
 
     def import_field(self, field, bit_reader, batch_size=100000, fast_import=False, clear=False):
         """Imports a field using the given bit reader
@@ -316,8 +334,10 @@ class Client(object):
         :param clear: clear bits instead of setting them
         """
         shard_width = field.index.shard_width or DEFAULT_SHARD_WIDTH
-        for shard, columns in batch_columns(bit_reader, batch_size, shard_width):
-            self._import_data(field, shard, columns, fast_import, clear)
+        span = self.tracer.start_span("Client.ImportField")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            for shard, columns in batch_columns(bit_reader, batch_size, shard_width):
+                self._import_data(field, shard, columns, fast_import, clear)
 
     def http_request(self, method, path, data=None, headers=None):
         """Sends an HTTP request to the Pilosa server
@@ -331,7 +351,9 @@ class Client(object):
         :return: HTTP response
 
         """
-        return self.__http_request(method, path, data=data, headers=headers)
+        span = self.tracer.start_span("Client.HttpRequest")
+        with self.tracer.scope_manager.activate(span, True) as scope:
+            return self.__http_request(method, path, data=data, headers=headers)
 
     def _import_data(self, field, shard, data, fast_import, clear):
         if field.field_type != "int":

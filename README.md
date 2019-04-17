@@ -91,6 +91,10 @@ See: [Server Interaction](https://github.com/pilosa/python-pilosa/blob/master/do
 
 See: [Importing and Exporting Data](https://github.com/pilosa/python-pilosa/blob/master/docs/imports.md)
 
+### Other Documentation
+
+* [Tracing](docs/tracing.md)
+
 ## Contributing
 
 See: [CONTRIBUTING](https://github.com/pilosa/python-pilosa/blob/master/CONTRIBUTING.md)
