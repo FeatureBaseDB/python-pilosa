@@ -169,8 +169,7 @@ class Client(object):
                                 exclude_row_attrs=exclude_attrs,
                                 shards=shards)
         path = "/index/%s/query" % query.index.name
-        span = self.tracer.start_span("Client.Query")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.Query") as span:
             try:
                 headers = {
                     "Content-Type": "application/x-protobuf",
@@ -196,8 +195,7 @@ class Client(object):
         """
         path = "/index/%s" % index.name
         data = index._get_options_string()
-        span = self.tracer.start_span("Client.CreateIndex")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.CreateIndex") as scope:
             try:
                 self.__http_request("POST", path, data=data)
             except PilosaServerError as e:
@@ -212,8 +210,7 @@ class Client(object):
         :raises pilosa.PilosaError: if the index does not exist
         """
         path = "/index/%s" % index.name
-        span = self.tracer.start_span("Client.DeleteIndex")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.DeleteIndex") as scope:
             self.__http_request("DELETE", path)
 
     def create_field(self, field):
@@ -224,8 +221,7 @@ class Client(object):
         """
         data = field._get_options_string()
         path = "/index/%s/field/%s" % (field.index.name, field.name)
-        span = self.tracer.start_span("Client.CreateField")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.CreateField") as scope:
             try:
                 self.__http_request("POST", path, data=data)
             except PilosaServerError as e:
@@ -241,8 +237,7 @@ class Client(object):
         :raises pilosa.PilosaError: if the field does not exist
         """
         path = "/index/%s/field/%s" % (field.index.name, field.name)
-        span = self.tracer.start_span("Client.DeleteField")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.DeleteField") as scope:
             self.__http_request("DELETE", path)
 
     def ensure_index(self, index):
@@ -276,8 +271,7 @@ class Client(object):
         :rtype: pilosa.Schema
         """
         schema = Schema()
-        span = self.tracer.start_span("Client.Schema")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.Schema") as scope:
             for index_info in self._read_schema():
                 index_options = index_info.get("options", {})
                 index = schema.index(index_info["name"],
@@ -299,8 +293,7 @@ class Client(object):
 
         :param pilosa.Schema schema: Local schema to be synced
         """
-        span = self.tracer.start_span("Client.SyncSchema")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.SyncSchema") as scope:
             server_schema = self.schema()
 
             # find out local - remote schema
@@ -334,8 +327,7 @@ class Client(object):
         :param clear: clear bits instead of setting them
         """
         shard_width = field.index.shard_width or DEFAULT_SHARD_WIDTH
-        span = self.tracer.start_span("Client.ImportField")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span("Client.ImportField") as scope:
             for shard, columns in batch_columns(bit_reader, batch_size, shard_width):
                 self._import_data(field, shard, columns, fast_import, clear)
 
@@ -352,7 +344,7 @@ class Client(object):
 
         """
         span = self.tracer.start_span("Client.HttpRequest")
-        with self.tracer.scope_manager.activate(span, True) as scope:
+        with self.tracer.start_span(span) as scope:
             return self.__http_request(method, path, data=data, headers=headers)
 
     def _import_data(self, field, shard, data, fast_import, clear):
@@ -444,7 +436,7 @@ class Client(object):
             else:
                 uri = "%s%s" % (self.__get_address(), path)
             try:
-                self.logger.debug("Request: %s %s %s", method, uri)
+                self.logger.debug("Request: %s %s", method, uri)
                 response = self.__client.request(method, uri, body=data, headers=headers)
                 break
             except urllib3.exceptions.MaxRetryError as e:

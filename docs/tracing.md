@@ -23,7 +23,7 @@ Check that you can access Pilosa:
 
 Let's run a Jaeger Server container:
 
-    $ docker run -it --rm -p 5775:5775/udp -p 16686:16686 jaegertracing/all-in-one:latest
+    $ docker run -it --rm -p 6831:6831/udp -p 5775:5775/udp -p 16686:16686 jaegertracing/all-in-one:latest
     ...<title>Jaeger UI</title>...
 
 ## Writing the Sample Code
@@ -45,13 +45,13 @@ def get_tracer(service_name):
                 'type': 'const',
                 'param': 1,
             },
-            'reporter': {
-                'local_agent_host_port': '127.0.0.1:5775'
+            'local_agent': {
+                'reporting_host': '127.0.0.1'
             }
         },
-        service_name=service_name,
+        service_name=service_name
     )
-    return config.initialize_tracer()   
+    return config.new_tracer()
 
 
 def main():
@@ -74,6 +74,8 @@ def main():
     # Run a query on Pilosa.
     # This should create a trace on the Jaeger server.
     client.query(my_field.set(1, 1000))
+
+    tracer.close()
 
 
 if __name__ == "__main__":
