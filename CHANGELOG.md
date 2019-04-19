@@ -1,5 +1,9 @@
 ## Change Log
 
+* **v1.3.0** (2019-04-19)
+    * **Compatible with Pilosa 1.2 and 1.3**
+    * Added support for OpenTracing. See [Tracing documentation](docs/tracing.md).
+
 * **v1.2.1** (2019-04-11)
     * **Compatible with Pilosa 1.2**
     * Added `field.rows` and `index.group_by` calls.
