@@ -1,5 +1,9 @@
 ## Change Log
 
+* **v1.3.1** (2019-04-26)
+    * **Compatible with Pilosa 1.2 and 1.3**
+    * This release adds `opentracing` to the `setup.py` dependencies. Otherwise, it's the same as v1.3.0. 
+
 * **v1.3.0** (2019-04-19)
     * **Compatible with Pilosa 1.2 and 1.3**
     * Added support for OpenTracing. See [Tracing documentation](docs/tracing.md).
