@@ -71,6 +71,6 @@ setup(
     packages=['pilosa', 'pilosa.internal'],
 
     setup_requires=['pytest-runner'],
-    install_requires=['urllib3', 'protobuf', 'pilosa-roaring'],
+    install_requires=['urllib3', 'protobuf', 'pilosa-roaring', 'opentracing'],
     tests_require=['pytest', 'mock', 'coverage', 'pytest-cov'],
 )
