@@ -525,6 +525,14 @@ class FieldTestCase(unittest.TestCase):
         target = '{"options": {"min": -10, "max": 10, "type": "int"}}'
         self.assertTrue(compare_string(target, field._get_options_string()))
 
+        field = sampleIndex.field("int_field2", int_min=None, int_max=10)
+        target = '{"options": {"min": %d, "max": 10, "type": "int"}}' % (-1 << 63)
+        self.assertTrue(compare_string(target, field._get_options_string()))
+
+        field = sampleIndex.field("int_field3", int_min=None, int_max=None)
+        target = '{"options": {"min": %d, "max": %d, "type": "int"}}' % (-1 << 63, 1<<63 - 1)
+        self.assertTrue(compare_string(target, field._get_options_string()))
+
         field = sampleIndex.field("mutex_field",
                                   cache_type=CacheType.RANKED, cache_size=1000,
                                   mutex=True)

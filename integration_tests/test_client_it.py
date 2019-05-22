@@ -630,7 +630,7 @@ class ClientIT(unittest.TestCase):
 
     def test_range_field(self):
         client = self.get_client()
-        field = self.col_index.field("rangefield", int_min=10, int_max=20)
+        field = self.col_index.field("rangefield", int_min=None, int_max=None)
         field2 = self.col_index.field("rangefield-set")
         client.ensure_field(field)
         client.ensure_field(field2)
