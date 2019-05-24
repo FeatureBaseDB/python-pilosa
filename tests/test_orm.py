@@ -573,11 +573,5 @@ class CacheTypeTestCase(unittest.TestCase):
         self.assertFalse(CacheType.RANKED == "ranked")
 
 
-class RangeFieldTestCase(unittest.TestCase):
-
-    def test_min_greater_equals_max_fails(self):
-        self.assertRaises(ValidationError, sampleIndex.field, "intminmax", int_min=10, int_max=9)
-
-
 def compare_string(s1, s2):
     return sorted(list(s1)) == sorted(list(s2))
