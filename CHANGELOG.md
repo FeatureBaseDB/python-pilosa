@@ -1,5 +1,8 @@
 ## Change Log
 
+* **next**
+    * Added support for unbounded int fields. Pass `int_min=None` to `index.field(...)` to set the minimum to `-1 << 63` and/or `int_max=None` to set the maximum to `1<<63 - 1`. 
+
 * **v1.3.1** (2019-04-26)
     * **Compatible with Pilosa 1.2 and 1.3**
     * This release adds `opentracing` to the `setup.py` dependencies. Otherwise, it's the same as v1.3.0. 

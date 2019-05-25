@@ -475,9 +475,6 @@ class Field:
     def __init__(self, index, name, time_quantum,
                  cache_type, cache_size, int_min, int_max, keys, mutex, bool):
         validate_field_name(name)
-        if int_max < int_min:
-            raise ValidationError("Max should be greater than min for int fields")
-
         self.index = index
         self.name = name
         self.time_quantum = time_quantum
@@ -869,8 +866,8 @@ in the given column will be returned.
         if self.time_quantum != TimeQuantum.NONE:
             data["timeQuantum"] = str(self.time_quantum)
         elif self.int_min != 0 or self.int_max != 0:
-            data["min"] = self.int_min
-            data["max"] = self.int_max
+            data["min"] = self.int_min if self.int_min is not None else -1 << 63
+            data["max"] = self.int_max if self.int_max is not None else 1<<63 - 1
         elif field_type in ["set", "mutex"]:
             if self.cache_type != CacheType.DEFAULT:
                 data["cacheType"] = str(self.cache_type)
