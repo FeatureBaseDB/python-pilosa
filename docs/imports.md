@@ -31,10 +31,10 @@ except ImportError:
     from StringIO import StringIO
 
 text = u"""
-    1,10,6837-11-30T02:00
-    5,20,6837-09-29T03:30
-    3,41,6837-09-23T03:08
-    10,10485760,6837-09-23T03:05
+    1,10,2019-11-30T02:00
+    5,20,2020-09-29T03:30
+    3,41,2017-09-23T03:08
+    10,10485760,2018-09-23T03:05
 """
 time_func = lambda s: int(time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M")))
 reader = csv_column_reader(StringIO(text), timefunc=time_func)
