@@ -17,10 +17,11 @@ ROW_ID,COLUMN_ID,TIMESTAMP
 Note that, each line corresponds to a single bit and the lines end with a new line (`\n` or `\r\n`).
 The target index and field must have been created before hand.
 
-Here's some sample code that uses `csv_row_id_column_id` formatter:
+Here's some sample code that uses `csv_row_id_column_id` formatter along with a timestamp:
 ```python
 import pilosa
 from pilosa.imports import csv_column_reader, csv_row_id_column_id
+import time
 
 try:
     # python 2.7 and 3
@@ -30,12 +31,13 @@ except ImportError:
     from StringIO import StringIO
 
 text = u"""
-    1,10,683793200
-    5,20,683793300
-    3,41,683793385
-    10,10485760,683793385
+    1,10,2019-11-30T02:00
+    5,20,2020-09-29T03:30
+    3,41,2017-09-23T03:08
+    10,10485760,2018-09-23T03:05
 """
-reader = csv_column_reader(StringIO(text), csv_row_id_column_id)
+time_func = lambda s: int(time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M")))
+reader = csv_column_reader(StringIO(text), timefunc=time_func)
 client = pilosa.Client()
 schema = client.schema()
 index = schema.index("sample-index")
