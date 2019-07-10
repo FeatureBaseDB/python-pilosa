@@ -66,7 +66,7 @@ def import_field(client, field, path, row_index):
         client.import_field(field, mcb())
 
 def import_csv(pilosa_addr, path):
-    client = Client(pilosa_addr)
+    client = Client(pilosa_addr, socket_timeout=10000)
 
     # create the schema
     schema = Schema()
