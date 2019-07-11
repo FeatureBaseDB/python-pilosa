@@ -2,6 +2,7 @@
 
 import sys
 import threading
+from queue import Queue
 
 from pilosa import Client, Schema
 from pilosa.imports import Column, FieldValue
@@ -23,6 +24,10 @@ FIELDS = [
     }}
 ]
 # -----------------------------
+# other settings
+THREAD_COUNT = 8
+VERBOSE = True
+#------------------------------
 
 
 class MultiColumnBitIterator:
@@ -98,13 +103,20 @@ class MultiColumnBitIterator:
                 yield bit
 
 
-def import_field(client, field, path, row_index, float_frac):
-    with open(path) as f:
-        mcb = MultiColumnBitIterator(f,
-                                     field,
-                                     row_index=row_index,
-                                     float_frac=float_frac)
-        client.import_field(field, mcb())
+def import_field(q, client, path):
+    while True:
+        item = q.get()
+        if item is None:
+            break
+        field, row_index, float_frac = item
+        print("Importing field:", field.name)
+        with open(path) as f:
+            mcb = MultiColumnBitIterator(f,
+                                         field,
+                                         row_index=row_index,
+                                         float_frac=float_frac)
+            client.import_field(field, mcb())
+        q.task_done()
 
 
 def import_csv(pilosa_addr, path):
@@ -136,13 +148,23 @@ def import_csv(pilosa_addr, path):
     client.sync_schema(schema)
 
     # import each field
+    q = Queue()
     threads = []
-    for i, (field, float_frac) in enumerate(fields):
+    for i in range(THREAD_COUNT):
         t = threading.Thread(target=import_field,
-                             args=(client, field, path, i + 1, float_frac))
+                             args=(q, client, path))
         t.start()
         threads.append(t)
-    
+
+    for i, (field, float_frac) in enumerate(fields):
+        q.put((field, i + 1, float_frac))
+
+    # wait for imports to finish
+    q.join()
+
+    # stop workers
+    for _ in threads:
+        q.put(None)
     for t in threads:
         t.join()
 
