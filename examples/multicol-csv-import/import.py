@@ -12,16 +12,26 @@ INDEX_KEYS = True
 FIELDS = [
     {"name": "size", "opts": {"keys": True}},
     {"name": "color", "opts": {"keys": True}},
-    {"name": "age", "opts": {"int_min": 0, "int_max": 150}},
+    {"name": "age", "opts": {
+        "int_min": 0,
+        "int_max": 150
+    }},
+    {"name": "result", "opts": {
+        "float_min": 1.13106317,
+        "float_max": 30.23959735,
+        "float_frac": 8, # number of fractional digits
+    }}
 ]
 # -----------------------------
+
 
 class MultiColumnBitIterator:
 
     def __init__(self,
             file_obj, field,
             column_index=0, row_index=1,
-            has_header=True):
+            has_header=True,
+            float_frac=0):
         self.file_obj = file_obj
         if has_header:
             # if there's a header skip it
@@ -29,13 +39,38 @@ class MultiColumnBitIterator:
 
         ci = column_index
         ri = row_index
-        
+        float_mul = 10**float_frac
+
+        def row_value(fs):
+            try:
+                if float_frac:
+                    # try to get row id field as a float
+                    return int(float(fs[ri]) * float_mul)
+                else:
+                    # try to getrow id field as an int
+                    return int(fs[ri])
+            except ValueError:
+                # cannot convert to a float or int, skip this one
+                return None
+
+        def field_with_column_key(fs):
+            value = row_value(fs)
+            if value is None:
+                return None
+            return FieldValue(column_key=fs[ci], value=value)
+
+        def field_with_column_id(fs):
+            value = row_value(fs)
+            if value is None:
+                return None
+            return FieldValue(column_id=int(fs[ci]), value=value)
+
         # set the bit yielder
         if field.field_type == "int":
             if field.index.keys:
-                self.yield_fun = lambda fs: FieldValue(column_key=fs[ci], value=int(fs[ri]))
+                self.yield_fun = field_with_column_key
             else:
-                self.yield_fun = lambda fs: FieldValue(column_id=int(fs[ci]), value=int(fs[ri]))
+                self.yield_fun = field_with_column_id
         else:
             if field.index.keys:
                 if field.keys:
@@ -58,12 +93,19 @@ class MultiColumnBitIterator:
             # split fields
             fs = [x.strip() for x in line.split(",")]
             # return a bit
-            yield yield_fun(fs)
+            bit = yield_fun(fs)
+            if bit is not None:
+                yield bit
 
-def import_field(client, field, path, row_index):
+
+def import_field(client, field, path, row_index, float_frac):
     with open(path) as f:
-        mcb = MultiColumnBitIterator(f, field, row_index=row_index)
+        mcb = MultiColumnBitIterator(f,
+                                     field,
+                                     row_index=row_index,
+                                     float_frac=float_frac)
         client.import_field(field, mcb())
+
 
 def import_csv(pilosa_addr, path):
     client = Client(pilosa_addr, socket_timeout=20000000)
@@ -71,13 +113,33 @@ def import_csv(pilosa_addr, path):
     # create the schema
     schema = Schema()
     index = schema.index(INDEX_NAME, keys=INDEX_KEYS, track_existence=True)
-    fields = [index.field(field["name"], **field["opts"]) for field in FIELDS]
+    fields = []
+    for field in FIELDS:
+        opts = field.get("opts", {})
+
+        # check whether opts include float related fields
+        # and convert them to int fields
+        float_frac = 0
+        if "float_frac" in opts:
+            float_frac = opts["float_frac"]
+            del opts["float_frac"]
+        if "float_min" in opts:
+            opts["int_min"] = int(opts["float_min"] * 10**float_frac)
+            del opts["float_min"]
+        if "float_max" in opts:
+            opts["int_max"] = int(opts["float_max"] * 10**float_frac)
+            del opts["float_max"]
+
+        field = index.field(field["name"], **opts)
+        fields.append((field, float_frac))
+
     client.sync_schema(schema)
 
     # import each field
     threads = []
-    for i, field in enumerate(fields):
-        t = threading.Thread(target=import_field, args=(client, field, path, i + 1))
+    for i, (field, float_frac) in enumerate(fields):
+        t = threading.Thread(target=import_field,
+                             args=(client, field, path, i + 1, float_frac))
         t.start()
         threads.append(t)
     
