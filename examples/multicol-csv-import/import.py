@@ -25,9 +25,13 @@ FIELDS = [
 ]
 # -----------------------------
 # other settings
-THREAD_COUNT = 8
+THREAD_COUNT = 0  # 0 = use the number of CPUs available to this process
 VERBOSE = True
 #------------------------------
+
+if not THREAD_COUNT:
+    import os
+    THREAD_COUNT = len(os.sched_getaffinity(0))
 
 
 class MultiColumnBitIterator:
@@ -176,6 +180,13 @@ def main():
     
     pilosa_addr = sys.argv[1]
     path = sys.argv[2]
+
+    print("Pilosa Address:", pilosa_addr)
+    print("Thread Count  :", THREAD_COUNT)
+    print("CSV Path      :", path)
+    print("Verbose       :", VERBOSE)
+    print()
+
     import_csv(pilosa_addr, path)
 
 if __name__ == "__main__":
