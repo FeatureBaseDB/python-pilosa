@@ -368,6 +368,11 @@ class Client(object):
             # don't copy these
             if k in ["cluster", "logger"]:
                 continue
+            # because these get divided by 1000.0 in __init__ to be in seconds, we
+            # have to change them to milliseconds before using them again in Client()
+            if k in ["connect_timeout", "socket_timeout"]:
+                client_params[k] = 1000.0 * v
+                continue
             client_params[k] = v
         for node in nodes:
             client = Client(URI.address(node.url), **client_params)
