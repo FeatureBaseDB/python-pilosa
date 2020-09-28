@@ -624,12 +624,12 @@ class Field:
     def _row_range(self, row, start, end):
         """Creates a Row query with timestamps."""
         row_str = idkey_as_str(row)
-        start_str = start.strftime(_TIME_FORMAT)
-        end_str = end.strftime(_TIME_FORMAT)
         parts = ['%s=%s' % (self.name, row_str)]
         if start:
+            start_str = start.strftime(_TIME_FORMAT)
             parts.append("from='%s'" % start_str)
         if end:
+            end_str = end.strftime(_TIME_FORMAT)
             parts.append("to='%s'" % end_str)
         return PQLQuery(u"Row(%s)" % ','.join(parts), self.index)
 
