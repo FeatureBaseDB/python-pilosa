@@ -467,7 +467,9 @@ class Client(object):
             'User-Agent': 'python-pilosa/%s' % VERSION,
         }
 
-        timeout = urllib3.Timeout(connect=self.connect_timeout / 1000.0, read=self.socket_timeout / 1000.0)
+        connect_timeout_in_seconds = self.connect_timeout / 1000.0
+        socket_timeout_in_seconds = self.socket_timeout / 1000.0
+        timeout = urllib3.Timeout(connect=connect_timeout_in_seconds, read=socket_timeout_in_seconds)
         client_options = {
             "num_pools": num_pools,
             "maxsize": self.pool_size_per_route,
