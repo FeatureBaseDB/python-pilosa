@@ -117,8 +117,8 @@ class Client(object):
         * See `Pilosa Python Client/Server Interaction <https://github.com/pilosa/python-pilosa/blob/master/docs/server-interaction.md>`_.
         """
         self.use_manual_address = use_manual_address
-        self.connect_timeout = connect_timeout / 1000.0
-        self.socket_timeout = socket_timeout / 1000.0
+        self.connect_timeout = connect_timeout
+        self.socket_timeout = socket_timeout
         self.pool_size_per_route = pool_size_per_route
         self.pool_size_total = pool_size_total
         self.retry_count = retry_count
@@ -467,7 +467,7 @@ class Client(object):
             'User-Agent': 'python-pilosa/%s' % VERSION,
         }
 
-        timeout = urllib3.Timeout(connect=self.connect_timeout, read=self.socket_timeout)
+        timeout = urllib3.Timeout(connect=self.connect_timeout / 1000.0, read=self.socket_timeout / 1000.0)
         client_options = {
             "num_pools": num_pools,
             "maxsize": self.pool_size_per_route,
