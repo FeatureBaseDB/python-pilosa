@@ -71,6 +71,21 @@ class ClientTestCase(unittest.TestCase):
         }
         self.assertEquals(target, options)
 
+    def test_timeout_stay_same_after_recreate(self):
+        prev_client = Client()
+        client_params = {}
+        for k, v in prev_client.__dict__.items():
+            # don't copy protected, private params
+            if k.startswith("_"):
+                continue
+            # don't copy these
+            if k in ["cluster", "logger"]:
+                continue
+            client_params[k] = v
+
+        new_client = Client(**client_params)
+        self.assertEquals(prev_client.connect_timeout, new_client.connect_timeout)
+        self.assertEquals(prev_client.socket_timeout, new_client.socket_timeout)
 
 
 class URITestCase(unittest.TestCase):
