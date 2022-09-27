@@ -1,5 +1,8 @@
 # Python Client for Pilosa
 
+This repo archived Sept 2022 as part of the transition from Pilosa to FeatureBase.
+Please contact community[at]featurebase[dot]com with any questions.
+
 <a href="https://github.com/pilosa"><img src="https://img.shields.io/badge/pilosa-1.3-blue.svg"></a>
 <a href="https://pypi.python.org/pypi/pilosa"><img src="https://img.shields.io/pypi/v/pilosa.svg?maxAge=2592&updated=2"></a>
 <a href="http://pilosa.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat"></A>
