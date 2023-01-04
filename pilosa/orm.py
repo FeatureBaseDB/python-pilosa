@@ -70,6 +70,9 @@ class TimeQuantum:
     def __str__(self):
         return self.value
 
+    def __repr__(self):
+        return "TimeQuantum(%s)" % self.value
+
     def __eq__(self, other):
         if isinstance(other, TimeQuantum):
             return self.value == other.value
@@ -106,6 +109,9 @@ class CacheType:
 
     def __str__(self):
         return self.value
+
+    def __repr__(self):
+        return "CacheType(%s)" % self.value
 
     def __eq__(self, other):
         if isinstance(other, CacheType):

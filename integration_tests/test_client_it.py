@@ -281,7 +281,6 @@ class ClientIT(unittest.TestCase):
         finally:
             client.delete_index(index)
 
-
     def test_ensure_index_exists(self):
         client = self.get_client()
         index = Index(self.index.name + "-ensure")
@@ -735,6 +734,32 @@ class ClientIT(unittest.TestCase):
         self.assertEquals(2, len(response.result.row.columns))
         self.assertEquals(100, response.result.row.columns[0])
         self.assertEquals(shard_width*3, response.result.row.columns[1])
+
+    def test_field_opts(self):
+        client = self.get_client()
+        schema = client.schema()
+        index = schema.index("index_wkeys", keys=True, track_existence=True, shard_width=2 ** 10)
+        try:
+            # create the schema
+            index.field("field_wkeys",
+                        keys=True,
+                        cache_type=CacheType.LRU,
+                        cache_size=1000)
+            client.sync_schema(schema)
+
+            # check that the correct schema was created
+            schema = client.schema()
+            index = schema.index("index_wkeys")
+            self.assertEqual("index_wkeys", index.name)
+            self.assertTrue(index.keys)
+            self.assertTrue(index.track_existence)
+            field = index.field("field_wkeys")
+            self.assertEqual("field_wkeys", field.name)
+            self.assertTrue(field.keys)
+            self.assertEqual(CacheType.LRU, field.cache_type)
+            self.assertEqual(1000, field.cache_size)
+        finally:
+            client.delete_index(index)
 
     def test_create_index_fail(self):
         server = MockServer(404)

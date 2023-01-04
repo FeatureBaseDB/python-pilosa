@@ -59,7 +59,7 @@ class ClientTestCase(unittest.TestCase):
         # create with invalid type
         self.assertRaises(PilosaError, Client, 15000)
 
-    def test_decode_field_meta_options(self):
+    def test_decode_default_field_meta_options(self):
         field_info = {}
         options = decode_field_meta_options(field_info)
         target = {
@@ -86,7 +86,6 @@ class ClientTestCase(unittest.TestCase):
         new_client = Client(**client_params)
         self.assertEquals(prev_client.connect_timeout, new_client.connect_timeout)
         self.assertEquals(prev_client.socket_timeout, new_client.socket_timeout)
-
 
 class URITestCase(unittest.TestCase):
 
@@ -332,7 +331,7 @@ class NodeTestCase(unittest.TestCase):
 
 
 def get_schema(index_keys, field_keys):
-    from pilosa.orm import Schema, Index, Field
+    from pilosa.orm import Schema
     schema = Schema()
     index = schema.index("foo", keys=index_keys)
     field = index.field("bar", keys=field_keys)

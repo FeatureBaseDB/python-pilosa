@@ -488,13 +488,17 @@ class Client(object):
 
 def decode_field_meta_options(field_info):
     meta = field_info.get("options", {})
-    return {
+    opts = {
         "cache_size": meta.get("cacheSize", 50000),
         "cache_type": CacheType(meta.get("cacheType", "")),
         "time_quantum": TimeQuantum(meta.get("timeQuantum", "")),
         "int_min": meta.get("min", 0),
-        "int_max": meta.get("max", 0),
+        "int_max": meta.get("max", 0)
     }
+    keys_opt = meta.get("keys")
+    if keys_opt is not None:
+        opts["keys"] = keys_opt
+    return opts
 
 
 class URI:
